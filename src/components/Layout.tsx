@@ -11,6 +11,7 @@ import {
   Menu,
   Divider,
   Tooltip,
+  Box,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
@@ -58,7 +59,6 @@ export function Layout() {
 
   return (
     <AppShell
-      header={{ height: 56 }}
       navbar={{
         width: navbarWidth,
         breakpoint: 'sm',
@@ -66,47 +66,6 @@ export function Layout() {
       }}
       padding="md"
     >
-      <AppShell.Header
-        style={{
-          backgroundColor: 'var(--mantine-color-dark-6)',
-          borderBottom: '1px solid var(--mantine-color-dark-4)',
-        }}
-      >
-        <Group h="100%" px="md" justify="space-between">
-          <Group>
-            <Burger
-              opened={mobileOpened}
-              onClick={toggleMobile}
-              hiddenFrom="sm"
-              size="sm"
-            />
-          </Group>
-
-          <Menu shadow="md" width={200} position="bottom-end">
-            <Menu.Target>
-              <ActionIcon variant="transparent" size="lg">
-                <Avatar color="cyan" radius="xl" size="sm">
-                  {user?.name?.charAt(0).toUpperCase()}
-                </Avatar>
-              </ActionIcon>
-            </Menu.Target>
-
-            <Menu.Dropdown>
-              <Menu.Item disabled>
-                <Text size="sm" c="dimmed">{user?.email}</Text>
-              </Menu.Item>
-              <Divider />
-              <Menu.Item
-                leftSection={<IconLogout size={16} />}
-                onClick={handleLogout}
-              >
-                Logout
-              </Menu.Item>
-            </Menu.Dropdown>
-          </Menu>
-        </Group>
-      </AppShell.Header>
-
       <AppShell.Navbar
         p="xs"
         style={{
@@ -120,15 +79,23 @@ export function Layout() {
             {!collapsed && (
               <Text fw={600} size="lg">Agent Factory</Text>
             )}
-            <Tooltip label={collapsed ? 'Expand' : 'Collapse'} position="right">
-              <ActionIcon
-                variant="subtle"
-                onClick={() => setCollapsed(!collapsed)}
-                visibleFrom="sm"
-              >
-                {collapsed ? <IconChevronRight size={18} /> : <IconChevronLeft size={18} />}
-              </ActionIcon>
-            </Tooltip>
+            <Group gap="xs">
+              <Burger
+                opened={mobileOpened}
+                onClick={toggleMobile}
+                hiddenFrom="sm"
+                size="sm"
+              />
+              <Tooltip label={collapsed ? 'Expand' : 'Collapse'} position="right">
+                <ActionIcon
+                  variant="subtle"
+                  onClick={() => setCollapsed(!collapsed)}
+                  visibleFrom="sm"
+                >
+                  {collapsed ? <IconChevronRight size={18} /> : <IconChevronLeft size={18} />}
+                </ActionIcon>
+              </Tooltip>
+            </Group>
           </Group>
         </AppShell.Section>
 
@@ -159,12 +126,60 @@ export function Layout() {
             </Tooltip>
           ))}
         </AppShell.Section>
+
+        <Divider my="xs" />
+
+        {/* User section at bottom */}
+        <AppShell.Section>
+          <Menu shadow="md" width={200} position="right-end">
+            <Menu.Target>
+              <Box
+                style={{
+                  padding: collapsed ? '8px' : '8px 12px',
+                  borderRadius: 'var(--mantine-radius-md)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  justifyContent: collapsed ? 'center' : 'flex-start',
+                }}
+                className="user-menu-trigger"
+              >
+                <Avatar color="cyan" radius="xl" size="sm">
+                  {user?.name?.charAt(0).toUpperCase()}
+                </Avatar>
+                {!collapsed && (
+                  <Box style={{ flex: 1, overflow: 'hidden' }}>
+                    <Text size="sm" fw={500} truncate>
+                      {user?.name}
+                    </Text>
+                    <Text size="xs" c="dimmed" truncate>
+                      {user?.email}
+                    </Text>
+                  </Box>
+                )}
+              </Box>
+            </Menu.Target>
+
+            <Menu.Dropdown>
+              <Menu.Label>{user?.email}</Menu.Label>
+              <Divider />
+              <Menu.Item
+                leftSection={<IconLogout size={16} />}
+                onClick={handleLogout}
+                color="red"
+              >
+                Logout
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
+        </AppShell.Section>
       </AppShell.Navbar>
 
       <AppShell.Main
         style={{
           backgroundColor: 'var(--mantine-color-dark-8)',
-          minHeight: 'calc(100vh - 56px)',
+          minHeight: '100vh',
         }}
       >
         <Outlet />
