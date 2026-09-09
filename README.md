@@ -1,32 +1,56 @@
-# React + TypeScript + Vite
+# Agent Factory UI
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React frontend for the Agent Factory platform - a visual workflow builder for AI agents.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **React 19** with TypeScript
+- **Vite** for fast development and building
+- **Material UI (MUI)** for components
+- **React Router** for navigation
+- **React Hook Form** for form handling
 
-## React Compiler
+## Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Authentication** - Cookie-based auth with login/logout
+- **Agents Management** - Create, edit, delete AI agents
+- **Provider Settings** - Configure OpenAI, Anthropic, Ollama providers
+- **API Keys** - Generate and manage API keys with permissions
+- **User Management** - Admin-only user creation (admin role required)
 
-## Expanding the Oxlint configuration
+## Getting Started
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+### Prerequisites
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+- Node.js 18+
+- Agent Factory backend running on `http://localhost:3000`
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `VITE_API_URL` | Backend API URL | `http://localhost:3000` |
+| `VITE_APP_NAME` | Application name | `Agent Factory` |
+
+### Installation
+
+```bash
+# Install dependencies
+npm install
+
+# Copy environment file
+cp .env.example .env
+
+# Start development server
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+
+## Scripts
+
+```bash
+npm run dev      # Start dev server
+npm run build    # Build for production
+npm run preview  # Preview production build
+npm run lint     # Run linter
+```
