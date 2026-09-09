@@ -2,23 +2,23 @@ import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import {
   Box,
-  Typography,
+  Text,
   Button,
   Card,
-  CardContent,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
+  Group,
+  Stack,
+  Modal,
+  TextInput,
+  PasswordInput,
   Select,
-  MenuItem,
-  CircularProgress,
   Alert,
-} from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
+} from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
+import {
+  IconPlus,
+  IconAlertCircle,
+  IconCheck,
+} from '@tabler/icons-react';
 import { usersApi } from '../api';
 
 type UserRole = 'admin' | 'user';
@@ -33,20 +33,16 @@ interface UserForm {
 export function UsersPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
   const [saving, setSaving] = useState(false);
 
   const { register, handleSubmit, control, reset, formState: { errors } } = useForm<UserForm>({
     defaultValues: { name: '', email: '', password: '', role: 'user' },
   });
 
-  const handleOpenDialog = () => {
+  const handleOpenModal = () => {
     reset({ name: '', email: '', password: '', role: 'user' });
-    setDialogOpen(true);
-  };
-
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
+    openModal();
   };
 
   const onSubmit = async (data: UserForm) => {
@@ -55,7 +51,7 @@ export function UsersPage() {
     try {
       await usersApi.create(data);
       setSuccess(`User "${data.name}" created successfully`);
-      handleCloseDialog();
+      closeModal();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create user');
     } finally {
@@ -65,88 +61,90 @@ export function UsersPage() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 2, sm: 3 }, gap: 2 }}>
-        <Box sx={{ flex: 1 }} />
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenDialog} sx={{ whiteSpace: 'nowrap' }}>
+      <Group mb="md" justify="flex-end">
+        <Button leftSection={<IconPlus size={16} />} onClick={handleOpenModal}>
           Create User
         </Button>
-      </Box>
+      </Group>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+        <Alert
+          icon={<IconAlertCircle size={16} />}
+          color="red"
+          mb="md"
+          withCloseButton
+          onClose={() => setError('')}
+        >
           {error}
         </Alert>
       )}
 
       {success && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
+        <Alert
+          icon={<IconCheck size={16} />}
+          color="green"
+          mb="md"
+          withCloseButton
+          onClose={() => setSuccess('')}
+        >
           {success}
         </Alert>
       )}
 
-      <Card>
-        <CardContent>
-          <Typography color="text.secondary">
-            Create new users for the Agent Factory platform. Only administrators can access this page.
-          </Typography>
-        </CardContent>
+      <Card withBorder padding="lg">
+        <Text c="dimmed">
+          Create new users for the Agent Factory platform. Only administrators can access this page.
+        </Text>
       </Card>
 
-      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+      <Modal opened={modalOpened} onClose={closeModal} title="Create User">
         <form onSubmit={handleSubmit(onSubmit)}>
-          <DialogTitle>Create User</DialogTitle>
-          <DialogContent>
-            <TextField
-              fullWidth
+          <Stack>
+            <TextInput
               label="Name"
-              margin="normal"
-              error={!!errors.name}
-              helperText={errors.name?.message}
+              error={errors.name?.message}
               {...register('name', { required: 'Name is required' })}
             />
-            <TextField
-              fullWidth
+            <TextInput
               label="Email"
               type="email"
-              margin="normal"
-              error={!!errors.email}
-              helperText={errors.email?.message}
+              error={errors.email?.message}
               {...register('email', { required: 'Email is required' })}
             />
-            <TextField
-              fullWidth
+            <PasswordInput
               label="Password"
-              type="password"
-              margin="normal"
-              error={!!errors.password}
-              helperText={errors.password?.message || 'Minimum 8 characters'}
+              description="Minimum 8 characters"
+              error={errors.password?.message}
               {...register('password', {
                 required: 'Password is required',
                 minLength: { value: 8, message: 'Password must be at least 8 characters' },
               })}
             />
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Role</InputLabel>
-              <Controller
-                name="role"
-                control={control}
-                render={({ field }) => (
-                  <Select {...field} label="Role">
-                    <MenuItem value="user">User</MenuItem>
-                    <MenuItem value="admin">Admin</MenuItem>
-                  </Select>
-                )}
-              />
-            </FormControl>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseDialog}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={saving}>
-              {saving ? <CircularProgress size={24} /> : 'Create'}
-            </Button>
-          </DialogActions>
+            <Controller
+              name="role"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  label="Role"
+                  data={[
+                    { value: 'user', label: 'User' },
+                    { value: 'admin', label: 'Admin' },
+                  ]}
+                  {...field}
+                />
+              )}
+            />
+            <Group justify="flex-end" mt="md">
+              <Button variant="subtle" onClick={closeModal}>
+                Cancel
+              </Button>
+              <Button type="submit" loading={saving}>
+                Create
+              </Button>
+            </Group>
+          </Stack>
         </form>
-      </Dialog>
+      </Modal>
     </Box>
   );
 }

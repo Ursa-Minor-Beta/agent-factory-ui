@@ -2,39 +2,31 @@ import { useState, useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import {
   Box,
-  Typography,
+  Text,
   Button,
   Card,
-  CardContent,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  CircularProgress,
+  Group,
+  Stack,
+  ActionIcon,
+  Modal,
+  TextInput,
+  PasswordInput,
+  Loader,
   Alert,
+  Badge,
   Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
-  InputAdornment,
-} from '@mui/material';
+  Center,
+  Select,
+} from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Star as StarIcon,
-  StarBorder as StarBorderIcon,
-  Search as SearchIcon,
-} from '@mui/icons-material';
+  IconPlus,
+  IconTrash,
+  IconStar,
+  IconStarFilled,
+  IconSearch,
+  IconAlertCircle,
+} from '@tabler/icons-react';
 import { providersApi } from '../api';
 import type { ProviderConfig } from '../types';
 
@@ -51,7 +43,7 @@ export function ProvidersPage() {
   const [providers, setProviders] = useState<ProviderConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
 
@@ -88,13 +80,9 @@ export function ProvidersPage() {
     loadProviders();
   }, []);
 
-  const handleOpenDialog = () => {
+  const handleOpenModal = () => {
     reset({ provider: 'openai', name: '', apiKey: '', baseUrl: '' });
-    setDialogOpen(true);
-  };
-
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
+    openModal();
   };
 
   const onSubmit = async (data: ProviderForm) => {
@@ -108,7 +96,7 @@ export function ProvidersPage() {
           baseUrl: data.baseUrl || undefined,
         },
       });
-      handleCloseDialog();
+      closeModal();
       loadProviders();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save provider');
@@ -138,155 +126,152 @@ export function ProvidersPage() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-        <CircularProgress />
-      </Box>
+      <Center py="xl">
+        <Loader />
+      </Center>
     );
   }
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 2, sm: 3 }, gap: 2 }}>
-        <TextField
+      <Group mb="md" gap="sm">
+        <TextInput
           placeholder="Search providers..."
-          size="small"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon sx={{ color: 'text.secondary' }} />
-                </InputAdornment>
-              ),
-            },
-          }}
-          sx={{ flex: 1, maxWidth: 400 }}
+          onChange={(e) => setSearch(e.currentTarget.value)}
+          leftSection={<IconSearch size={16} />}
+          style={{ flex: 1, maxWidth: 400 }}
         />
-        <Box sx={{ flex: 1 }} />
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenDialog} sx={{ whiteSpace: 'nowrap' }}>
+        <Box style={{ flex: 1 }} />
+        <Button leftSection={<IconPlus size={16} />} onClick={handleOpenModal}>
           Add Provider
         </Button>
-      </Box>
+      </Group>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+        <Alert
+          icon={<IconAlertCircle size={16} />}
+          color="red"
+          mb="md"
+          withCloseButton
+          onClose={() => setError('')}
+        >
           {error}
         </Alert>
       )}
 
-      <Card>
-        <CardContent>
-          <TableContainer component={Paper} variant="outlined">
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Provider</TableCell>
-                  <TableCell>API Key</TableCell>
-                  <TableCell>Base URL</TableCell>
-                  <TableCell>Default</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredProviders.map((provider) => (
-                  <TableRow key={provider.id}>
-                    <TableCell>{provider.name}</TableCell>
-                    <TableCell>
-                      <Chip label={provider.provider} size="small" />
-                    </TableCell>
-                    <TableCell>{provider.config.apiKey || '-'}</TableCell>
-                    <TableCell>{provider.config.baseUrl || '-'}</TableCell>
-                    <TableCell>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleSetDefault(provider.id)}
-                        color={provider.isDefault ? 'warning' : 'default'}
-                      >
-                        {provider.isDefault ? <StarIcon /> : <StarBorderIcon />}
-                      </IconButton>
-                    </TableCell>
-                    <TableCell align="right">
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => handleDelete(provider.id)}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filteredProviders.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center">
-                      {providers.length === 0
-                        ? 'No providers configured'
-                        : 'No providers match your search'}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </CardContent>
+      <Card withBorder>
+        <Table striped highlightOnHover>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Name</Table.Th>
+              <Table.Th>Provider</Table.Th>
+              <Table.Th>API Key</Table.Th>
+              <Table.Th>Base URL</Table.Th>
+              <Table.Th>Default</Table.Th>
+              <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {filteredProviders.map((provider) => (
+              <Table.Tr key={provider.id}>
+                <Table.Td>{provider.name}</Table.Td>
+                <Table.Td>
+                  <Badge variant="light">{provider.provider}</Badge>
+                </Table.Td>
+                <Table.Td>
+                  <Text size="sm" c="dimmed">
+                    {provider.config.apiKey ? '••••••••' : '-'}
+                  </Text>
+                </Table.Td>
+                <Table.Td>
+                  <Text size="sm" c="dimmed">
+                    {provider.config.baseUrl || '-'}
+                  </Text>
+                </Table.Td>
+                <Table.Td>
+                  <ActionIcon
+                    variant="subtle"
+                    color={provider.isDefault ? 'yellow' : 'gray'}
+                    onClick={() => handleSetDefault(provider.id)}
+                  >
+                    {provider.isDefault ? <IconStarFilled size={18} /> : <IconStar size={18} />}
+                  </ActionIcon>
+                </Table.Td>
+                <Table.Td style={{ textAlign: 'right' }}>
+                  <ActionIcon
+                    variant="subtle"
+                    color="red"
+                    onClick={() => handleDelete(provider.id)}
+                  >
+                    <IconTrash size={18} />
+                  </ActionIcon>
+                </Table.Td>
+              </Table.Tr>
+            ))}
+            {filteredProviders.length === 0 && (
+              <Table.Tr>
+                <Table.Td colSpan={6}>
+                  <Text ta="center" c="dimmed" py="md">
+                    {providers.length === 0
+                      ? 'No providers configured'
+                      : 'No providers match your search'}
+                  </Text>
+                </Table.Td>
+              </Table.Tr>
+            )}
+          </Table.Tbody>
+        </Table>
       </Card>
 
-      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+      <Modal opened={modalOpened} onClose={closeModal} title="Add Provider">
         <form onSubmit={handleSubmit(onSubmit)}>
-          <DialogTitle>Add Provider</DialogTitle>
-          <DialogContent>
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Provider</InputLabel>
-              <Controller
-                name="provider"
-                control={control}
-                render={({ field }) => (
-                  <Select {...field} label="Provider">
-                    <MenuItem value="openai">OpenAI</MenuItem>
-                    <MenuItem value="anthropic">Anthropic</MenuItem>
-                    <MenuItem value="ollama">Ollama</MenuItem>
-                  </Select>
-                )}
-              />
-            </FormControl>
-            <TextField
-              fullWidth
+          <Stack>
+            <Controller
+              name="provider"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  label="Provider"
+                  data={[
+                    { value: 'openai', label: 'OpenAI' },
+                    { value: 'anthropic', label: 'Anthropic' },
+                    { value: 'ollama', label: 'Ollama' },
+                  ]}
+                  {...field}
+                />
+              )}
+            />
+            <TextInput
               label="Name"
-              margin="normal"
               placeholder="e.g., Production OpenAI"
-              error={!!errors.name}
-              helperText={errors.name?.message}
+              error={errors.name?.message}
               {...register('name', { required: 'Name is required' })}
             />
             {watchProvider !== 'ollama' && (
-              <TextField
-                fullWidth
+              <PasswordInput
                 label="API Key"
-                margin="normal"
-                type="password"
                 {...register('apiKey')}
               />
             )}
             {watchProvider === 'ollama' && (
-              <TextField
-                fullWidth
+              <TextInput
                 label="Base URL"
-                margin="normal"
                 placeholder="http://localhost:11434"
                 {...register('baseUrl')}
               />
             )}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseDialog}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={saving}>
-              {saving ? <CircularProgress size={24} /> : 'Save'}
-            </Button>
-          </DialogActions>
+            <Group justify="flex-end" mt="md">
+              <Button variant="subtle" onClick={closeModal}>
+                Cancel
+              </Button>
+              <Button type="submit" loading={saving}>
+                Save
+              </Button>
+            </Group>
+          </Stack>
         </form>
-      </Dialog>
+      </Modal>
     </Box>
   );
 }

@@ -1,37 +1,28 @@
 import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
-  Box,
-  Drawer,
-  AppBar,
-  Toolbar,
-  Typography,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  IconButton,
-  Divider,
+  AppShell,
+  Burger,
+  Group,
+  NavLink,
+  Text,
+  ActionIcon,
   Avatar,
   Menu,
-  MenuItem,
+  Divider,
   Tooltip,
-} from '@mui/material';
+} from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import {
-  Menu as MenuIcon,
-  SmartToy as AgentsIcon,
-  Settings as SettingsIcon,
-  Key as ApiKeysIcon,
-  People as UsersIcon,
-  Logout as LogoutIcon,
-  ChevronLeft as CollapseIcon,
-  ChevronRight as ExpandIcon,
-} from '@mui/icons-material';
+  IconRobot,
+  IconSettings,
+  IconKey,
+  IconUsers,
+  IconLogout,
+  IconChevronLeft,
+  IconChevronRight,
+} from '@tabler/icons-react';
 import { useAuth } from '../contexts/AuthContext';
-
-const DRAWER_WIDTH = 240;
-const DRAWER_WIDTH_COLLAPSED = 64;
 
 interface NavItem {
   label: string;
@@ -41,40 +32,20 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Agents', path: '/agents', icon: <AgentsIcon /> },
-  { label: 'Providers', path: '/providers', icon: <SettingsIcon /> },
-  { label: 'API Keys', path: '/api-keys', icon: <ApiKeysIcon /> },
-  { label: 'Users', path: '/users', icon: <UsersIcon />, adminOnly: true },
+  { label: 'Agents', path: '/agents', icon: <IconRobot size={20} /> },
+  { label: 'Providers', path: '/providers', icon: <IconSettings size={20} /> },
+  { label: 'API Keys', path: '/api-keys', icon: <IconKey size={20} /> },
+  { label: 'Users', path: '/users', icon: <IconUsers size={20} />, adminOnly: true },
 ];
 
 export function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileOpened, { toggle: toggleMobile, close: closeMobile }] = useDisclosure();
   const [collapsed, setCollapsed] = useState(false);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-
-  const drawerWidth = collapsed ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH;
-
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
-  };
-
-  const handleCollapse = () => {
-    setCollapsed(!collapsed);
-  };
-
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
 
   const handleLogout = async () => {
-    handleMenuClose();
     await logout();
     navigate('/login');
   };
@@ -83,174 +54,121 @@ export function Layout() {
     (item) => !item.adminOnly || user?.role === 'admin'
   );
 
-  const drawer = (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <Toolbar sx={{ justifyContent: collapsed ? 'center' : 'space-between', px: collapsed ? 1 : 2 }}>
-        {!collapsed && (
-          <Typography variant="h6" noWrap>
-            Agent Factory
-          </Typography>
-        )}
-        <IconButton onClick={handleCollapse} size="small" sx={{ display: { xs: 'none', sm: 'flex' } }}>
-          {collapsed ? <ExpandIcon /> : <CollapseIcon />}
-        </IconButton>
-      </Toolbar>
-      <Divider />
-      <List sx={{ flex: 1 }}>
-        {filteredNavItems.map((item) => (
-          <ListItem key={item.path} disablePadding>
-            <Tooltip title={collapsed ? item.label : ''} placement="right">
-              <ListItemButton
-                selected={location.pathname === item.path}
-                onClick={() => {
-                  navigate(item.path);
-                  setMobileOpen(false);
-                }}
-                sx={{
-                  justifyContent: collapsed ? 'center' : 'flex-start',
-                  px: collapsed ? 2 : 3,
-                }}
-              >
-                <ListItemIcon sx={{ minWidth: collapsed ? 0 : 40 }}>
-                  {item.icon}
-                </ListItemIcon>
-                {!collapsed && <ListItemText primary={item.label} />}
-              </ListItemButton>
-            </Tooltip>
-          </ListItem>
-        ))}
-      </List>
-    </Box>
-  );
-
-  // Mobile drawer (always expanded)
-  const mobileDrawer = (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <Toolbar>
-        <Typography variant="h6" noWrap>
-          Agent Factory
-        </Typography>
-      </Toolbar>
-      <Divider />
-      <List sx={{ flex: 1 }}>
-        {filteredNavItems.map((item) => (
-          <ListItem key={item.path} disablePadding>
-            <ListItemButton
-              selected={location.pathname === item.path}
-              onClick={() => {
-                navigate(item.path);
-                setMobileOpen(false);
-              }}
-            >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.label} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
-    </Box>
-  );
+  const navbarWidth = collapsed ? 64 : 240;
 
   return (
-    <Box sx={{ display: 'flex' }}>
-      <AppBar
-        position="fixed"
-        elevation={0}
-        sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
-          bgcolor: 'background.paper',
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          backgroundImage: 'none',
-          transition: 'width 0.2s, margin-left 0.2s',
+    <AppShell
+      header={{ height: 56 }}
+      navbar={{
+        width: navbarWidth,
+        breakpoint: 'sm',
+        collapsed: { mobile: !mobileOpened },
+      }}
+      padding="md"
+    >
+      <AppShell.Header
+        style={{
+          backgroundColor: 'var(--mantine-color-dark-6)',
+          borderBottom: '1px solid var(--mantine-color-dark-4)',
         }}
       >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Box sx={{ flexGrow: 1 }} />
-          <IconButton onClick={handleMenuOpen} sx={{ p: 0 }}>
-            <Avatar sx={{ bgcolor: 'secondary.main' }}>
-              {user?.name?.charAt(0).toUpperCase()}
-            </Avatar>
-          </IconButton>
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-          >
-            <MenuItem disabled>
-              <Typography variant="body2">{user?.email}</Typography>
-            </MenuItem>
-            <Divider />
-            <MenuItem onClick={handleLogout}>
-              <ListItemIcon>
-                <LogoutIcon fontSize="small" />
-              </ListItemIcon>
-              Logout
-            </MenuItem>
+        <Group h="100%" px="md" justify="space-between">
+          <Group>
+            <Burger
+              opened={mobileOpened}
+              onClick={toggleMobile}
+              hiddenFrom="sm"
+              size="sm"
+            />
+          </Group>
+
+          <Menu shadow="md" width={200} position="bottom-end">
+            <Menu.Target>
+              <ActionIcon variant="transparent" size="lg">
+                <Avatar color="cyan" radius="xl" size="sm">
+                  {user?.name?.charAt(0).toUpperCase()}
+                </Avatar>
+              </ActionIcon>
+            </Menu.Target>
+
+            <Menu.Dropdown>
+              <Menu.Item disabled>
+                <Text size="sm" c="dimmed">{user?.email}</Text>
+              </Menu.Item>
+              <Divider />
+              <Menu.Item
+                leftSection={<IconLogout size={16} />}
+                onClick={handleLogout}
+              >
+                Logout
+              </Menu.Item>
+            </Menu.Dropdown>
           </Menu>
-        </Toolbar>
-      </AppBar>
+        </Group>
+      </AppShell.Header>
 
-      <Box
-        component="nav"
-        sx={{
-          width: { sm: drawerWidth },
-          flexShrink: { sm: 0 },
-          transition: 'width 0.2s',
+      <AppShell.Navbar
+        p="xs"
+        style={{
+          backgroundColor: 'var(--mantine-color-dark-6)',
+          borderRight: '1px solid var(--mantine-color-dark-4)',
+          transition: 'width 200ms ease',
         }}
       >
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{ keepMounted: true }}
-          sx={{
-            display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: DRAWER_WIDTH },
-          }}
-        >
-          {mobileDrawer}
-        </Drawer>
-        <Drawer
-          variant="permanent"
-          sx={{
-            display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': {
-              boxSizing: 'border-box',
-              width: drawerWidth,
-              transition: 'width 0.2s',
-              overflowX: 'hidden',
-            },
-          }}
-          open
-        >
-          {drawer}
-        </Drawer>
-      </Box>
+        <AppShell.Section>
+          <Group justify={collapsed ? 'center' : 'space-between'} px={collapsed ? 0 : 'xs'} py="xs">
+            {!collapsed && (
+              <Text fw={600} size="lg">Agent Factory</Text>
+            )}
+            <Tooltip label={collapsed ? 'Expand' : 'Collapse'} position="right">
+              <ActionIcon
+                variant="subtle"
+                onClick={() => setCollapsed(!collapsed)}
+                visibleFrom="sm"
+              >
+                {collapsed ? <IconChevronRight size={18} /> : <IconChevronLeft size={18} />}
+              </ActionIcon>
+            </Tooltip>
+          </Group>
+        </AppShell.Section>
 
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          p: { xs: 2, sm: 3 },
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          mt: { xs: 7, sm: 8 },
-          transition: 'width 0.2s',
+        <Divider mb="xs" />
+
+        <AppShell.Section grow>
+          {filteredNavItems.map((item) => (
+            <Tooltip
+              key={item.path}
+              label={item.label}
+              position="right"
+              disabled={!collapsed}
+            >
+              <NavLink
+                active={location.pathname === item.path}
+                label={collapsed ? '' : item.label}
+                leftSection={item.icon}
+                onClick={() => {
+                  navigate(item.path);
+                  closeMobile();
+                }}
+                style={{
+                  borderRadius: 'var(--mantine-radius-md)',
+                  marginBottom: 4,
+                  justifyContent: collapsed ? 'center' : 'flex-start',
+                }}
+              />
+            </Tooltip>
+          ))}
+        </AppShell.Section>
+      </AppShell.Navbar>
+
+      <AppShell.Main
+        style={{
+          backgroundColor: 'var(--mantine-color-dark-8)',
+          minHeight: 'calc(100vh - 56px)',
         }}
       >
         <Outlet />
-      </Box>
-    </Box>
+      </AppShell.Main>
+    </AppShell>
   );
 }

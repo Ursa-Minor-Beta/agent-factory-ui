@@ -1,5 +1,5 @@
 import { Navigate } from 'react-router-dom';
-import { CircularProgress, Box } from '@mui/material';
+import { Loader, Center } from '@mantine/core';
 import { useAuth } from '../contexts/AuthContext';
 
 interface PublicRouteProps {
@@ -11,9 +11,9 @@ export function PublicRoute({ children }: PublicRouteProps) {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
-      </Box>
+      <Center style={{ height: '100vh' }}>
+        <Loader />
+      </Center>
     );
   }
 

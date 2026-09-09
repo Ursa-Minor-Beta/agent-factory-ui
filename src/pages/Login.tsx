@@ -4,13 +4,15 @@ import { useForm } from 'react-hook-form';
 import {
   Box,
   Card,
-  CardContent,
-  TextField,
+  TextInput,
+  PasswordInput,
   Button,
-  Typography,
+  Title,
+  Text,
   Alert,
-  CircularProgress,
-} from '@mui/material';
+  Stack,
+} from '@mantine/core';
+import { IconAlertCircle } from '@tabler/icons-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface LoginForm {
@@ -43,61 +45,69 @@ export function LoginPage() {
 
   return (
     <Box
-      sx={{
+      style={{
         minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        bgcolor: 'background.default',
+        backgroundColor: 'var(--mantine-color-dark-8)',
       }}
     >
-      <Card sx={{ maxWidth: 400, width: '100%', mx: 2 }}>
-        <CardContent sx={{ p: 4 }}>
-          <Typography variant="h4" component="h1" gutterBottom sx={{ textAlign: 'center' }}>
-            Agent Factory
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mb: 3 }}>
-            Sign in to your account
-          </Typography>
+      <Card
+        shadow="md"
+        padding="xl"
+        radius="md"
+        style={{
+          maxWidth: 400,
+          width: '100%',
+          margin: '0 16px',
+          backgroundColor: 'var(--mantine-color-dark-6)',
+        }}
+      >
+        <Title order={2} ta="center" mb="xs">
+          Agent Factory
+        </Title>
+        <Text c="dimmed" size="sm" ta="center" mb="lg">
+          Sign in to your account
+        </Text>
 
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
+        {error && (
+          <Alert
+            icon={<IconAlertCircle size={16} />}
+            color="red"
+            mb="md"
+            variant="light"
+          >
+            {error}
+          </Alert>
+        )}
 
-          <Box component="form" onSubmit={handleSubmit(onSubmit)}>
-            <TextField
-              fullWidth
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <Stack>
+            <TextInput
               label="Email"
               type="email"
-              margin="normal"
+              placeholder="your@email.com"
               autoFocus
-              error={!!errors.email}
-              helperText={errors.email?.message}
+              error={errors.email?.message}
               {...register('email', { required: 'Email is required' })}
             />
-            <TextField
-              fullWidth
+            <PasswordInput
               label="Password"
-              type="password"
-              margin="normal"
-              error={!!errors.password}
-              helperText={errors.password?.message}
+              placeholder="Your password"
+              error={errors.password?.message}
               {...register('password', { required: 'Password is required' })}
             />
             <Button
               type="submit"
               fullWidth
-              variant="contained"
-              size="large"
-              disabled={loading}
-              sx={{ mt: 3 }}
+              loading={loading}
+              mt="md"
             >
-              {loading ? <CircularProgress size={24} /> : 'Sign In'}
+              Sign In
             </Button>
-          </Box>
-        </CardContent>
+          </Stack>
+        </form>
       </Card>
     </Box>
   );

@@ -2,40 +2,33 @@ import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import {
   Box,
-  Typography,
+  Text,
   Button,
   Card,
-  CardContent,
-  CardActions,
-  Grid,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  CircularProgress,
+  Group,
+  Stack,
+  ActionIcon,
+  Modal,
+  TextInput,
+  Textarea,
+  Loader,
   Alert,
-  useMediaQuery,
-  useTheme,
-  InputAdornment,
-  Chip,
+  Badge,
   Pagination,
-  FormControl,
   Select,
-  MenuItem,
-  Collapse,
-  FormControlLabel,
-  Switch,
-} from '@mui/material';
+  SimpleGrid,
+  Center,
+} from '@mantine/core';
+import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-  Search as SearchIcon,
-  FilterList as FilterIcon,
-  Clear as ClearIcon,
-} from '@mui/icons-material';
+  IconPlus,
+  IconTrash,
+  IconEdit,
+  IconSearch,
+  IconFilter,
+  IconX,
+  IconAlertCircle,
+} from '@tabler/icons-react';
 import { agentsApi } from '../api';
 import type { Agent, AgentQueryParams } from '../types';
 import { useAuth } from '../contexts/AuthContext';
@@ -48,8 +41,7 @@ interface AgentForm {
 const ITEMS_PER_PAGE = 12;
 
 export function AgentsPage() {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
 
@@ -57,29 +49,37 @@ export function AgentsPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [saving, setSaving] = useState(false);
 
   // Filter panel
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, { toggle: toggleFilters }] = useDisclosure(false);
 
   // Query params
   const [search, setSearch] = useState('');
   const [searchDebounced, setSearchDebounced] = useState('');
   const [descriptionFilter, setDescriptionFilter] = useState('');
   const [descriptionDebounced, setDescriptionDebounced] = useState('');
-  const [isSystemFilter, setIsSystemFilter] = useState<boolean | undefined>(undefined);
+  const [isSystemFilter, setIsSystemFilter] = useState<string | null>('all');
   const [createdAfter, setCreatedAfter] = useState('');
   const [createdBefore, setCreatedBefore] = useState('');
-  const [sortBy, setSortBy] = useState<AgentQueryParams['sortBy']>('name');
-  const [sortOrder, setSortOrder] = useState<AgentQueryParams['sortOrder']>('asc');
+  const [sortValue, setSortValue] = useState<string | null>('name-asc');
   const [page, setPage] = useState(1);
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<AgentForm>();
 
+  // Parse sort value
+  const [sortBy, sortOrder] = (sortValue || 'name-asc').split('-') as [AgentQueryParams['sortBy'], AgentQueryParams['sortOrder']];
+
   // Check if any filters are active
-  const hasActiveFilters = searchDebounced || descriptionDebounced || isSystemFilter !== undefined || createdAfter || createdBefore;
+  const activeFilterCount = [
+    searchDebounced,
+    descriptionDebounced,
+    isSystemFilter !== 'all',
+    createdAfter,
+    createdBefore,
+  ].filter(Boolean).length;
 
   // Debounce search inputs
   useEffect(() => {
@@ -113,8 +113,8 @@ export function AgentsPage() {
       if (descriptionDebounced.trim()) {
         params.description = descriptionDebounced;
       }
-      if (isAdmin && isSystemFilter !== undefined) {
-        params.isSystem = isSystemFilter;
+      if (isAdmin && isSystemFilter && isSystemFilter !== 'all') {
+        params.isSystem = isSystemFilter === 'system';
       }
       if (createdAfter) {
         params.createdAfter = new Date(createdAfter).toISOString();
@@ -137,7 +137,7 @@ export function AgentsPage() {
     loadAgents();
   }, [loadAgents]);
 
-  const handleOpenDialog = (agent?: Agent) => {
+  const handleOpenModal = (agent?: Agent) => {
     if (agent) {
       setEditingAgent(agent);
       reset({ name: agent.name, description: agent.description || '' });
@@ -145,11 +145,11 @@ export function AgentsPage() {
       setEditingAgent(null);
       reset({ name: '', description: '' });
     }
-    setDialogOpen(true);
+    openModal();
   };
 
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
+  const handleCloseModal = () => {
+    closeModal();
     setEditingAgent(null);
     reset({ name: '', description: '' });
   };
@@ -162,7 +162,7 @@ export function AgentsPage() {
       } else {
         await agentsApi.create(data);
       }
-      handleCloseDialog();
+      handleCloseModal();
       loadAgents();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save agent');
@@ -186,7 +186,7 @@ export function AgentsPage() {
     setSearchDebounced('');
     setDescriptionFilter('');
     setDescriptionDebounced('');
-    setIsSystemFilter(undefined);
+    setIsSystemFilter('all');
     setCreatedAfter('');
     setCreatedBefore('');
     setPage(1);
@@ -197,264 +197,249 @@ export function AgentsPage() {
   return (
     <Box>
       {/* Main toolbar */}
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 2, flexWrap: 'wrap' }}>
-        <TextField
+      <Group mb="md" gap="sm" wrap="wrap">
+        <TextInput
           placeholder="Search by name..."
-          size="small"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon sx={{ color: 'text.secondary' }} />
-                </InputAdornment>
-              ),
-            },
-          }}
-          sx={{ flex: 1, minWidth: 200, maxWidth: 300 }}
+          onChange={(e) => setSearch(e.currentTarget.value)}
+          leftSection={<IconSearch size={16} />}
+          style={{ flex: 1, minWidth: 200, maxWidth: 300 }}
         />
         <Button
-          variant={showFilters ? 'contained' : 'outlined'}
-          size="small"
-          startIcon={<FilterIcon />}
-          onClick={() => setShowFilters(!showFilters)}
-          color={hasActiveFilters ? 'primary' : 'inherit'}
+          variant={showFilters ? 'filled' : 'outline'}
+          leftSection={<IconFilter size={16} />}
+          onClick={toggleFilters}
+          color={activeFilterCount > 0 ? 'cyan' : 'gray'}
         >
           Filters
-          {hasActiveFilters && (
-            <Chip
-              label={[searchDebounced, descriptionDebounced, isSystemFilter !== undefined, createdAfter, createdBefore].filter(Boolean).length}
-              size="small"
-              sx={{ ml: 1, height: 20, minWidth: 20 }}
-            />
+          {activeFilterCount > 0 && (
+            <Badge size="sm" ml="xs" circle>{activeFilterCount}</Badge>
           )}
         </Button>
-        <FormControl size="small" sx={{ minWidth: 140 }}>
-          <Select
-            value={`${sortBy}-${sortOrder}`}
-            size='small'
-            onChange={(e) => {
-              const [newSortBy, newSortOrder] = e.target.value.split('-') as [AgentQueryParams['sortBy'], AgentQueryParams['sortOrder']];
-              setSortBy(newSortBy);
-              setSortOrder(newSortOrder);
-              setPage(1);
-            }}
-          >
-            <MenuItem value="name-asc">Name A-Z</MenuItem>
-            <MenuItem value="name-desc">Name Z-A</MenuItem>
-            <MenuItem value="updatedAt-desc">Recently updated</MenuItem>
-            <MenuItem value="updatedAt-asc">Oldest updated</MenuItem>
-            <MenuItem value="createdAt-desc">Newest first</MenuItem>
-            <MenuItem value="createdAt-asc">Oldest first</MenuItem>
-          </Select>
-        </FormControl>
-        <Box sx={{ flex: 1 }} />
+        <Select
+          value={sortValue}
+          onChange={(val) => setSortValue(val || 'name-asc')}
+          data={[
+            { value: 'name-asc', label: 'Name A-Z' },
+            { value: 'name-desc', label: 'Name Z-A' },
+            { value: 'updatedAt-desc', label: 'Recently updated' },
+            { value: 'updatedAt-asc', label: 'Oldest updated' },
+            { value: 'createdAt-desc', label: 'Newest first' },
+            { value: 'createdAt-asc', label: 'Oldest first' },
+          ]}
+          style={{ minWidth: 160 }}
+        />
+        <Box style={{ flex: 1 }} />
         <Button
-          variant="contained"
-          size='small'
-          disabled={true}
-          title='Soon'
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-          sx={{ whiteSpace: 'nowrap' }}
+          leftSection={<IconPlus size={16} />}
+          onClick={() => handleOpenModal()}
+          disabled
+          title="Soon"
         >
           New Agent
         </Button>
-      </Box>
+      </Group>
 
       {/* Expandable filters */}
-      <Collapse in={showFilters}>
-        <Card sx={{ mb: 2, p: 2 }}>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'flex-end' }}>
-            <TextField
+      {showFilters && (
+        <Card mb="md" p="md" withBorder>
+          <Group gap="sm" wrap="wrap" align="flex-end">
+            <TextInput
               label="Description"
               placeholder="Filter by description..."
-              size="small"
               value={descriptionFilter}
-              onChange={(e) => setDescriptionFilter(e.target.value)}
-              sx={{ minWidth: 200 }}
+              onChange={(e) => setDescriptionFilter(e.currentTarget.value)}
+              style={{ minWidth: 200 }}
             />
-            <TextField
+            <TextInput
               label="Created after"
               type="date"
-              size="small"
               value={createdAfter}
               onChange={(e) => {
-                setCreatedAfter(e.target.value);
+                setCreatedAfter(e.currentTarget.value);
                 setPage(1);
               }}
-              slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ minWidth: 150 }}
+              style={{ minWidth: 150 }}
             />
-            <TextField
+            <TextInput
               label="Created before"
               type="date"
-              size="small"
               value={createdBefore}
               onChange={(e) => {
-                setCreatedBefore(e.target.value);
+                setCreatedBefore(e.currentTarget.value);
                 setPage(1);
               }}
-              slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ minWidth: 150 }}
+              style={{ minWidth: 150 }}
             />
             {isAdmin && (
-              <FormControl size="small" sx={{ minWidth: 140 }}>
-                <Select
-                  value={isSystemFilter === undefined ? 'all' : isSystemFilter ? 'system' : 'user'}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setIsSystemFilter(val === 'all' ? undefined : val === 'system');
-                    setPage(1);
-                  }}
-                  displayEmpty
-                >
-                  <MenuItem value="all">All agents</MenuItem>
-                  <MenuItem value="system">System only</MenuItem>
-                  <MenuItem value="user">User only</MenuItem>
-                </Select>
-              </FormControl>
+              <Select
+                label="Agent type"
+                value={isSystemFilter}
+                onChange={(val) => {
+                  setIsSystemFilter(val);
+                  setPage(1);
+                }}
+                data={[
+                  { value: 'all', label: 'All agents' },
+                  { value: 'system', label: 'System only' },
+                  { value: 'user', label: 'User only' },
+                ]}
+                style={{ minWidth: 140 }}
+              />
             )}
-            <Box sx={{ flex: 1 }} />
-            {hasActiveFilters && (
+            <Box style={{ flex: 1 }} />
+            {activeFilterCount > 0 && (
               <Button
-                size="small"
-                startIcon={<ClearIcon />}
+                variant="subtle"
+                leftSection={<IconX size={16} />}
                 onClick={clearFilters}
               >
                 Clear filters
               </Button>
             )}
-          </Box>
+          </Group>
         </Card>
-      </Collapse>
+      )}
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+        <Alert
+          icon={<IconAlertCircle size={16} />}
+          color="red"
+          mb="md"
+          withCloseButton
+          onClose={() => setError('')}
+        >
           {error}
         </Alert>
       )}
 
       {/* Results info */}
       {!loading && (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <Text size="sm" c="dimmed" mb="md">
           {total} agent{total !== 1 ? 's' : ''} found
-        </Typography>
+        </Text>
       )}
 
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <CircularProgress />
-        </Box>
+        <Center py="xl">
+          <Loader />
+        </Center>
       ) : (
         <>
-          <Grid container spacing={{ xs: 2, sm: 3 }}>
+          <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
             {agents.map((agent) => (
-              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={agent.id}>
-                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  <CardContent sx={{ flex: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 1 }}>
-                      <Typography
-                        variant="h6"
-                        sx={{
-                          flex: 1,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {agent.name}
-                      </Typography>
-                      {isAdmin && agent.isSystem && (
-                        <Chip label="System" size="small" color="info" />
-                      )}
-                    </Box>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{
+              <Card
+                key={agent.id}
+                withBorder
+                padding="md"
+                style={{ display: 'flex', flexDirection: 'column', height: '100%' }}
+              >
+                <Stack gap="xs" style={{ flex: 1 }}>
+                  <Group justify="space-between" align="flex-start" wrap="nowrap">
+                    <Text
+                      fw={600}
+                      style={{
+                        flex: 1,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        minHeight: '2.5em',
+                        whiteSpace: 'nowrap',
                       }}
                     >
-                      {agent.description || 'No description'}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                      {agent.nodes.length} nodes
-                    </Typography>
-                  </CardContent>
-                  <CardActions>
-                    <IconButton onClick={() => handleOpenDialog(agent)}>
-                      <EditIcon />
-                    </IconButton>
-                    {!agent.isSystem && (
-                      <IconButton color="error" onClick={() => handleDelete(agent.id)}>
-                        <DeleteIcon />
-                      </IconButton>
+                      {agent.name}
+                    </Text>
+                    {isAdmin && agent.isSystem && (
+                      <Badge color="cyan" size="sm">System</Badge>
                     )}
-                  </CardActions>
-                </Card>
-              </Grid>
+                  </Group>
+                  <Text
+                    size="sm"
+                    c="dimmed"
+                    style={{
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      minHeight: '2.5em',
+                    }}
+                  >
+                    {agent.description || 'No description'}
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    {agent.nodes.length} nodes
+                  </Text>
+                </Stack>
+                <Group mt="sm" gap="xs">
+                  <ActionIcon
+                    variant="subtle"
+                    onClick={() => handleOpenModal(agent)}
+                  >
+                    <IconEdit size={18} />
+                  </ActionIcon>
+                  {!agent.isSystem && (
+                    <ActionIcon
+                      variant="subtle"
+                      color="red"
+                      onClick={() => handleDelete(agent.id)}
+                    >
+                      <IconTrash size={18} />
+                    </ActionIcon>
+                  )}
+                </Group>
+              </Card>
             ))}
-            {agents.length === 0 && (
-              <Grid size={12}>
-                <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
-                  {total === 0 && !hasActiveFilters
-                    ? 'No agents yet. Create your first agent to get started.'
-                    : 'No agents match your filters.'}
-                </Typography>
-              </Grid>
-            )}
-          </Grid>
+          </SimpleGrid>
+
+          {agents.length === 0 && (
+            <Text c="dimmed" ta="center" py="xl">
+              {total === 0 && activeFilterCount === 0
+                ? 'No agents yet. Create your first agent to get started.'
+                : 'No agents match your filters.'}
+            </Text>
+          )}
 
           {totalPages > 1 && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+            <Center mt="lg">
               <Pagination
-                count={totalPages}
-                page={page}
-                onChange={(_, newPage) => setPage(newPage)}
-                color="primary"
-                size={isMobile ? 'small' : 'medium'}
+                total={totalPages}
+                value={page}
+                onChange={setPage}
+                size={isMobile ? 'sm' : 'md'}
               />
-            </Box>
+            </Center>
           )}
         </>
       )}
 
-      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth fullScreen={isMobile}>
+      <Modal
+        opened={modalOpened}
+        onClose={handleCloseModal}
+        title={editingAgent ? 'Edit Agent' : 'New Agent'}
+        fullScreen={isMobile}
+      >
         <form onSubmit={handleSubmit(onSubmit)}>
-          <DialogTitle>{editingAgent ? 'Edit Agent' : 'New Agent'}</DialogTitle>
-          <DialogContent>
-            <TextField
-              fullWidth
+          <Stack>
+            <TextInput
               label="Name"
-              margin="normal"
-              error={!!errors.name}
-              helperText={errors.name?.message}
+              error={errors.name?.message}
               {...register('name', { required: 'Name is required' })}
             />
-            <TextField
-              fullWidth
+            <Textarea
               label="Description"
-              margin="normal"
-              multiline
               rows={3}
               {...register('description')}
             />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseDialog}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={saving}>
-              {saving ? <CircularProgress size={24} /> : 'Save'}
-            </Button>
-          </DialogActions>
+            <Group justify="flex-end" mt="md">
+              <Button variant="subtle" onClick={handleCloseModal}>
+                Cancel
+              </Button>
+              <Button type="submit" loading={saving}>
+                Save
+              </Button>
+            </Group>
+          </Stack>
         </form>
-      </Dialog>
+      </Modal>
     </Box>
   );
 }
