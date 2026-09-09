@@ -51,7 +51,8 @@ export async function apiRequest<T>(
   skipRefresh = false
 ): Promise<T> {
   const headers: HeadersInit = {
-    'Content-Type': 'application/json',
+    // Only set Content-Type if there's a body
+    ...(options.body ? { 'Content-Type': 'application/json' } : {}),
     ...options.headers,
   };
 
