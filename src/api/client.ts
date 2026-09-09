@@ -66,10 +66,14 @@ export async function apiRequest<T>(
     return response;
   };
 
+  // Auth endpoints that should never trigger refresh (login, logout, refresh itself)
+  const noRefreshEndpoints = ['/auth/login', '/auth/logout', '/auth/refresh'];
+  const shouldSkipRefresh = noRefreshEndpoints.some((e) => endpoint.includes(e));
+
   let response = await makeRequest();
 
   // If 401 and not already refreshing, try to refresh token
-  if (response.status === 401 && !skipRefresh && !endpoint.includes('/auth/')) {
+  if (response.status === 401 && !skipRefresh && !shouldSkipRefresh) {
     const refreshed = await waitForRefresh();
 
     if (refreshed) {
@@ -84,7 +88,7 @@ export async function apiRequest<T>(
   }
 
   // If still 401 after refresh attempt, redirect to login
-  if (response.status === 401 && !endpoint.includes('/auth/')) {
+  if (response.status === 401 && !shouldSkipRefresh) {
     redirectToLogin();
     return new Promise(() => {});
   }

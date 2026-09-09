@@ -113,23 +113,25 @@ export function ChatMessages({
                 <Loader size="sm" />
               </Center>
             ) : null,
-          Footer: () =>
-            sending ? (
-              <Box
-                style={{ display: 'flex', justifyContent: 'flex-start' }}
-                px="md"
-                pb="md"
-              >
-                <Paper
-                  p="sm"
-                  radius="lg"
-                  style={{ backgroundColor: 'var(--mantine-color-dark-5)' }}
-                >
-                  <Loader size="xs" />
-                </Paper>
-              </Box>
-            ) : (
-              <Box style={{ height: 130 }} />
+          Footer: () => (
+              <>
+                {sending && (
+                  <Box
+                    style={{ display: 'flex', justifyContent: 'flex-start' }}
+                    px="md"
+                    pb="xs"
+                  >
+                    <Paper
+                      p="sm"
+                      radius="lg"
+                      style={{ backgroundColor: 'var(--mantine-color-dark-5)' }}
+                    >
+                      <Loader size="xs" />
+                    </Paper>
+                  </Box>
+                )}
+                <Box style={{ height: 130 }} />
+              </>
             ),
         }}
         itemContent={(index, message) => (
