@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import {
   Box,
@@ -19,60 +19,123 @@ import {
   useMediaQuery,
   useTheme,
   InputAdornment,
+  Chip,
+  Pagination,
+  FormControl,
+  Select,
+  MenuItem,
+  Collapse,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
   Edit as EditIcon,
   Search as SearchIcon,
+  FilterList as FilterIcon,
+  Clear as ClearIcon,
 } from '@mui/icons-material';
 import { agentsApi } from '../api';
-import type { Agent } from '../types';
+import type { Agent, AgentQueryParams } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 interface AgentForm {
   name: string;
   description: string;
 }
 
+const ITEMS_PER_PAGE = 12;
+
 export function AgentsPage() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Filter panel
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Query params
   const [search, setSearch] = useState('');
+  const [searchDebounced, setSearchDebounced] = useState('');
+  const [descriptionFilter, setDescriptionFilter] = useState('');
+  const [descriptionDebounced, setDescriptionDebounced] = useState('');
+  const [isSystemFilter, setIsSystemFilter] = useState<boolean | undefined>(undefined);
+  const [createdAfter, setCreatedAfter] = useState('');
+  const [createdBefore, setCreatedBefore] = useState('');
+  const [sortBy, setSortBy] = useState<AgentQueryParams['sortBy']>('name');
+  const [sortOrder, setSortOrder] = useState<AgentQueryParams['sortOrder']>('asc');
+  const [page, setPage] = useState(1);
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<AgentForm>();
 
-  const filteredAgents = useMemo(() => {
-    if (!search.trim()) return agents;
-    const query = search.toLowerCase();
-    return agents.filter(
-      (agent) =>
-        agent.name.toLowerCase().includes(query) ||
-        agent.description?.toLowerCase().includes(query)
-    );
-  }, [agents, search]);
+  // Check if any filters are active
+  const hasActiveFilters = searchDebounced || descriptionDebounced || isSystemFilter !== undefined || createdAfter || createdBefore;
 
-  const loadAgents = async () => {
+  // Debounce search inputs
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchDebounced(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDescriptionDebounced(descriptionFilter);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [descriptionFilter]);
+
+  const loadAgents = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await agentsApi.list();
-      setAgents(data);
+      const params: AgentQueryParams = {
+        sortBy,
+        sortOrder,
+        skip: (page - 1) * ITEMS_PER_PAGE,
+        limit: ITEMS_PER_PAGE,
+      };
+      if (searchDebounced.trim()) {
+        params.name = searchDebounced;
+      }
+      if (descriptionDebounced.trim()) {
+        params.description = descriptionDebounced;
+      }
+      if (isAdmin && isSystemFilter !== undefined) {
+        params.isSystem = isSystemFilter;
+      }
+      if (createdAfter) {
+        params.createdAfter = new Date(createdAfter).toISOString();
+      }
+      if (createdBefore) {
+        params.createdBefore = new Date(createdBefore).toISOString();
+      }
+      const data = await agentsApi.list(params);
+      setAgents(data.agents);
+      setTotal(data.total);
       setError('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load agents');
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchDebounced, descriptionDebounced, isSystemFilter, createdAfter, createdBefore, sortBy, sortOrder, page, isAdmin]);
 
   useEffect(() => {
     loadAgents();
-  }, []);
+  }, [loadAgents]);
 
   const handleOpenDialog = (agent?: Agent) => {
     if (agent) {
@@ -118,19 +181,25 @@ export function AgentsPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  const clearFilters = () => {
+    setSearch('');
+    setSearchDebounced('');
+    setDescriptionFilter('');
+    setDescriptionDebounced('');
+    setIsSystemFilter(undefined);
+    setCreatedAfter('');
+    setCreatedBefore('');
+    setPage(1);
+  };
+
+  const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 2, sm: 3 }, gap: 2 }}>
+      {/* Main toolbar */}
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 2, flexWrap: 'wrap' }}>
         <TextField
-          placeholder="Search agents..."
+          placeholder="Search by name..."
           size="small"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -143,11 +212,49 @@ export function AgentsPage() {
               ),
             },
           }}
-          sx={{ flex: 1, maxWidth: 400 }}
+          sx={{ flex: 1, minWidth: 200, maxWidth: 300 }}
         />
+        <Button
+          variant={showFilters ? 'contained' : 'outlined'}
+          size="small"
+          startIcon={<FilterIcon />}
+          onClick={() => setShowFilters(!showFilters)}
+          color={hasActiveFilters ? 'primary' : 'inherit'}
+        >
+          Filters
+          {hasActiveFilters && (
+            <Chip
+              label={[searchDebounced, descriptionDebounced, isSystemFilter !== undefined, createdAfter, createdBefore].filter(Boolean).length}
+              size="small"
+              sx={{ ml: 1, height: 20, minWidth: 20 }}
+            />
+          )}
+        </Button>
+        <FormControl size="small" sx={{ minWidth: 140 }}>
+          <Select
+            value={`${sortBy}-${sortOrder}`}
+            size='small'
+            onChange={(e) => {
+              const [newSortBy, newSortOrder] = e.target.value.split('-') as [AgentQueryParams['sortBy'], AgentQueryParams['sortOrder']];
+              setSortBy(newSortBy);
+              setSortOrder(newSortOrder);
+              setPage(1);
+            }}
+          >
+            <MenuItem value="name-asc">Name A-Z</MenuItem>
+            <MenuItem value="name-desc">Name Z-A</MenuItem>
+            <MenuItem value="updatedAt-desc">Recently updated</MenuItem>
+            <MenuItem value="updatedAt-asc">Oldest updated</MenuItem>
+            <MenuItem value="createdAt-desc">Newest first</MenuItem>
+            <MenuItem value="createdAt-asc">Oldest first</MenuItem>
+          </Select>
+        </FormControl>
         <Box sx={{ flex: 1 }} />
         <Button
           variant="contained"
+          size='small'
+          disabled={true}
+          title='Soon'
           startIcon={<AddIcon />}
           onClick={() => handleOpenDialog()}
           sx={{ whiteSpace: 'nowrap' }}
@@ -156,48 +263,149 @@ export function AgentsPage() {
         </Button>
       </Box>
 
+      {/* Expandable filters */}
+      <Collapse in={showFilters}>
+        <Card sx={{ mb: 2, p: 2 }}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'flex-end' }}>
+            <TextField
+              label="Description"
+              placeholder="Filter by description..."
+              size="small"
+              value={descriptionFilter}
+              onChange={(e) => setDescriptionFilter(e.target.value)}
+              sx={{ minWidth: 200 }}
+            />
+            <TextField
+              label="Created after"
+              type="date"
+              size="small"
+              value={createdAfter}
+              onChange={(e) => {
+                setCreatedAfter(e.target.value);
+                setPage(1);
+              }}
+              slotProps={{ inputLabel: { shrink: true } }}
+              sx={{ minWidth: 150 }}
+            />
+            <TextField
+              label="Created before"
+              type="date"
+              size="small"
+              value={createdBefore}
+              onChange={(e) => {
+                setCreatedBefore(e.target.value);
+                setPage(1);
+              }}
+              slotProps={{ inputLabel: { shrink: true } }}
+              sx={{ minWidth: 150 }}
+            />
+            {isAdmin && (
+              <FormControl size="small" sx={{ minWidth: 140 }}>
+                <Select
+                  value={isSystemFilter === undefined ? 'all' : isSystemFilter ? 'system' : 'user'}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setIsSystemFilter(val === 'all' ? undefined : val === 'system');
+                    setPage(1);
+                  }}
+                  displayEmpty
+                >
+                  <MenuItem value="all">All agents</MenuItem>
+                  <MenuItem value="system">System only</MenuItem>
+                  <MenuItem value="user">User only</MenuItem>
+                </Select>
+              </FormControl>
+            )}
+            <Box sx={{ flex: 1 }} />
+            {hasActiveFilters && (
+              <Button
+                size="small"
+                startIcon={<ClearIcon />}
+                onClick={clearFilters}
+              >
+                Clear filters
+              </Button>
+            )}
+          </Box>
+        </Card>
+      </Collapse>
+
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
           {error}
         </Alert>
       )}
 
-      <Grid container spacing={{ xs: 2, sm: 3 }}>
-        {filteredAgents.map((agent) => (
-          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={agent.id}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  {agent.name}
+      {/* Results info */}
+      {!loading && (
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          {total} agent{total !== 1 ? 's' : ''} found
+        </Typography>
+      )}
+
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <>
+          <Grid container spacing={{ xs: 2, sm: 3 }}>
+            {agents.map((agent) => (
+              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={agent.id}>
+                <Card>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 1 }}>
+                      <Typography variant="h6" sx={{ flex: 1 }}>
+                        {agent.name}
+                      </Typography>
+                      {isAdmin && agent.isSystem && (
+                        <Chip label="System" size="small" color="info" />
+                      )}
+                    </Box>
+                    <Typography variant="body2" color="text.secondary">
+                      {agent.description || 'No description'}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                      {agent.nodes.length} nodes
+                    </Typography>
+                  </CardContent>
+                  <CardActions>
+                    <IconButton size="small" onClick={() => handleOpenDialog(agent)}>
+                      <EditIcon />
+                    </IconButton>
+                    {!agent.isSystem && (
+                      <IconButton size="small" color="error" onClick={() => handleDelete(agent.id)}>
+                        <DeleteIcon />
+                      </IconButton>
+                    )}
+                  </CardActions>
+                </Card>
+              </Grid>
+            ))}
+            {agents.length === 0 && (
+              <Grid size={12}>
+                <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+                  {total === 0 && !hasActiveFilters
+                    ? 'No agents yet. Create your first agent to get started.'
+                    : 'No agents match your filters.'}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {agent.description || 'No description'}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                  {agent.nodes.length} nodes
-                </Typography>
-              </CardContent>
-              <CardActions>
-                <IconButton size="small" onClick={() => handleOpenDialog(agent)}>
-                  <EditIcon />
-                </IconButton>
-                <IconButton size="small" color="error" onClick={() => handleDelete(agent.id)}>
-                  <DeleteIcon />
-                </IconButton>
-              </CardActions>
-            </Card>
+              </Grid>
+            )}
           </Grid>
-        ))}
-        {filteredAgents.length === 0 && (
-          <Grid size={12}>
-            <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
-              {agents.length === 0
-                ? 'No agents yet. Create your first agent to get started.'
-                : 'No agents match your search.'}
-            </Typography>
-          </Grid>
-        )}
-      </Grid>
+
+          {totalPages > 1 && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+              <Pagination
+                count={totalPages}
+                page={page}
+                onChange={(_, newPage) => setPage(newPage)}
+                color="primary"
+                size={isMobile ? 'small' : 'medium'}
+              />
+            </Box>
+          )}
+        </>
+      )}
 
       <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth fullScreen={isMobile}>
         <form onSubmit={handleSubmit(onSubmit)}>

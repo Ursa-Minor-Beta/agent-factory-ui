@@ -65,8 +65,27 @@ export interface Agent {
   edges: AgentEdge[];
   variables: AgentVariable[];
   status: 'draft' | 'published';
+  isSystem?: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface AgentQueryParams {
+  id?: string;
+  name?: string;
+  description?: string;
+  isSystem?: boolean;
+  createdAfter?: string;
+  createdBefore?: string;
+  sortBy?: 'name' | 'createdAt' | 'updatedAt';
+  sortOrder?: 'asc' | 'desc';
+  skip?: number;
+  limit?: number;
+}
+
+export interface AgentListResponse {
+  agents: Agent[];
+  total: number;
 }
 
 // Provider Config types

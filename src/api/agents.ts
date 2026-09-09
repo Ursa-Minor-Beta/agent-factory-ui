@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { Agent } from '../types';
+import type { Agent, AgentQueryParams, AgentListResponse } from '../types';
 
 export interface CreateAgentInput {
   name: string;
@@ -18,9 +18,20 @@ export interface UpdateAgentInput {
   status?: 'draft' | 'published';
 }
 
+function buildQueryString(params: AgentQueryParams): string {
+  const searchParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') {
+      searchParams.append(key, String(value));
+    }
+  });
+  const qs = searchParams.toString();
+  return qs ? `?${qs}` : '';
+}
+
 export const agentsApi = {
-  list: () =>
-    api.get<Agent[]>('/api/agents'),
+  list: (params: AgentQueryParams = {}) =>
+    api.get<AgentListResponse>(`/api/agents${buildQueryString(params)}`),
 
   getById: (id: string) =>
     api.get<Agent>(`/api/agents/${id}`),
