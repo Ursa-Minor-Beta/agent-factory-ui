@@ -16,6 +16,7 @@ import {
   Avatar,
   Menu,
   MenuItem,
+  Tooltip,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -24,10 +25,13 @@ import {
   Key as ApiKeysIcon,
   People as UsersIcon,
   Logout as LogoutIcon,
+  ChevronLeft as CollapseIcon,
+  ChevronRight as ExpandIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
 const DRAWER_WIDTH = 240;
+const DRAWER_WIDTH_COLLAPSED = 64;
 
 interface NavItem {
   label: string;
@@ -48,10 +52,17 @@ export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+
+  const drawerWidth = collapsed ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH;
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
+  };
+
+  const handleCollapse = () => {
+    setCollapsed(!collapsed);
   };
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -73,14 +84,55 @@ export function Layout() {
   );
 
   const drawer = (
-    <Box>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <Toolbar sx={{ justifyContent: collapsed ? 'center' : 'space-between', px: collapsed ? 1 : 2 }}>
+        {!collapsed && (
+          <Typography variant="h6" noWrap>
+            Agent Factory
+          </Typography>
+        )}
+        <IconButton onClick={handleCollapse} size="small" sx={{ display: { xs: 'none', sm: 'flex' } }}>
+          {collapsed ? <ExpandIcon /> : <CollapseIcon />}
+        </IconButton>
+      </Toolbar>
+      <Divider />
+      <List sx={{ flex: 1 }}>
+        {filteredNavItems.map((item) => (
+          <ListItem key={item.path} disablePadding>
+            <Tooltip title={collapsed ? item.label : ''} placement="right">
+              <ListItemButton
+                selected={location.pathname === item.path}
+                onClick={() => {
+                  navigate(item.path);
+                  setMobileOpen(false);
+                }}
+                sx={{
+                  justifyContent: collapsed ? 'center' : 'flex-start',
+                  px: collapsed ? 2 : 3,
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: collapsed ? 0 : 40 }}>
+                  {item.icon}
+                </ListItemIcon>
+                {!collapsed && <ListItemText primary={item.label} />}
+              </ListItemButton>
+            </Tooltip>
+          </ListItem>
+        ))}
+      </List>
+    </Box>
+  );
+
+  // Mobile drawer (always expanded)
+  const mobileDrawer = (
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Toolbar>
         <Typography variant="h6" noWrap>
           Agent Factory
         </Typography>
       </Toolbar>
       <Divider />
-      <List>
+      <List sx={{ flex: 1 }}>
         {filteredNavItems.map((item) => (
           <ListItem key={item.path} disablePadding>
             <ListItemButton
@@ -103,9 +155,14 @@ export function Layout() {
     <Box sx={{ display: 'flex' }}>
       <AppBar
         position="fixed"
+        elevation={0}
         sx={{
-          width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
-          ml: { sm: `${DRAWER_WIDTH}px` },
+          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          ml: { sm: `${drawerWidth}px` },
+          bgcolor: 'background.paper',
+          borderBottom: 1,
+          borderColor: 'divider',
+          transition: 'width 0.2s, margin-left 0.2s',
         }}
       >
         <Toolbar>
@@ -146,7 +203,11 @@ export function Layout() {
 
       <Box
         component="nav"
-        sx={{ width: { sm: DRAWER_WIDTH }, flexShrink: { sm: 0 } }}
+        sx={{
+          width: { sm: drawerWidth },
+          flexShrink: { sm: 0 },
+          transition: 'width 0.2s',
+        }}
       >
         <Drawer
           variant="temporary"
@@ -158,13 +219,18 @@ export function Layout() {
             '& .MuiDrawer-paper': { boxSizing: 'border-box', width: DRAWER_WIDTH },
           }}
         >
-          {drawer}
+          {mobileDrawer}
         </Drawer>
         <Drawer
           variant="permanent"
           sx={{
             display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: DRAWER_WIDTH },
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: drawerWidth,
+              transition: 'width 0.2s',
+              overflowX: 'hidden',
+            },
           }}
           open
         >
@@ -177,8 +243,9 @@ export function Layout() {
         sx={{
           flexGrow: 1,
           p: 3,
-          width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
+          width: { sm: `calc(100% - ${drawerWidth}px)` },
           mt: 8,
+          transition: 'width 0.2s',
         }}
       >
         <Outlet />

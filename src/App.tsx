@@ -5,11 +5,25 @@ import { router } from './router';
 
 const theme = createTheme({
   palette: {
+    mode: 'dark',
     primary: {
-      main: '#1976d2',
+      main: '#90caf9',
     },
     secondary: {
-      main: '#9c27b0',
+      main: '#ce93d8',
+    },
+    background: {
+      default: '#121212',
+      paper: '#1e1e1e',
+    },
+  },
+  components: {
+    MuiDrawer: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: '#1e1e1e',
+        },
+      },
     },
   },
 });

@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { CircularProgress, Box } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -9,6 +9,7 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, adminOnly = false }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -19,7 +20,9 @@ export function ProtectedRoute({ children, adminOnly = false }: ProtectedRoutePr
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    // Save current location to redirect back after login
+    const redirectTo = location.pathname + location.search;
+    return <Navigate to={`/login?redirect=${encodeURIComponent(redirectTo)}`} replace />;
   }
 
   if (adminOnly && user.role !== 'admin') {

@@ -12,20 +12,68 @@ export class ApiError extends Error {
   }
 }
 
+let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
+
+async function refreshToken(): Promise<boolean> {
+  try {
+    const response = await fetch(`${config.apiBaseUrl}/api/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function waitForRefresh(): Promise<boolean> {
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  isRefreshing = true;
+  refreshPromise = refreshToken();
+
+  try {
+    return await refreshPromise;
+  } finally {
+    isRefreshing = false;
+    refreshPromise = null;
+  }
+}
+
 export async function apiRequest<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  skipRefresh = false
 ): Promise<T> {
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...options.headers,
   };
 
-  const response = await fetch(`${config.apiBaseUrl}${endpoint}`, {
-    ...options,
-    headers,
-    credentials: 'include',
-  });
+  const makeRequest = async () => {
+    const response = await fetch(`${config.apiBaseUrl}${endpoint}`, {
+      ...options,
+      headers,
+      credentials: 'include',
+    });
+
+    return response;
+  };
+
+  let response = await makeRequest();
+
+  // If 401 and not already refreshing, try to refresh token
+  if (response.status === 401 && !skipRefresh && !endpoint.includes('/auth/')) {
+    const refreshed = await waitForRefresh();
+
+    if (refreshed) {
+      // Retry original request with new token
+      response = await makeRequest();
+    }
+  }
 
   const data = await response.json();
 

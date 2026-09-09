@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import {
   Box,
@@ -20,6 +20,7 @@ interface LoginForm {
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { login } = useAuth();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,7 +32,8 @@ export function LoginPage() {
     setLoading(true);
     try {
       await login(data.email, data.password);
-      navigate('/agents');
+      const redirectTo = searchParams.get('redirect') || '/agents';
+      navigate(redirectTo);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
@@ -46,7 +48,7 @@ export function LoginPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        bgcolor: 'grey.100',
+        bgcolor: 'background.default',
       }}
     >
       <Card sx={{ maxWidth: 400, width: '100%', mx: 2 }}>
