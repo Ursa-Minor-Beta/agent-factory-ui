@@ -1,7 +1,7 @@
 import { useRef, useEffect, type ElementRef } from 'react';
-import { Box, Text, Stack, Paper, Loader, Alert, Center } from '@mantine/core';
+import { Box, Text, Stack, Paper, Loader, Alert, Center, ActionIcon, Tooltip } from '@mantine/core';
 import { Virtuoso } from 'react-virtuoso';
-import { IconAlertCircle, IconGhost } from '@tabler/icons-react';
+import { IconAlertCircle, IconGhost, IconRefresh } from '@tabler/icons-react';
 import type { ChatMessagesProps } from './types';
 
 export function ChatMessages({
@@ -13,6 +13,7 @@ export function ChatMessages({
   isIncognito,
   error,
   onClearError,
+  onRetry,
   hasMore,
   loadingMore,
   onLoadMore,
@@ -134,33 +135,54 @@ export function ChatMessages({
               </>
             ),
         }}
-        itemContent={(index, message) => (
-          <Box
-            px="md"
-            pt={index === 0 ? 100 : 8}
-            pb="xs"
-            style={{
-              display: 'flex',
-              justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
-            }}
-          >
-            <Paper
-              p="sm"
-              radius="lg"
+        itemContent={(index, message) => {
+          const isLastMessage = index === messages.length - 1;
+          const showRetry = error && isLastMessage && message.role === 'user' && !sending;
+
+          return (
+            <Box
+              px="md"
+              pt={index === 0 ? 100 : 8}
+              pb="xs"
               style={{
-                maxWidth: '80%',
-                backgroundColor:
-                  message.role === 'user'
-                    ? 'var(--mantine-color-cyan-9)'
-                    : 'var(--mantine-color-dark-5)',
+                display: 'flex',
+                justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
+                alignItems: 'flex-end',
+                gap: 8,
               }}
             >
-              <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
-                {message.content}
-              </Text>
-            </Paper>
-          </Box>
-        )}
+              {showRetry && (
+                <Tooltip label="Retry">
+                  <ActionIcon
+                    variant="subtle"
+                    color="red"
+                    size="sm"
+                    onClick={onRetry}
+                  >
+                    <IconRefresh size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              )}
+              <Paper
+                p="sm"
+                radius="lg"
+                style={{
+                  maxWidth: '80%',
+                  backgroundColor:
+                    message.role === 'user'
+                      ? showRetry
+                        ? 'var(--mantine-color-red-9)'
+                        : 'var(--mantine-color-cyan-9)'
+                      : 'var(--mantine-color-dark-5)',
+                }}
+              >
+                <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
+                  {message.content}
+                </Text>
+              </Paper>
+            </Box>
+          );
+        }}
       />
     </Box>
   );

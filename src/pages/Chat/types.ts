@@ -40,6 +40,7 @@ export interface ChatMessagesProps {
   isIncognito: boolean;
   error: string;
   onClearError: () => void;
+  onRetry: () => void;
   hasMore: boolean;
   loadingMore: boolean;
   onLoadMore: () => void;

@@ -14,9 +14,16 @@ export class ApiError extends Error {
 
 let refreshPromise: Promise<boolean> | null = null;
 
-function redirectToLogin() {
-  const currentPath = window.location.pathname + window.location.search;
-  window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+function redirectToLogin(): boolean {
+  // Don't redirect if already on login page
+  if (window.location.pathname === '/login') {
+    return false;
+  }
+
+  // Use only pathname, not nested redirect params
+  const redirectTo = window.location.pathname;
+  window.location.href = `/login?redirect=${encodeURIComponent(redirectTo)}`;
+  return true;
 }
 
 async function refreshToken(): Promise<boolean> {
@@ -80,22 +87,26 @@ export async function apiRequest<T>(
       // Retry original request with new token
       response = await makeRequest();
     } else {
-      // Refresh failed - redirect to login
-      redirectToLogin();
-      // Return a never-resolving promise to prevent further execution
-      return new Promise(() => {});
+      // Refresh failed - redirect to login or throw if already on login
+      if (redirectToLogin()) {
+        return new Promise(() => {});
+      }
+      throw new ApiError(401, 'UNAUTHORIZED', 'Session expired');
     }
   }
 
   // If still 401 after refresh attempt, redirect to login
   if (response.status === 401 && !shouldSkipRefresh) {
-    redirectToLogin();
-    return new Promise(() => {});
+    if (redirectToLogin()) {
+      return new Promise(() => {});
+    }
+    throw new ApiError(401, 'UNAUTHORIZED', 'Session expired');
   }
 
   const data = await response.json();
 
-  if (!response.ok) {
+  // Check both HTTP status and response body success flag
+  if (!response.ok || data.success === false) {
     throw new ApiError(
       response.status,
       data.error?.code || 'UNKNOWN_ERROR',

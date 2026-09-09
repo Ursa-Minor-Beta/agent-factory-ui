@@ -66,6 +66,7 @@ export function ChatPage() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [startIncognito, setStartIncognito] = useState(false);
+  const [lastInput, setLastInput] = useState<Record<string, unknown> | null>(null);
 
   // Mobile sidebar
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -237,6 +238,7 @@ export function ChatPage() {
     setMessages((prev) => [...prev, userMessage]);
     setSending(true);
     setError('');
+    setLastInput(input);
 
     const shouldBeIncognito = isNewChat && startIncognito;
 
@@ -265,11 +267,20 @@ export function ChatPage() {
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send message');
-      setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
+      // Don't remove user message - it may have been saved before the error
     } finally {
       setSending(false);
     }
   };
+
+  const handleRetry = useCallback(() => {
+    if (!lastInput || sending) return;
+    // Remove the last user message (the failed one)
+    setMessages((prev) => prev.slice(0, -1));
+    setError('');
+    // Re-send with the same input
+    handleSend(lastInput);
+  }, [lastInput, sending]);
 
   const handleNewChat = (incognito = false) => {
     setCurrentSessionId(null);
@@ -375,6 +386,7 @@ export function ChatPage() {
           isIncognito={startIncognito}
           error={error}
           onClearError={() => setError('')}
+          onRetry={handleRetry}
           hasMore={hasMoreMessages}
           loadingMore={loadingMoreMessages}
           onLoadMore={handleLoadMoreMessages}
