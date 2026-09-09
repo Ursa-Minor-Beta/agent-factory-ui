@@ -8,7 +8,6 @@ import {
   CardContent,
   CardActions,
   Grid,
-  Chip,
   IconButton,
   Dialog,
   DialogTitle,
@@ -130,16 +129,9 @@ export function AgentsPage() {
           <Grid size={{ xs: 12, sm: 6, md: 4 }} key={agent.id}>
             <Card>
               <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <Typography variant="h6" gutterBottom>
-                    {agent.name}
-                  </Typography>
-                  <Chip
-                    label={agent.status}
-                    size="small"
-                    color={agent.status === 'published' ? 'success' : 'default'}
-                  />
-                </Box>
+                <Typography variant="h6" gutterBottom>
+                  {agent.name}
+                </Typography>
                 <Typography variant="body2" color="text.secondary">
                   {agent.description || 'No description'}
                 </Typography>
