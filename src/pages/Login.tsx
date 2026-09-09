@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
 import {
   Box,
   Card,
@@ -15,25 +14,31 @@ import {
 import { IconAlertCircle } from '@tabler/icons-react';
 import { useAuth } from '../contexts/AuthContext';
 
-interface LoginForm {
-  email: string;
-  password: string;
-}
-
 export function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { login } = useAuth();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>();
-
-  const onSubmit = async (data: LoginForm) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError('');
+
+    if (!email.trim()) {
+      setError('Email is required');
+      return;
+    }
+    if (!password) {
+      setError('Password is required');
+      return;
+    }
+
     setLoading(true);
     try {
-      await login(data.email, data.password);
+      await login(email, password);
       const redirectTo = searchParams.get('redirect') || '/agents';
       navigate(redirectTo);
     } catch (err) {
@@ -82,21 +87,20 @@ export function LoginPage() {
           </Alert>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit}>
           <Stack>
             <TextInput
               label="Email"
-              type="email"
               placeholder="your@email.com"
               autoFocus
-              error={errors.email?.message}
-              {...register('email', { required: 'Email is required' })}
+              value={email}
+              onChange={(e) => setEmail(e.currentTarget.value)}
             />
             <PasswordInput
               label="Password"
               placeholder="Your password"
-              error={errors.password?.message}
-              {...register('password', { required: 'Password is required' })}
+              value={password}
+              onChange={(e) => setPassword(e.currentTarget.value)}
             />
             <Button
               type="submit"
