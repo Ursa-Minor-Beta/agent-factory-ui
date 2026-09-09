@@ -90,29 +90,51 @@ const theme = createTheme({
       },
     },
     MuiButton: {
+      defaultProps: {
+        size: 'small',
+      },
       styleOverrides: {
         root: {
           borderRadius: 8,
-          minHeight: 44, // Touch-friendly
         },
         sizeSmall: {
           minHeight: 36,
         },
+        sizeMedium: {
+          minHeight: 44,
+        },
       },
     },
     MuiIconButton: {
+      defaultProps: {
+        size: 'small',
+      },
       styleOverrides: {
         root: {
-          padding: 10, // Larger touch target
+          padding: 8, // Small size padding by default
         },
-        sizeSmall: {
-          padding: 8,
+        sizeMedium: {
+          padding: 10,
+        },
+        sizeLarge: {
+          padding: 12,
         },
       },
     },
     MuiTextField: {
       defaultProps: {
         variant: 'filled',
+        size: 'small',
+      },
+    },
+    MuiSelect: {
+      defaultProps: {
+        size: 'small',
+      },
+    },
+    MuiFormControl: {
+      defaultProps: {
+        size: 'small',
       },
     },
     MuiDialog: {

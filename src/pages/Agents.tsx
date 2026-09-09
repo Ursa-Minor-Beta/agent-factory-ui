@@ -389,11 +389,11 @@ export function AgentsPage() {
                     </Typography>
                   </CardContent>
                   <CardActions>
-                    <IconButton size="small" onClick={() => handleOpenDialog(agent)}>
+                    <IconButton onClick={() => handleOpenDialog(agent)}>
                       <EditIcon />
                     </IconButton>
                     {!agent.isSystem && (
-                      <IconButton size="small" color="error" onClick={() => handleDelete(agent.id)}>
+                      <IconButton color="error" onClick={() => handleDelete(agent.id)}>
                         <DeleteIcon />
                       </IconButton>
                     )}
