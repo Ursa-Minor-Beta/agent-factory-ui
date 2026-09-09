@@ -352,17 +352,36 @@ export function AgentsPage() {
           <Grid container spacing={{ xs: 2, sm: 3 }}>
             {agents.map((agent) => (
               <Grid size={{ xs: 12, sm: 6, md: 4 }} key={agent.id}>
-                <Card>
-                  <CardContent>
+                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <CardContent sx={{ flex: 1 }}>
                     <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 1 }}>
-                      <Typography variant="h6" sx={{ flex: 1 }}>
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          flex: 1,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
                         {agent.name}
                       </Typography>
                       {isAdmin && agent.isSystem && (
                         <Chip label="System" size="small" color="info" />
                       )}
                     </Box>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        minHeight: '2.5em',
+                      }}
+                    >
                       {agent.description || 'No description'}
                     </Typography>
                     <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
