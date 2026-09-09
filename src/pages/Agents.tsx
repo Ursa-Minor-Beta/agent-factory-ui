@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import {
   Box,
@@ -18,11 +18,13 @@ import {
   Alert,
   useMediaQuery,
   useTheme,
+  InputAdornment,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
   Edit as EditIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
 import { agentsApi } from '../api';
 import type { Agent } from '../types';
@@ -41,8 +43,19 @@ export function AgentsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<AgentForm>();
+
+  const filteredAgents = useMemo(() => {
+    if (!search.trim()) return agents;
+    const query = search.toLowerCase();
+    return agents.filter(
+      (agent) =>
+        agent.name.toLowerCase().includes(query) ||
+        agent.description?.toLowerCase().includes(query)
+    );
+  }, [agents, search]);
 
   const loadAgents = async () => {
     try {
@@ -115,8 +128,24 @@ export function AgentsPage() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: { xs: 2, sm: 3 }, gap: 2 }}>
-        <Typography variant="h4">Agents</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 2, sm: 3 }, gap: 2 }}>
+        <TextField
+          placeholder="Search agents..."
+          size="small"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ color: 'text.secondary' }} />
+                </InputAdornment>
+              ),
+            },
+          }}
+          sx={{ flex: 1, maxWidth: 400 }}
+        />
+        <Box sx={{ flex: 1 }} />
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -134,7 +163,7 @@ export function AgentsPage() {
       )}
 
       <Grid container spacing={{ xs: 2, sm: 3 }}>
-        {agents.map((agent) => (
+        {filteredAgents.map((agent) => (
           <Grid size={{ xs: 12, sm: 6, md: 4 }} key={agent.id}>
             <Card>
               <CardContent>
@@ -159,10 +188,12 @@ export function AgentsPage() {
             </Card>
           </Grid>
         ))}
-        {agents.length === 0 && (
+        {filteredAgents.length === 0 && (
           <Grid size={12}>
             <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
-              No agents yet. Create your first agent to get started.
+              {agents.length === 0
+                ? 'No agents yet. Create your first agent to get started.'
+                : 'No agents match your search.'}
             </Typography>
           </Grid>
         )}

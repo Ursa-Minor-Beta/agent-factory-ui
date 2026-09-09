@@ -65,9 +65,9 @@ export function UsersPage() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">User Management</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenDialog}>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 2, sm: 3 }, gap: 2 }}>
+        <Box sx={{ flex: 1 }} />
+        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenDialog} sx={{ whiteSpace: 'nowrap' }}>
           Create User
         </Button>
       </Box>

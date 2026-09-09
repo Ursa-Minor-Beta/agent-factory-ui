@@ -12,8 +12,12 @@ export class ApiError extends Error {
   }
 }
 
-let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
+
+function redirectToLogin() {
+  const currentPath = window.location.pathname + window.location.search;
+  window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+}
 
 async function refreshToken(): Promise<boolean> {
   try {
@@ -32,13 +36,11 @@ async function waitForRefresh(): Promise<boolean> {
     return refreshPromise;
   }
 
-  isRefreshing = true;
   refreshPromise = refreshToken();
 
   try {
     return await refreshPromise;
   } finally {
-    isRefreshing = false;
     refreshPromise = null;
   }
 }
@@ -72,7 +74,18 @@ export async function apiRequest<T>(
     if (refreshed) {
       // Retry original request with new token
       response = await makeRequest();
+    } else {
+      // Refresh failed - redirect to login
+      redirectToLogin();
+      // Return a never-resolving promise to prevent further execution
+      return new Promise(() => {});
     }
+  }
+
+  // If still 401 after refresh attempt, redirect to login
+  if (response.status === 401 && !endpoint.includes('/auth/')) {
+    redirectToLogin();
+    return new Promise(() => {});
   }
 
   const data = await response.json();

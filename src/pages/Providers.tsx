@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import {
   Box,
@@ -26,12 +26,14 @@ import {
   TableRow,
   Paper,
   Chip,
+  InputAdornment,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
   Star as StarIcon,
   StarBorder as StarBorderIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
 import { providersApi } from '../api';
 import type { ProviderConfig } from '../types';
@@ -51,12 +53,23 @@ export function ProvidersPage() {
   const [error, setError] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
 
   const { register, handleSubmit, control, watch, reset, formState: { errors } } = useForm<ProviderForm>({
     defaultValues: { provider: 'openai', name: '', apiKey: '', baseUrl: '' },
   });
 
   const watchProvider = watch('provider');
+
+  const filteredProviders = useMemo(() => {
+    if (!search.trim()) return providers;
+    const query = search.toLowerCase();
+    return providers.filter(
+      (provider) =>
+        provider.name.toLowerCase().includes(query) ||
+        provider.provider.toLowerCase().includes(query)
+    );
+  }, [providers, search]);
 
   const loadProviders = async () => {
     try {
@@ -133,9 +146,25 @@ export function ProvidersPage() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">Provider Settings</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenDialog}>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 2, sm: 3 }, gap: 2 }}>
+        <TextField
+          placeholder="Search providers..."
+          size="small"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ color: 'text.secondary' }} />
+                </InputAdornment>
+              ),
+            },
+          }}
+          sx={{ flex: 1, maxWidth: 400 }}
+        />
+        <Box sx={{ flex: 1 }} />
+        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenDialog} sx={{ whiteSpace: 'nowrap' }}>
           Add Provider
         </Button>
       </Box>
@@ -161,7 +190,7 @@ export function ProvidersPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {providers.map((provider) => (
+                {filteredProviders.map((provider) => (
                   <TableRow key={provider.id}>
                     <TableCell>{provider.name}</TableCell>
                     <TableCell>
@@ -189,10 +218,12 @@ export function ProvidersPage() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {providers.length === 0 && (
+                {filteredProviders.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6} align="center">
-                      No providers configured
+                      {providers.length === 0
+                        ? 'No providers configured'
+                        : 'No providers match your search'}
                     </TableCell>
                   </TableRow>
                 )}

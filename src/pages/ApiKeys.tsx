@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import {
   Box,
@@ -25,11 +25,13 @@ import {
   FormGroup,
   FormControlLabel,
   Checkbox,
+  InputAdornment,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
   ContentCopy as CopyIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
 import { authApi } from '../api';
 import type { ApiKey } from '../types';
@@ -54,8 +56,19 @@ export function ApiKeysPage() {
   const [newPlainKey, setNewPlainKey] = useState('');
   const [permissions, setPermissions] = useState<string[]>(['agents:read', 'agents:run']);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<ApiKeyForm>();
+
+  const filteredApiKeys = useMemo(() => {
+    if (!search.trim()) return apiKeys;
+    const query = search.toLowerCase();
+    return apiKeys.filter(
+      (key) =>
+        key.name.toLowerCase().includes(query) ||
+        key.permissions.some((p) => p.toLowerCase().includes(query))
+    );
+  }, [apiKeys, search]);
 
   const loadApiKeys = async () => {
     try {
@@ -131,9 +144,25 @@ export function ApiKeysPage() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">API Keys</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenDialog}>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 2, sm: 3 }, gap: 2 }}>
+        <TextField
+          placeholder="Search API keys..."
+          size="small"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ color: 'text.secondary' }} />
+                </InputAdornment>
+              ),
+            },
+          }}
+          sx={{ flex: 1, maxWidth: 400 }}
+        />
+        <Box sx={{ flex: 1 }} />
+        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenDialog} sx={{ whiteSpace: 'nowrap' }}>
           Create API Key
         </Button>
       </Box>
@@ -159,7 +188,7 @@ export function ApiKeysPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {apiKeys.map((apiKey) => (
+                {filteredApiKeys.map((apiKey) => (
                   <TableRow key={apiKey.id}>
                     <TableCell>{apiKey.name}</TableCell>
                     <TableCell>
@@ -191,10 +220,12 @@ export function ApiKeysPage() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {apiKeys.length === 0 && (
+                {filteredApiKeys.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6} align="center">
-                      No API keys created
+                      {apiKeys.length === 0
+                        ? 'No API keys created'
+                        : 'No API keys match your search'}
                     </TableCell>
                   </TableRow>
                 )}
