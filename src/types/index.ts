@@ -103,6 +103,32 @@ export interface ProviderConfig {
   updatedAt: string;
 }
 
+// Session types
+export interface Session {
+  id: string;
+  userId: string;
+  agentId: string;
+  status: 'active' | 'archived';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Message {
+  id: string;
+  sessionId: string;
+  role: 'user' | 'assistant';
+  content: string;
+  runId?: string;
+  createdAt: string;
+}
+
+export interface ChatResponse {
+  sessionId: string | null;
+  response: string;
+  runId: string;
+  isNewSession: boolean;
+}
+
 // API Response wrapper
 export interface ApiResponse<T> {
   success: boolean;

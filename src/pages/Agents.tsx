@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import {
   Box,
@@ -28,6 +29,7 @@ import {
   IconFilter,
   IconX,
   IconAlertCircle,
+  IconMessageCircle,
 } from '@tabler/icons-react';
 import { agentsApi } from '../api';
 import type { Agent, AgentQueryParams } from '../types';
@@ -41,6 +43,7 @@ interface AgentForm {
 const ITEMS_PER_PAGE = 12;
 
 export function AgentsPage() {
+  const navigate = useNavigate();
   const isMobile = useMediaQuery('(max-width: 768px)');
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
@@ -370,6 +373,14 @@ export function AgentsPage() {
                   </Text>
                 </Stack>
                 <Group mt="sm" gap="xs">
+                  <ActionIcon
+                    variant="filled"
+                    color="cyan"
+                    onClick={() => navigate(`/agents/${agent.id}/chat`)}
+                    title="Chat with agent"
+                  >
+                    <IconMessageCircle size={18} />
+                  </ActionIcon>
                   <ActionIcon
                     variant="subtle"
                     onClick={() => handleOpenModal(agent)}

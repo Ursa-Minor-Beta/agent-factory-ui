@@ -3,7 +3,8 @@
 ## Tech Stack
 - React 19 + TypeScript
 - Vite (build tool)
-- Material UI (MUI) - free, MIT license
+- Mantine UI v9.6.0 - free, MIT license
+- Tabler Icons (@tabler/icons-react)
 - React Router v7 (routing)
 - React Hook Form (forms)
 - Native fetch (no axios)
@@ -30,27 +31,23 @@
 
 ## Theme & Styling
 
-### Color Palette (Cyber/Tech Dark Mode)
-```typescript
-primary: '#06b6d4'      // cyan
-secondary: '#22d3ee'    // light cyan
-success: '#10b981'      // emerald
-background.default: '#09090b'  // near black
-background.paper: '#1c1c22'    // dark gray (cards, tables, drawer)
-divider: 'rgba(255, 255, 255, 0.12)'
-```
+### Mantine Theme (Cyber/Tech Dark Mode)
+- Dark color scheme by default
+- Primary color: cyan
+- Uses Mantine CSS variables (e.g., `var(--mantine-color-dark-8)`)
+- Glassmorphism effects with `backdropFilter: 'blur(12px)'` and semi-transparent backgrounds
 
 ### Typography
 - Font: Inter (loaded from Google Fonts)
-- No uppercase buttons (`textTransform: 'none'`)
-- Responsive font sizes (smaller on mobile)
+- Responsive font sizes via Mantine's responsive props
 
 ### Component Conventions
-- 8px border radius globally
-- Cards/tables have visible borders for contrast
-- Filled text fields (better visibility in dark mode)
-- 44px min-height buttons for touch targets
-- Dialogs: full-screen on mobile (`useMediaQuery`)
+- Use Mantine components: `Box`, `Card`, `Paper`, `Group`, `Stack`, `Text`, etc.
+- `radius="lg"` for rounded corners on cards
+- `withBorder` prop for visible borders
+- Use `ActionIcon` for icon buttons
+- Modals: use `centered` prop, `size="sm"` for confirmations
+- Use `@mantine/hooks` for `useMediaQuery`, `useDisclosure`, etc.
 
 ## File Structure
 ```
@@ -82,7 +79,7 @@ src/
 1. Create page component in `src/pages/`
 2. Add route in `src/router.tsx`
 3. Add navigation item in `src/components/Layout.tsx` (navItems array)
-4. Use `useMediaQuery` + `useTheme` for mobile dialogs
+4. Use `useMediaQuery` from `@mantine/hooks` for responsive behavior
 
 ### Adding API Endpoints
 1. Add function in relevant file under `src/api/`
@@ -103,7 +100,8 @@ const { register, handleSubmit, reset, formState: { errors } } = useForm<FormTyp
 - Response format: `{ data: T }` on success, `{ error: { code, message } }` on error
 
 ## Mobile Responsiveness
-- Use `{ xs: value, sm: value }` syntax for responsive values
-- Dialogs use `fullScreen={isMobile}` pattern
-- Reduced padding/spacing on mobile
-- Grid breakpoints: xs=12, sm=6, md=4 for cards
+- Use `useMediaQuery('(max-width: 768px)')` from `@mantine/hooks`
+- Mantine responsive props: `visibleFrom="sm"`, `hiddenFrom="sm"`
+- Use `SimpleGrid` with `cols={{ base: 1, sm: 2, md: 3 }}` for responsive grids
+- Modals: use `fullScreen` prop on mobile if needed
+- Reduced padding/spacing on mobile via conditional styles

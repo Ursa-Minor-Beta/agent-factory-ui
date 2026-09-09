@@ -4,6 +4,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { PublicRoute } from './components/PublicRoute';
 import { LoginPage } from './pages/Login';
 import { AgentsPage } from './pages/Agents';
+import { ChatPage } from './pages/Chat/Chat';
 import { ProvidersPage } from './pages/Providers';
 import { ApiKeysPage } from './pages/ApiKeys';
 import { UsersPage } from './pages/Users';
@@ -32,6 +33,14 @@ export const router = createBrowserRouter([
       {
         path: 'agents',
         element: <AgentsPage />,
+      },
+      {
+        path: 'agents/:agentId/chat',
+        element: <ChatPage />,
+      },
+      {
+        path: 'agents/:agentId/chat/:sessionId',
+        element: <ChatPage />,
       },
       {
         path: 'providers',

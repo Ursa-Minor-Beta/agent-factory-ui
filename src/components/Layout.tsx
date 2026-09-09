@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   AppShell,
@@ -13,7 +12,7 @@ import {
   Tooltip,
   Box,
 } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useLocalStorage } from '@mantine/hooks';
 import {
   IconRobot,
   IconSettings,
@@ -44,7 +43,10 @@ export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpened, { toggle: toggleMobile, close: closeMobile }] = useDisclosure();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useLocalStorage({
+    key: 'nav-sidebar-collapsed',
+    defaultValue: true,
+  });
 
   const handleLogout = async () => {
     await logout();
@@ -120,7 +122,17 @@ export function Layout() {
                 style={{
                   borderRadius: 'var(--mantine-radius-md)',
                   marginBottom: 4,
-                  justifyContent: collapsed ? 'center' : 'flex-start',
+                }}
+                styles={{
+                  root: {
+                    justifyContent: collapsed ? 'center' : 'flex-start',
+                  },
+                  body: {
+                    display: collapsed ? 'none' : undefined,
+                  },
+                  section: {
+                    marginRight: collapsed ? 0 : undefined,
+                  },
                 }}
               />
             </Tooltip>
