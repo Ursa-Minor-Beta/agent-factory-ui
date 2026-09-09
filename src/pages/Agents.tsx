@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import {
   Box,
@@ -30,6 +30,7 @@ import {
   IconX,
   IconAlertCircle,
   IconMessageCircle,
+  IconChevronRight,
 } from '@tabler/icons-react';
 import { agentsApi } from '../api';
 import type { Agent, AgentQueryParams } from '../types';
@@ -43,7 +44,6 @@ interface AgentForm {
 const ITEMS_PER_PAGE = 12;
 
 export function AgentsPage() {
-  const navigate = useNavigate();
   const isMobile = useMediaQuery('(max-width: 768px)');
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
@@ -372,15 +372,22 @@ export function AgentsPage() {
                     {agent.nodes.length} nodes
                   </Text>
                 </Stack>
-                <Group mt="sm" gap="xs">
-                  <ActionIcon
-                    variant="filled"
-                    color="cyan"
-                    onClick={() => navigate(`/agents/${agent.id}/chat`)}
-                    title="Chat with agent"
+                <Group mt="sm" gap="xs" justify="space-between">
+                  <Link
+                    to={`/agents/${agent.id}/chat`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      color: 'var(--mantine-color-cyan-5)',
+                      textDecoration: 'none',
+                    }}
                   >
-                    <IconMessageCircle size={18} />
-                  </ActionIcon>
+                    <IconMessageCircle size={16} />
+                    <Text size="sm" fw={500} c="cyan">Chat</Text>
+                    <IconChevronRight size={14} />
+                  </Link>
+                  <Group gap="xs">
                   <ActionIcon
                     variant="subtle"
                     onClick={() => handleOpenModal(agent)}
@@ -396,6 +403,7 @@ export function AgentsPage() {
                       <IconTrash size={18} />
                     </ActionIcon>
                   )}
+                  </Group>
                 </Group>
               </Card>
             ))}

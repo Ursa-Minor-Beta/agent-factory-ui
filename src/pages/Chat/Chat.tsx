@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Loader, Alert, Center, Modal, Text, Group, Button } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
@@ -9,7 +9,7 @@ import { ChatHeader } from './ChatHeader';
 import { ChatInput } from './ChatInput';
 import { ChatMessages } from './ChatMessages';
 import { ChatSidebar } from './ChatSidebar';
-import type { ChatMessage } from './types';
+import { getInputSchema, type ChatMessage } from './types';
 
 // Helper to parse JSON message content
 function parseMessageContent(content: string, role: 'user' | 'assistant'): string {
@@ -39,13 +39,15 @@ export function ChatPage() {
   }>();
   const navigate = useNavigate();
   const isMobile = useMediaQuery('(max-width: 768px)') ?? false;
-  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const MESSAGES_PER_PAGE = 50;
 
   // Agent state
   const [agent, setAgent] = useState<Agent | null>(null);
   const [loadingAgent, setLoadingAgent] = useState(true);
+
+  // Input schema derived from agent
+  const inputSchema = useMemo(() => (agent ? getInputSchema(agent) : { message: { type: 'string' as const, required: true } }), [agent]);
 
   // Sessions state
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -74,6 +76,17 @@ export function ChatPage() {
   // Derived state
   const isIncognitoSession = currentSessionId?.startsWith('incognito_') || false;
   const isNewChat = !currentSessionId && messages.length === 0;
+
+  // Reset state when agent changes
+  useEffect(() => {
+    setCurrentSessionId(urlSessionId || null);
+    setMessages([]);
+    setSessions([]);
+    setHasMoreMessages(false);
+    setStartIncognito(false);
+    setError('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agentId]);
 
   // Load agent details
   useEffect(() => {
@@ -113,17 +126,27 @@ export function ChatPage() {
 
   // Initial load - fetch sessions and auto-select most recent if needed
   useEffect(() => {
+    if (!agentId) return;
+
     const initSessions = async () => {
-      const data = await loadSessions();
-      // Auto-select most recent session only on initial load (no session in URL)
-      if (!urlSessionId && !startIncognito && data.length > 0) {
-        const mostRecent = data[0];
-        setCurrentSessionId(mostRecent.id);
-        navigate(`/agents/${agentId}/chat/${mostRecent.id}`, { replace: true });
+      try {
+        setLoadingSessions(true);
+        const data = await sessionsApi.list({ agentId, status: 'active', limit: 50 });
+        setSessions(data);
+        // Auto-select most recent session only on initial load (no session in URL)
+        if (!urlSessionId && !startIncognito && data.length > 0) {
+          const mostRecent = data[0];
+          setCurrentSessionId(mostRecent.id);
+          navigate(`/agents/${agentId}/chat/${mostRecent.id}`, { replace: true });
+        }
+      } catch (err) {
+        console.error('Failed to load sessions:', err);
+      } finally {
+        setLoadingSessions(false);
       }
     };
     initSessions();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agentId]);
 
   // Load messages when session changes
@@ -196,13 +219,18 @@ export function ChatPage() {
     }
   }, [currentSessionId, urlSessionId, agentId, navigate]);
 
-  const handleSend = async (value: string) => {
-    if (!value || !agentId || sending) return;
+  const handleSend = async (input: Record<string, unknown>) => {
+    if (!agentId || sending || Object.keys(input).length === 0) return;
+
+    // Format user message content for display
+    const displayContent = Object.entries(input)
+      .map(([key, value]) => (Object.keys(input).length === 1 ? String(value) : `**${key}:** ${value}`))
+      .join('\n');
 
     const userMessage: ChatMessage = {
       id: `temp-${Date.now()}`,
       role: 'user',
-      content: value,
+      content: displayContent,
       createdAt: new Date().toISOString(),
     };
 
@@ -214,7 +242,7 @@ export function ChatPage() {
 
     try {
       const response = await sessionsApi.chat(agentId, {
-        input: { message: value },
+        input,
         sessionId: currentSessionId || undefined,
         incognito: shouldBeIncognito,
       });
@@ -240,7 +268,6 @@ export function ChatPage() {
       setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
     } finally {
       setSending(false);
-      inputRef.current?.focus();
     }
   };
 
@@ -356,7 +383,7 @@ export function ChatPage() {
         <ChatInput
           onSend={handleSend}
           sending={sending}
-          inputRef={inputRef}
+          inputSchema={inputSchema}
         />
       </Box>
     </Box>

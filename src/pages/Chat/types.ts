@@ -1,4 +1,4 @@
-import type { Agent, Session } from '../../types';
+import type { Agent, Session, InputSchema } from '../../types';
 
 export interface ChatMessage {
   id: string;
@@ -16,9 +16,19 @@ export interface ChatHeaderProps {
 }
 
 export interface ChatInputProps {
-  onSend: (value: string) => void;
+  onSend: (input: Record<string, unknown>) => void;
   sending: boolean;
-  inputRef: React.RefObject<HTMLTextAreaElement | null>;
+  inputSchema: InputSchema;
+}
+
+// Helper to extract input schema from agent nodes
+export function getInputSchema(agent: Agent): InputSchema {
+  const inputNode = agent.nodes.find((node) => node.type === 'input');
+  if (inputNode?.data?.schema) {
+    return inputNode.data.schema;
+  }
+  // Default to single message field if no schema found
+  return { message: { type: 'string', required: true } };
 }
 
 export interface ChatMessagesProps {

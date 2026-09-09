@@ -34,12 +34,27 @@ export interface CreateApiKeyResponse {
   plainKey: string;
 }
 
+// Input Schema types (for agent input nodes)
+export interface InputFieldSchema {
+  type: 'string' | 'number' | 'boolean';
+  required?: boolean;
+  default?: unknown;
+  description?: string;
+}
+
+export interface InputSchema {
+  [fieldName: string]: InputFieldSchema;
+}
+
 // Agent types
 export interface AgentNode {
   id: string;
   type: string;
   position: { x: number; y: number };
-  data: Record<string, unknown>;
+  data: {
+    schema?: InputSchema;
+    [key: string]: unknown;
+  };
 }
 
 export interface AgentEdge {
