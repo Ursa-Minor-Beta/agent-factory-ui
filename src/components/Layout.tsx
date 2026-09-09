@@ -160,8 +160,9 @@ export function Layout() {
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
           bgcolor: 'background.paper',
-          borderBottom: 1,
+          borderBottom: '1px solid',
           borderColor: 'divider',
+          backgroundImage: 'none',
           transition: 'width 0.2s, margin-left 0.2s',
         }}
       >
@@ -242,9 +243,9 @@ export function Layout() {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
+          p: { xs: 2, sm: 3 },
           width: { sm: `calc(100% - ${drawerWidth}px)` },
-          mt: 8,
+          mt: { xs: 7, sm: 8 },
           transition: 'width 0.2s',
         }}
       >

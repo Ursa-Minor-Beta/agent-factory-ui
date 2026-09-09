@@ -16,6 +16,8 @@ import {
   TextField,
   CircularProgress,
   Alert,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -31,6 +33,8 @@ interface AgentForm {
 }
 
 export function AgentsPage() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -111,9 +115,14 @@ export function AgentsPage() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: { xs: 2, sm: 3 }, gap: 2 }}>
         <Typography variant="h4">Agents</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => handleOpenDialog()}
+          sx={{ whiteSpace: 'nowrap' }}
+        >
           New Agent
         </Button>
       </Box>
@@ -124,7 +133,7 @@ export function AgentsPage() {
         </Alert>
       )}
 
-      <Grid container spacing={3}>
+      <Grid container spacing={{ xs: 2, sm: 3 }}>
         {agents.map((agent) => (
           <Grid size={{ xs: 12, sm: 6, md: 4 }} key={agent.id}>
             <Card>
@@ -159,7 +168,7 @@ export function AgentsPage() {
         )}
       </Grid>
 
-      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth fullScreen={isMobile}>
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogTitle>{editingAgent ? 'Edit Agent' : 'New Agent'}</DialogTitle>
           <DialogContent>
