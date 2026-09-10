@@ -30,7 +30,17 @@ interface MarkdownRendererProps {
   children: string;
 }
 
+// Convert LaTeX-style delimiters to dollar sign format
+function preprocessMath(content: string): string {
+  return content
+    // Block math: \[ ... \] -> $$ ... $$
+    .replace(/\\\[([\s\S]*?)\\\]/g, '$$$$$1$$$$')
+    // Inline math: \( ... \) -> $ ... $
+    .replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$');
+}
+
 export function MarkdownRenderer({ children }: MarkdownRendererProps) {
+  const processedContent = preprocessMath(children);
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm, remarkMath]}
@@ -123,7 +133,7 @@ export function MarkdownRenderer({ children }: MarkdownRendererProps) {
         img: ({ src, alt }) => <MarkdownImage src={src} alt={alt} />,
       }}
     >
-      {children}
+      {processedContent}
     </ReactMarkdown>
   );
 }
