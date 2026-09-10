@@ -77,6 +77,7 @@ export function AgentJsonModal({ agent, onClose, onSave, isMobile }: AgentJsonMo
         </Group>
       }
       fullScreen
+      trapFocus={false}
     >
       {agent && (
         <Box style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)' }}>
@@ -123,7 +124,7 @@ export function AgentJsonModal({ agent, onClose, onSave, isMobile }: AgentJsonMo
                 <Text fw={600}>Nodes ({nodes.length})</Text>
                 {!nodesValid && <Text size="xs" c="red">Invalid JSON</Text>}
               </Group>
-              <Box style={{ flex: 1, minHeight: 0 }}>
+              <Box style={{ flex: 1, minHeight: 0 }} onKeyDown={(e) => e.stopPropagation()}>
                 <JsonEditor
                   value={nodes}
                   onChange={handleNodesChange}
@@ -165,7 +166,7 @@ export function AgentJsonModal({ agent, onClose, onSave, isMobile }: AgentJsonMo
                 <Text fw={600}>Edges ({edges.length})</Text>
                 {!edgesValid && <Text size="xs" c="red">Invalid JSON</Text>}
               </Group>
-              <Box style={{ flex: 1, minHeight: 0 }}>
+              <Box style={{ flex: 1, minHeight: 0 }} onKeyDown={(e) => e.stopPropagation()}>
                 <JsonEditor
                   value={edges}
                   onChange={handleEdgesChange}
