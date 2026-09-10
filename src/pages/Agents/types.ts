@@ -38,5 +38,6 @@ export interface AgentEditModalProps {
 export interface AgentJsonModalProps {
   agent: Agent | null;
   onClose: () => void;
+  onSave: () => void;
   isMobile: boolean;
 }
