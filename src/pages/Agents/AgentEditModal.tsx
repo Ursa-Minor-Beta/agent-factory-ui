@@ -55,6 +55,7 @@ export function AgentEditModal({ opened, onClose, agent, onSave, isMobile }: Age
           <TextInput
             label="Name"
             error={errors.name?.message || error}
+            disabled={agent?.isSystem}
             {...register('name', { required: 'Name is required' })}
           />
           <Textarea

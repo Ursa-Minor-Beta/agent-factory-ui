@@ -30,7 +30,7 @@ export function AgentCard({ agent, isAdmin, onEdit, onDelete, onViewJson }: Agen
             {agent.name}
           </Text>
           {isAdmin && agent.isSystem && (
-            <Badge color="cyan" size="sm">System</Badge>
+            <Badge color="cyan" size="xs">System</Badge>
           )}
         </Group>
         <Text
