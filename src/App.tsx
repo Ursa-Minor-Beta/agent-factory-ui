@@ -55,6 +55,11 @@ const theme = createTheme({
         size: 'sm',
       },
     },
+    Tooltip: {
+      defaultProps: {
+        color: 'dark.5',
+      },
+    },
   },
 });
 
