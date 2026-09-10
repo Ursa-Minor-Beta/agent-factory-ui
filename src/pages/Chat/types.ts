@@ -11,7 +11,6 @@ export interface ChatHeaderProps {
   agent: Agent;
   isIncognito: boolean;
   isMobile: boolean;
-  onBack: () => void;
   onOpenSidebar: () => void;
 }
 

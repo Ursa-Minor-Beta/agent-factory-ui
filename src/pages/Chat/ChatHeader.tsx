@@ -1,12 +1,11 @@
 import { Box, Card, Group, ActionIcon, Text, Tooltip } from '@mantine/core';
-import { IconArrowLeft, IconMenu2, IconGhost } from '@tabler/icons-react';
+import { IconMenu2, IconGhost } from '@tabler/icons-react';
 import type { ChatHeaderProps } from './types';
 
 export function ChatHeader({
   agent,
   isIncognito,
   isMobile,
-  onBack,
   onOpenSidebar,
 }: ChatHeaderProps) {
   return (

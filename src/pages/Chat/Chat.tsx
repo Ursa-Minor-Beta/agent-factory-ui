@@ -373,7 +373,6 @@ export function ChatPage() {
           agent={agent}
           isIncognito={isIncognitoSession || (isNewChat && startIncognito)}
           isMobile={isMobile}
-          onBack={() => navigate('/agents')}
           onOpenSidebar={() => setSidebarOpen(true)}
         />
 

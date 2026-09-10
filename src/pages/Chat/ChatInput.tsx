@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Box, Card, Stack, Group, TextInput, Textarea, ActionIcon, Text, UnstyledButton } from '@mantine/core';
+import { Box, Card, Stack, Group, Textarea, ActionIcon, Text, UnstyledButton } from '@mantine/core';
 import { IconSend, IconChevronDown, IconChevronRight } from '@tabler/icons-react';
 import type { ChatInputProps } from './types';
 
@@ -72,7 +72,7 @@ export function ChatInput({ onSend, sending, inputSchema }: ChatInputProps) {
       .trim();
   };
 
-  const renderField = (key: string, schema: { type: string; required?: boolean }) => {
+  const renderField = (key: string, _schema: { type: string; required?: boolean }) => {
     return <Textarea
               key={key}
               ref={(el) => { inputRefs.current[key] = el; }}
