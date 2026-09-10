@@ -4,3 +4,4 @@ export { agentsApi } from './agents';
 export { providersApi } from './providers';
 export { usersApi } from './users';
 export { sessionsApi } from './sessions';
+export { secretsApi } from './secrets';

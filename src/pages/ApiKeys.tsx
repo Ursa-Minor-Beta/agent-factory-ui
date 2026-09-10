@@ -133,6 +133,9 @@ export function ApiKeysPage() {
 
   return (
     <Box>
+      <Text c="dimmed" size="sm" mb="md">
+        Create API keys for programmatic access to the Agent Factory backend
+      </Text>
       <Group mb="md" gap="sm">
         <TextInput
           placeholder="Search API keys..."

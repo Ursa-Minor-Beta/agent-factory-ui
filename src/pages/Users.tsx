@@ -61,6 +61,9 @@ export function UsersPage() {
 
   return (
     <Box>
+      <Text c="dimmed" size="sm" mb="md">
+        Manage user accounts and permissions for the Agent Factory platform
+      </Text>
       <Group mb="md" justify="flex-end">
         <Button leftSection={<IconPlus size={16} />} onClick={handleOpenModal}>
           Create User

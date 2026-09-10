@@ -134,6 +134,9 @@ export function ProvidersPage() {
 
   return (
     <Box>
+      <Text c="dimmed" size="sm" mb="md">
+        Configure LLM providers to power your agents
+      </Text>
       <Group mb="md" gap="sm">
         <TextInput
           placeholder="Search providers..."

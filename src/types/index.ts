@@ -144,6 +144,16 @@ export interface ChatResponse {
   isNewSession: boolean;
 }
 
+// Secret types
+export interface Secret {
+  id: string;
+  name: string;
+  maskedValue: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // API Response wrapper
 export interface ApiResponse<T> {
   success: boolean;
