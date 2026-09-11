@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { Modal, Stack, TextInput, Textarea, Group, Button } from '@mantine/core';
+import { Modal, Stack, TextInput, Textarea, Group, Button, CopyButton, ActionIcon, Tooltip, Text, Code } from '@mantine/core';
+import { IconCopy, IconCheck } from '@tabler/icons-react';
 import { agentsApi } from '../../api';
 import type { AgentEditModalProps, AgentForm } from './types';
 
@@ -63,6 +64,21 @@ export function AgentEditModal({ opened, onClose, agent, onSave, isMobile }: Age
             rows={3}
             {...register('description')}
           />
+          {agent && (
+            <Group gap="xs">
+              <Text size="sm" c="dimmed">ID:</Text>
+              <Code>{agent.id}</Code>
+              <CopyButton value={agent.id}>
+                {({ copied, copy }) => (
+                  <Tooltip label={copied ? 'Copied' : 'Copy'}>
+                    <ActionIcon variant="subtle" size="sm" onClick={copy}>
+                      {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
+                    </ActionIcon>
+                  </Tooltip>
+                )}
+              </CopyButton>
+            </Group>
+          )}
           <Group justify="flex-end" mt="md">
             <Button variant="subtle" onClick={handleClose}>
               Cancel
