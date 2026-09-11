@@ -69,8 +69,8 @@ export function JsonEditor({ value, onChange, readOnly = false, height = '100%',
             useWorker: false,
             showLineNumbers: true,
             tabSize: 2,
-            enableBasicAutocompletion: true,
-            enableLiveAutocompletion: true,
+            enableBasicAutocompletion: false,
+            enableLiveAutocompletion: false,
             foldStyle: 'markbegin',
           }}
           editorProps={{ $blockScrolling: true }}
