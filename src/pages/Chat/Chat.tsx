@@ -19,25 +19,45 @@ function formatLabel(key: string): string {
     .trim();
 }
 
+// Helper to stringify a value (handles nested objects)
+function stringifyValue(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'object') {
+    return JSON.stringify(value, null, 2);
+  }
+  return String(value);
+}
+
 // Helper to format input/output object for display
 function formatContent(data: Record<string, unknown>): string {
   const entries = Object.entries(data);
   if (entries.length === 0) return '';
-  if (entries.length === 1) return String(entries[0][1]);
-  return entries.map(([key, value]) => `**${formatLabel(key)}**  \n${value}`).join('\n\n&nbsp;\n\n');
+  if (entries.length === 1) return stringifyValue(entries[0][1]);
+  return entries.map(([key, value]) => `**${formatLabel(key)}**  \n${stringifyValue(value)}`).join('\n\n&nbsp;\n\n');
 }
 
-// Helper to parse JSON message content
-function parseMessageContent(content: string): string {
-  try {
-    const parsed = JSON.parse(content);
-    if (typeof parsed === 'object' && parsed !== null) {
-      return formatContent(parsed);
-    }
-  } catch {
-    // Not JSON, use as-is
+// Helper to parse JSON message content (handles both string and object input)
+function parseMessageContent(content: unknown): string {
+  // If content is already an object, format it directly
+  if (typeof content === 'object' && content !== null) {
+    return formatContent(content as Record<string, unknown>);
   }
-  return content;
+
+  // If content is a string, try to parse as JSON
+  if (typeof content === 'string') {
+    try {
+      const parsed = JSON.parse(content);
+      if (typeof parsed === 'object' && parsed !== null) {
+        return formatContent(parsed);
+      }
+    } catch {
+      // Not JSON, use as-is
+    }
+    return content;
+  }
+
+  // For other primitives, convert to string
+  return String(content ?? '');
 }
 
 export function ChatPage() {
