@@ -95,9 +95,9 @@ export function AgentJsonModal({ agent, onClose, onSave, isMobile }: AgentJsonMo
 
           <Alert icon={<IconBulb size={16} />} color="cyan" variant="light" mb="md">
             <Text size="xs">
-              <strong>Tips:</strong> Use <Code size="xs">{'{{variable}}'}</Code> to reference variables,{' '}
-              <Code size="xs">{'{{secret:NAME}}'}</Code> for secrets, and{' '}
-              <Code size="xs">{'{{node-id.output}}'}</Code> to reference outputs from other nodes.
+              <strong>Tips:</strong> Use <Code fz="xs">{'{{variable}}'}</Code> to reference variables,{' '}
+              <Code fz="xs">{'{{secret:NAME}}'}</Code> for secrets, and{' '}
+              <Code fz="xs">{'{{node-id.output}}'}</Code> to reference outputs from other nodes.
             </Text>
           </Alert>
 
