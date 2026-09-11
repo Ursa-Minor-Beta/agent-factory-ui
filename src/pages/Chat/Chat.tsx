@@ -11,20 +11,28 @@ import { ChatMessages } from './ChatMessages';
 import { ChatSidebar } from './ChatSidebar';
 import { getInputSchema, type ChatMessage } from './types';
 
+// Helper to format field name as readable label
+function formatLabel(key: string): string {
+  return key
+    .replace(/_/g, ' ')
+    .replace(/([A-Z])/g, ' $1')
+    .trim();
+}
+
+// Helper to format input/output object for display
+function formatContent(data: Record<string, unknown>): string {
+  const entries = Object.entries(data);
+  if (entries.length === 0) return '';
+  if (entries.length === 1) return String(entries[0][1]);
+  return entries.map(([key, value]) => `**${formatLabel(key)}**  \n${value}`).join('\n\n&nbsp;\n\n');
+}
+
 // Helper to parse JSON message content
-function parseMessageContent(content: string, role: 'user' | 'assistant'): string {
+function parseMessageContent(content: string): string {
   try {
     const parsed = JSON.parse(content);
     if (typeof parsed === 'object' && parsed !== null) {
-      // User messages: {"message": "..."}
-      if (role === 'user' && 'message' in parsed) {
-        return String(parsed.message);
-      }
-      // Assistant messages: {"output-1": "...", "output-2": "..."}
-      const values = Object.values(parsed);
-      if (values.length > 0) {
-        return values.join('\n\n');
-      }
+      return formatContent(parsed);
     }
   } catch {
     // Not JSON, use as-is
@@ -167,7 +175,7 @@ export function ChatPage() {
         const parsedMessages = data.map((m) => ({
           id: m.id,
           role: m.role,
-          content: parseMessageContent(m.content, m.role),
+          content: parseMessageContent(m.content),
           createdAt: m.createdAt,
         }));
         setMessages(parsedMessages);
@@ -196,7 +204,7 @@ export function ChatPage() {
       const parsedMessages = data.map((m) => ({
         id: m.id,
         role: m.role,
-        content: parseMessageContent(m.content, m.role),
+        content: parseMessageContent(m.content),
         createdAt: m.createdAt,
       }));
       // Prepend older messages
@@ -224,9 +232,7 @@ export function ChatPage() {
     if (!agentId || sending || Object.keys(input).length === 0) return;
 
     // Format user message content for display
-    const displayContent = Object.entries(input)
-      .map(([key, value]) => (Object.keys(input).length === 1 ? String(value) : `**${key}:** ${value}`))
-      .join('\n');
+    const displayContent = formatContent(input);
 
     const userMessage: ChatMessage = {
       id: `temp-${Date.now()}`,
@@ -260,7 +266,7 @@ export function ChatPage() {
       const assistantMessage: ChatMessage = {
         id: `response-${Date.now()}`,
         role: 'assistant',
-        content: parseMessageContent(response.response, 'assistant'),
+        content: parseMessageContent(response.response),
         createdAt: new Date().toISOString(),
       };
 

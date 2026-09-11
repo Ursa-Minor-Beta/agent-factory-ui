@@ -1,6 +1,6 @@
 # Agent Factory UI
 
-React frontend for the Agent Factory platform - a visual workflow builder for AI agents.
+React frontend for the Agent Factory platform.
 
 ## Tech Stack
 

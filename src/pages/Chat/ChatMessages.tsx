@@ -1,5 +1,5 @@
 import { useRef, useEffect, type ElementRef } from 'react';
-import { Box, Text, Stack, Paper, Loader, Alert, Center, ActionIcon, Tooltip } from '@mantine/core';
+import { Box, Text, Stack, Paper, Loader, Alert, Center, ActionIcon, Tooltip, Group, Button } from '@mantine/core';
 import { Virtuoso } from 'react-virtuoso';
 import { IconAlertCircle, IconGhost, IconRefresh } from '@tabler/icons-react';
 import { MarkdownRenderer } from '../../components/MarkdownRenderer';
@@ -90,7 +90,18 @@ export function ChatMessages({
             zIndex: 5,
           }}
         >
-          {error}
+          <Group justify="space-between" align="center">
+            <Text size="sm">{error}</Text>
+            <Button
+              size="xs"
+              variant="light"
+              color="red"
+              leftSection={<IconRefresh size={14} />}
+              onClick={onRetry}
+            >
+              Retry
+            </Button>
+          </Group>
         </Alert>
       )}
 
