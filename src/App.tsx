@@ -1,8 +1,10 @@
 import { RouterProvider } from 'react-router-dom';
 import { MantineProvider, createTheme } from '@mantine/core';
+import { DatesProvider } from '@mantine/dates';
 import { AuthProvider } from './contexts/AuthContext';
 import { router } from './router';
 import '@mantine/core/styles.css';
+import '@mantine/dates/styles.css';
 
 const theme = createTheme({
   primaryColor: 'cyan',
@@ -66,9 +68,11 @@ const theme = createTheme({
 function App() {
   return (
     <MantineProvider theme={theme} defaultColorScheme="dark">
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>
+      <DatesProvider>
+        <AuthProvider>
+          <RouterProvider router={router} />
+        </AuthProvider>
+      </DatesProvider>
     </MantineProvider>
   );
 }

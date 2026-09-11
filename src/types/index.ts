@@ -144,6 +144,32 @@ export interface ChatResponse {
   isNewSession: boolean;
 }
 
+// Run types
+export type NodeStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
+export type RunStatus = 'pending' | 'running' | 'completed' | 'failed';
+
+export interface NodeState {
+  status: NodeStatus;
+  input?: unknown;
+  output?: unknown;
+  error?: string | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+}
+
+export interface Run {
+  id: string;
+  agentId: string;
+  userId: string;
+  input: Record<string, unknown>;
+  output?: Record<string, unknown> | null;
+  status: RunStatus;
+  nodeStates: Record<string, NodeState>;
+  error?: string | null;
+  startedAt: string;
+  completedAt?: string | null;
+}
+
 // Secret types
 export interface Secret {
   id: string;

@@ -8,6 +8,7 @@ import { ChatPage } from './pages/Chat/Chat';
 import { ProvidersPage } from './pages/Providers';
 import { ApiKeysPage } from './pages/ApiKeys';
 import { SecretsPage } from './pages/Secrets';
+import { RunsPage } from './pages/Runs/index';
 import { UsersPage } from './pages/Users';
 
 export const router = createBrowserRouter([
@@ -54,6 +55,10 @@ export const router = createBrowserRouter([
       {
         path: 'secrets',
         element: <SecretsPage />,
+      },
+      {
+        path: 'runs',
+        element: <RunsPage />,
       },
       {
         path: 'users',

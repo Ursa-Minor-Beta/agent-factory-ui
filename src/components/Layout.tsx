@@ -18,6 +18,7 @@ import {
   IconSettings,
   IconKey,
   IconLock,
+  IconHistory,
   IconUsers,
   IconLogout,
   IconChevronLeft,
@@ -37,6 +38,7 @@ const navItems: NavItem[] = [
   { label: 'Providers', path: '/providers', icon: <IconSettings size={20} /> },
   { label: 'Secrets', path: '/secrets', icon: <IconLock size={20} /> },
   { label: 'API Keys', path: '/api-keys', icon: <IconKey size={20} /> },
+  { label: 'Runs', path: '/runs', icon: <IconHistory size={20} /> },
   { label: 'Users', path: '/users', icon: <IconUsers size={20} />, adminOnly: true },
 ];
 
