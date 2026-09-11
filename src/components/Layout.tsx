@@ -1,4 +1,4 @@
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   AppShell,
   Burger,
@@ -118,13 +118,12 @@ export function Layout() {
               disabled={!collapsed}
             >
               <NavLink
+                component={Link}
+                to={item.path}
                 active={location.pathname === item.path}
                 label={collapsed ? '' : item.label}
                 leftSection={item.icon}
-                onClick={() => {
-                  navigate(item.path);
-                  closeMobile();
-                }}
+                onClick={closeMobile}
                 style={{
                   borderRadius: 'var(--mantine-radius-md)',
                   marginBottom: 4,
