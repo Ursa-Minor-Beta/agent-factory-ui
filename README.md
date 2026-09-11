@@ -40,6 +40,9 @@ React frontend for the Agent Factory platform.
 # Install dependencies
 npm install
 
+# Copy and configure environment
+cp .env.example .env
+
 # Start development server
 npm run dev
 ```
