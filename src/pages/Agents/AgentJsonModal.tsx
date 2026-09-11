@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Modal, Box, Text, Button, Group, Alert } from '@mantine/core';
-import { IconDeviceFloppy, IconAlertCircle } from '@tabler/icons-react';
+import { Modal, Box, Text, Button, Group, Alert, Code } from '@mantine/core';
+import { IconDeviceFloppy, IconAlertCircle, IconBulb } from '@tabler/icons-react';
 import { JsonEditor } from '../../components/JsonEditor';
 import { agentsApi } from '../../api';
 import type { AgentNode, AgentEdge } from '../../types';
@@ -92,6 +92,14 @@ export function AgentJsonModal({ agent, onClose, onSave, isMobile }: AgentJsonMo
               {error}
             </Alert>
           )}
+
+          <Alert icon={<IconBulb size={16} />} color="cyan" variant="light" mb="md">
+            <Text size="xs">
+              <strong>Tips:</strong> Use <Code size="xs">{'{{variable}}'}</Code> to reference variables,{' '}
+              <Code size="xs">{'{{secret:NAME}}'}</Code> for secrets, and{' '}
+              <Code size="xs">{'{{node-id.output}}'}</Code> to reference outputs from other nodes.
+            </Text>
+          </Alert>
 
           <Box
             ref={containerRef}
