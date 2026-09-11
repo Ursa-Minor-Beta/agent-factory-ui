@@ -9,6 +9,7 @@ import { ProvidersPage } from './pages/Providers';
 import { ApiKeysPage } from './pages/ApiKeys';
 import { SecretsPage } from './pages/Secrets';
 import { RunsPage } from './pages/Runs/index';
+import { SessionsPage } from './pages/Sessions/index';
 import { UsersPage } from './pages/Users';
 
 export const router = createBrowserRouter([
@@ -59,6 +60,10 @@ export const router = createBrowserRouter([
       {
         path: 'runs',
         element: <RunsPage />,
+      },
+      {
+        path: 'sessions',
+        element: <SessionsPage />,
       },
       {
         path: 'users',

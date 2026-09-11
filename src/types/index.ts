@@ -123,17 +123,27 @@ export interface Session {
   id: string;
   userId: string;
   agentId: string;
+  title?: string | null;
   status: 'active' | 'archived';
+  incognito: boolean;
+  agentNotes?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ToolCall {
+  id: string;
+  name: string;
+  arguments: unknown;
+  result?: unknown;
 }
 
 export interface Message {
   id: string;
   sessionId: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'system' | 'tool';
   content: string;
-  runId?: string;
+  toolCalls?: ToolCall[] | null;
   createdAt: string;
 }
 
