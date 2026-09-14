@@ -17,7 +17,7 @@ export function MessageBubble({ message, isFirst, showRetry, onRetry, onViewRun,
   return (
     <Box
       px="md"
-      pt={isFirst ? 100 : 8}
+      pt={isFirst ? 100 : 'md'}
       pb="xs"
       style={{
         display: 'flex',

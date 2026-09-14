@@ -262,6 +262,16 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
                           </Paper>
                         )}
                       </SimpleGrid>
+                      {state.state !== undefined && (
+                        <Paper p="xs" radius="sm" withBorder mt="sm">
+                          <Text size="xs" c="dimmed" fw={500} mb={4}>
+                            STATE
+                          </Text>
+                          <Code block style={{ fontSize: 11 }}>
+                            {JSON.stringify(state.state, null, 2)}
+                          </Code>
+                        </Paper>
+                      )}
                     </Stack>
                   </Accordion.Panel>
                 </Accordion.Item>

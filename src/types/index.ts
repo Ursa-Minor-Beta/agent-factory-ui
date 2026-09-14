@@ -162,6 +162,7 @@ export interface NodeState {
   status: NodeStatus;
   input?: unknown;
   output?: unknown;
+  state?: unknown;
   error?: string | null;
   startedAt?: string | null;
   completedAt?: string | null;
