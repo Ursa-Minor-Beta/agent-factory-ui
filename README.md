@@ -40,6 +40,9 @@ React frontend for the Agent Factory platform.
 # Install dependencies
 npm install
 
+# Copy and configure environment
+cp .env.example .env
+
 # Start development server
 npm run dev
 ```
@@ -78,3 +81,7 @@ docker compose up -d --build --force-recreate
 The app will be available at `http://localhost:8080`
 
 > **Note:** `VITE_*` variables are embedded at build time. After changing them in `.env`, you must rebuild with `--build`.
+
+## Licence
+
+Apache 2.0 — see [LICENSE](LICENSE).
