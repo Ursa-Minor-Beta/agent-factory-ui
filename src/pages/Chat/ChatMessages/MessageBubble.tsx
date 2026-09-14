@@ -68,6 +68,15 @@ export function MessageBubble({ message, isFirst, showRetry, onRetry, onViewRun,
             transition: 'opacity 0.15s',
           }}
         >
+          <CopyButton value={message.content}>
+            {({ copied, copy }) => (
+              <Tooltip label={copied ? 'Copied' : 'Copy'}>
+                <ActionIcon variant="subtle" size="xs" onClick={copy}>
+                  {copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
+                </ActionIcon>
+              </Tooltip>
+            )}
+          </CopyButton>
           {message.role === 'assistant' && message.runId && (
             <Tooltip label="View run details">
               <ActionIcon
@@ -90,15 +99,6 @@ export function MessageBubble({ message, isFirst, showRetry, onRetry, onViewRun,
               </ActionIcon>
             </Tooltip>
           )}
-          <CopyButton value={message.content}>
-            {({ copied, copy }) => (
-              <Tooltip label={copied ? 'Copied' : 'Copy'}>
-                <ActionIcon variant="subtle" size="xs" onClick={copy}>
-                  {copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
-                </ActionIcon>
-              </Tooltip>
-            )}
-          </CopyButton>
         </Group>
         <style>{`
           .message-bubble:hover .message-hover-btns {
