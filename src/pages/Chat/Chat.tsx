@@ -457,7 +457,7 @@ export function ChatPage() {
         setMessages([]);
         navigate(`/agents/${agentId}/chat`);
       }
-      loadSessions();
+      setSessions((prev) => prev.filter((s) => s.id !== sessionToDelete));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete session');
     } finally {
@@ -467,7 +467,12 @@ export function ChatPage() {
 
   const handleRenameSession = async (id: string, title: string) => {
     await sessionsApi.update(id, { title: title || null });
-    loadSessions();
+    setSessions((prev) => prev.map((s) => {
+      if (s.id === id) {
+        return { ...s, title }
+      }
+      return s
+    }));
   };
 
   const handleAgentSave = async () => {
