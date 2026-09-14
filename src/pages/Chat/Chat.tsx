@@ -422,6 +422,15 @@ export function ChatPage() {
     handleSend(lastInput);
   }, [lastInput, sending]);
 
+  const handleRepeat = useCallback((content: string) => {
+    if (sending) return;
+    // Get the first field from schema to use for the repeated content
+    const schemaFields = Object.keys(inputSchema);
+    if (schemaFields.length === 0) return;
+    const firstField = schemaFields[0];
+    handleSend({ [firstField]: content });
+  }, [sending, inputSchema]);
+
   const handleNewChat = (incognito = false) => {
     setCurrentSessionId(null);
     setMessages([]);
@@ -583,6 +592,7 @@ export function ChatPage() {
           loadingMore={loadingMoreMessages}
           onLoadMore={handleLoadMoreMessages}
           onViewRun={handleViewRun}
+          onRepeat={handleRepeat}
         />
 
         <ChatInput

@@ -1,5 +1,5 @@
 import { Box, Paper, ActionIcon, Tooltip, Group, CopyButton } from '@mantine/core';
-import { IconRefresh, IconCopy, IconCheck, IconListDetails } from '@tabler/icons-react';
+import { IconRefresh, IconCopy, IconCheck, IconListDetails, IconRepeat } from '@tabler/icons-react';
 import type { ChatMessage } from '../types';
 import { CollapsibleContent } from './CollapsibleContent';
 import { AttachmentPreview } from './AttachmentPreview';
@@ -10,9 +10,10 @@ interface MessageBubbleProps {
   showRetry: boolean;
   onRetry: () => void;
   onViewRun: (runId: string) => void;
+  onRepeat?: (content: string) => void;
 }
 
-export function MessageBubble({ message, isFirst, showRetry, onRetry, onViewRun }: MessageBubbleProps) {
+export function MessageBubble({ message, isFirst, showRetry, onRetry, onViewRun, onRepeat }: MessageBubbleProps) {
   return (
     <Box
       px="md"
@@ -38,6 +39,7 @@ export function MessageBubble({ message, isFirst, showRetry, onRetry, onViewRun 
         </Tooltip>
       )}
       <Paper
+        className="message-bubble"
         p="sm"
         radius="lg"
         style={{
@@ -55,55 +57,51 @@ export function MessageBubble({ message, isFirst, showRetry, onRetry, onViewRun 
         {message.attachments && message.attachments.length > 0 && (
           <AttachmentPreview attachments={message.attachments} />
         )}
-        {message.role === 'assistant' && (
-          <Box
-            className="message-hover-zone"
-            style={{
-              position: 'absolute',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: 24,
-            }}
-          >
-            <Group
-              gap={4}
-              className="message-hover-btns"
-              style={{
-                position: 'absolute',
-                bottom: 4,
-                left: 4,
-                opacity: 0,
-                transition: 'opacity 0.15s',
-                backgroundColor: 'var(--mantine-color-dark-6)',
-                borderRadius: 4,
-              }}
-            >
-              <CopyButton value={message.content}>
-                {({ copied, copy }) => (
-                  <Tooltip label={copied ? 'Copied' : 'Copy'}>
-                    <ActionIcon variant="subtle" size="xs" onClick={copy}>
-                      {copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
-                    </ActionIcon>
-                  </Tooltip>
-                )}
-              </CopyButton>
-              {message.runId && (
-                <Tooltip label="View run details">
-                  <ActionIcon
-                    variant="subtle"
-                    size="xs"
-                    onClick={() => onViewRun(message.runId!)}
-                  >
-                    <IconListDetails size={12} />
-                  </ActionIcon>
-                </Tooltip>
-              )}
-            </Group>
-          </Box>
-        )}
+        <Group
+          gap={4}
+          className="message-hover-btns"
+          style={{
+            position: 'absolute',
+            bottom: -20,
+            right: 0,
+            opacity: 0,
+            transition: 'opacity 0.15s',
+          }}
+        >
+          {message.role === 'assistant' && message.runId && (
+            <Tooltip label="View run details">
+              <ActionIcon
+                variant="subtle"
+                size="xs"
+                onClick={() => onViewRun(message.runId!)}
+              >
+                <IconListDetails size={12} />
+              </ActionIcon>
+            </Tooltip>
+          )}
+          {message.role === 'user' && onRepeat && (
+            <Tooltip label="Repeat">
+              <ActionIcon
+                variant="subtle"
+                size="xs"
+                onClick={() => onRepeat(message.content)}
+              >
+                <IconRepeat size={12} />
+              </ActionIcon>
+            </Tooltip>
+          )}
+          <CopyButton value={message.content}>
+            {({ copied, copy }) => (
+              <Tooltip label={copied ? 'Copied' : 'Copy'}>
+                <ActionIcon variant="subtle" size="xs" onClick={copy}>
+                  {copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
+                </ActionIcon>
+              </Tooltip>
+            )}
+          </CopyButton>
+        </Group>
         <style>{`
-          .message-hover-zone:hover .message-hover-btns {
+          .message-bubble:hover .message-hover-btns {
             opacity: 1 !important;
           }
         `}</style>

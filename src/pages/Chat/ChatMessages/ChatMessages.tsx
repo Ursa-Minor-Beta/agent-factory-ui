@@ -19,6 +19,7 @@ export function ChatMessages({
   loadingMore,
   onLoadMore,
   onViewRun,
+  onRepeat,
 }: ChatMessagesProps) {
   const virtuosoRef = useRef<ElementRef<typeof Virtuoso>>(null);
   const isAtBottomRef = useRef(true);
@@ -159,6 +160,7 @@ export function ChatMessages({
               showRetry={!!showRetry}
               onRetry={onRetry}
               onViewRun={onViewRun}
+              onRepeat={onRepeat}
             />
           );
         }}

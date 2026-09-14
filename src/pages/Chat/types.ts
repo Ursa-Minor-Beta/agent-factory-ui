@@ -56,6 +56,7 @@ export interface ChatMessagesProps {
   loadingMore: boolean;
   onLoadMore: () => void;
   onViewRun: (runId: string) => void;
+  onRepeat: (content: string) => void;
 }
 
 export interface ChatSidebarProps {
