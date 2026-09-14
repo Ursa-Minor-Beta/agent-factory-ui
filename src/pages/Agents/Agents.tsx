@@ -25,8 +25,8 @@ import type { Agent, AgentQueryParams } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { AgentCard } from './AgentCard';
 import { AgentFilters } from './AgentFilters';
-import { AgentEditModal } from './AgentEditModal';
-import { AgentJsonModal } from './AgentJsonModal';
+import { AgentEditModal } from '../../components/AgentEditModal';
+import { AgentJsonModal } from '../../components/AgentJsonModal';
 import { AgentDeleteModal } from './AgentDeleteModal';
 
 const ITEMS_PER_PAGE = 12;

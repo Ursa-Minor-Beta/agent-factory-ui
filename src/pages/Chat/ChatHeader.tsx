@@ -1,5 +1,5 @@
 import { Box, Card, Group, ActionIcon, Text, Tooltip } from '@mantine/core';
-import { IconMenu2, IconGhost } from '@tabler/icons-react';
+import { IconMenu2, IconGhost, IconPencil, IconCode } from '@tabler/icons-react';
 import type { ChatHeaderProps } from './types';
 
 export function ChatHeader({
@@ -7,6 +7,8 @@ export function ChatHeader({
   isIncognito,
   isMobile,
   onOpenSidebar,
+  onEditAgent,
+  onEditJson,
 }: ChatHeaderProps) {
   return (
     <Box
@@ -43,6 +45,18 @@ export function ChatHeader({
                 <IconGhost size={18} color="var(--mantine-color-violet-5)" />
               </Tooltip>
             )}
+          </Group>
+          <Group gap="xs">
+            <Tooltip label="Edit JSON">
+              <ActionIcon variant="subtle" onClick={onEditJson}>
+                <IconCode size={18} />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label="Edit agent">
+              <ActionIcon variant="subtle" onClick={onEditAgent}>
+                <IconPencil size={18} />
+              </ActionIcon>
+            </Tooltip>
           </Group>
         </Group>
       </Card>

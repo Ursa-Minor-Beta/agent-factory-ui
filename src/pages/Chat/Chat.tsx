@@ -9,7 +9,9 @@ import { ChatHeader } from './ChatHeader';
 import { ChatInput } from './ChatInput';
 import { ChatMessages } from './ChatMessages';
 import { ChatSidebar } from './ChatSidebar';
-import { getInputSchema, type ChatMessage } from './types';
+import { AgentEditModal } from '../../components/AgentEditModal';
+import { AgentJsonModal } from '../../components/AgentJsonModal';
+import { getInputSchema, type ChatMessage, type MessageAttachment } from './types';
 
 // Helper to format field name as readable label
 function formatLabel(key: string): string {
@@ -17,6 +19,90 @@ function formatLabel(key: string): string {
     .replace(/_/g, ' ')
     .replace(/([A-Z])/g, ' $1')
     .trim();
+}
+
+// Detect if string looks like base64 (long alphanumeric string)
+function isBase64(str: string): boolean {
+  if (typeof str !== 'string' || str.length < 200) return false;
+  const base64Regex = /^[A-Za-z0-9+/=]+$/;
+  return base64Regex.test(str.slice(0, 500));
+}
+
+// Get base64 size in human readable format
+function getBase64Size(base64: string): string {
+  const bytes = Math.ceil((base64.length * 3) / 4);
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// Known image field names
+const IMAGE_FIELDS = ['screenshot', 'image', 'thumbnail', 'preview', 'photo', 'picture'];
+
+// Extract base64 attachments from object recursively
+function extractAttachments(
+  data: Record<string, unknown>,
+  attachments: MessageAttachment[],
+  prefix = ''
+): Record<string, unknown> {
+  const cleaned: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(data)) {
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+    const keyLower = key.toLowerCase();
+
+    if (typeof value === 'string' && isBase64(value)) {
+      const isImage = IMAGE_FIELDS.some(f => keyLower.includes(f));
+      attachments.push({
+        name: fullKey,
+        type: isImage ? 'image' : 'binary',
+        data: value,
+        size: getBase64Size(value),
+      });
+      // Don't include in cleaned output
+    } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      // Handle nested objects (like screenshots: { name: base64 })
+      const nestedAttachments: MessageAttachment[] = [];
+      const cleanedNested = extractAttachments(value as Record<string, unknown>, nestedAttachments, fullKey);
+
+      // Check if this object only contained base64 values
+      if (nestedAttachments.length > 0) {
+        attachments.push(...nestedAttachments);
+      }
+      if (Object.keys(cleanedNested).length > 0) {
+        cleaned[key] = cleanedNested;
+      }
+    } else if (Array.isArray(value)) {
+      const cleanedArray: unknown[] = [];
+      value.forEach((item, index) => {
+        if (typeof item === 'string' && isBase64(item)) {
+          const isImage = IMAGE_FIELDS.some(f => keyLower.includes(f));
+          attachments.push({
+            name: `${fullKey}[${index}]`,
+            type: isImage ? 'image' : 'binary',
+            data: item,
+            size: getBase64Size(item),
+          });
+        } else if (typeof item === 'object' && item !== null) {
+          const nestedAttachments: MessageAttachment[] = [];
+          const cleanedItem = extractAttachments(item as Record<string, unknown>, nestedAttachments, `${fullKey}[${index}]`);
+          attachments.push(...nestedAttachments);
+          if (Object.keys(cleanedItem).length > 0) {
+            cleanedArray.push(cleanedItem);
+          }
+        } else {
+          cleanedArray.push(item);
+        }
+      });
+      if (cleanedArray.length > 0) {
+        cleaned[key] = cleanedArray;
+      }
+    } else {
+      cleaned[key] = value;
+    }
+  }
+
+  return cleaned;
 }
 
 // Helper to stringify a value (handles nested objects)
@@ -28,7 +114,23 @@ function stringifyValue(value: unknown): string {
   return String(value);
 }
 
-// Helper to format input/output object for display
+// Helper to format input/output object for display (returns text and attachments)
+function formatContentWithAttachments(data: Record<string, unknown>): { text: string; attachments: MessageAttachment[] } {
+  const attachments: MessageAttachment[] = [];
+  const cleaned = extractAttachments(data, attachments);
+
+  const entries = Object.entries(cleaned);
+  let text = '';
+  if (entries.length === 1) {
+    text = stringifyValue(entries[0][1]);
+  } else if (entries.length > 1) {
+    text = entries.map(([key, value]) => `**${formatLabel(key)}**  \n${stringifyValue(value)}`).join('\n\n&nbsp;\n\n');
+  }
+
+  return { text, attachments };
+}
+
+// Legacy helper for user input display (no attachment extraction needed)
 function formatContent(data: Record<string, unknown>): string {
   const entries = Object.entries(data);
   if (entries.length === 0) return '';
@@ -37,10 +139,10 @@ function formatContent(data: Record<string, unknown>): string {
 }
 
 // Helper to parse JSON message content (handles both string and object input)
-function parseMessageContent(content: unknown): string {
+function parseMessageContent(content: unknown): { text: string; attachments: MessageAttachment[] } {
   // If content is already an object, format it directly
   if (typeof content === 'object' && content !== null) {
-    return formatContent(content as Record<string, unknown>);
+    return formatContentWithAttachments(content as Record<string, unknown>);
   }
 
   // If content is a string, try to parse as JSON
@@ -48,16 +150,16 @@ function parseMessageContent(content: unknown): string {
     try {
       const parsed = JSON.parse(content);
       if (typeof parsed === 'object' && parsed !== null) {
-        return formatContent(parsed);
+        return formatContentWithAttachments(parsed);
       }
     } catch {
       // Not JSON, use as-is
     }
-    return content;
+    return { text: content, attachments: [] };
   }
 
   // For other primitives, convert to string
-  return String(content ?? '');
+  return { text: String(content ?? ''), attachments: [] };
 }
 
 export function ChatPage() {
@@ -101,6 +203,10 @@ export function ChatPage() {
 
   // Delete confirmation modal
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
+
+  // Edit agent modal
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [jsonModalOpen, setJsonModalOpen] = useState(false);
 
   // Derived state
   const isIncognitoSession = currentSessionId?.startsWith('incognito_') || false;
@@ -192,12 +298,16 @@ export function ChatPage() {
       try {
         setLoadingMessages(true);
         const data = await sessionsApi.getMessages(currentSessionId, MESSAGES_PER_PAGE, 0);
-        const parsedMessages = data.map((m) => ({
-          id: m.id,
-          role: m.role,
-          content: parseMessageContent(m.content),
-          createdAt: m.createdAt,
-        }));
+        const parsedMessages = data.map((m) => {
+          const { text, attachments } = parseMessageContent(m.content);
+          return {
+            id: m.id,
+            role: m.role,
+            content: text,
+            attachments: attachments.length > 0 ? attachments : undefined,
+            createdAt: m.createdAt,
+          };
+        });
         setMessages(parsedMessages);
         setHasMoreMessages(data.length === MESSAGES_PER_PAGE);
       } catch (err) {
@@ -221,12 +331,16 @@ export function ChatPage() {
         MESSAGES_PER_PAGE,
         messages.length
       );
-      const parsedMessages = data.map((m) => ({
-        id: m.id,
-        role: m.role,
-        content: parseMessageContent(m.content),
-        createdAt: m.createdAt,
-      }));
+      const parsedMessages = data.map((m) => {
+        const { text, attachments } = parseMessageContent(m.content);
+        return {
+          id: m.id,
+          role: m.role,
+          content: text,
+          attachments: attachments.length > 0 ? attachments : undefined,
+          createdAt: m.createdAt,
+        };
+      });
       // Prepend older messages
       setMessages((prev) => [...parsedMessages, ...prev]);
       setHasMoreMessages(data.length === MESSAGES_PER_PAGE);
@@ -283,10 +397,12 @@ export function ChatPage() {
         }
       }
 
+      const { text, attachments } = parseMessageContent(response.response);
       const assistantMessage: ChatMessage = {
         id: `response-${Date.now()}`,
         role: 'assistant',
-        content: parseMessageContent(response.response),
+        content: text,
+        attachments: attachments.length > 0 ? attachments : undefined,
         createdAt: new Date().toISOString(),
       };
 
@@ -344,6 +460,16 @@ export function ChatPage() {
     }
   };
 
+  const handleAgentSave = async () => {
+    if (!agentId) return;
+    try {
+      const data = await agentsApi.getById(agentId);
+      setAgent(data);
+    } catch (err) {
+      console.error('Failed to reload agent:', err);
+    }
+  };
+
   if (loadingAgent) {
     return (
       <Center style={{ height: '100%', minHeight: 400 }}>
@@ -382,6 +508,21 @@ export function ChatPage() {
         </Group>
       </Modal>
 
+      <AgentEditModal
+        opened={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        agent={agent}
+        onSave={handleAgentSave}
+        isMobile={isMobile}
+      />
+
+      <AgentJsonModal
+        agent={jsonModalOpen ? agent : null}
+        onClose={() => setJsonModalOpen(false)}
+        onSave={handleAgentSave}
+        isMobile={isMobile}
+      />
+
       <ChatSidebar
         sessions={sessions}
         currentSessionId={currentSessionId}
@@ -400,6 +541,8 @@ export function ChatPage() {
           isIncognito={isIncognitoSession || (isNewChat && startIncognito)}
           isMobile={isMobile}
           onOpenSidebar={() => setSidebarOpen(true)}
+          onEditAgent={() => setEditModalOpen(true)}
+          onEditJson={() => setJsonModalOpen(true)}
         />
 
         <ChatMessages

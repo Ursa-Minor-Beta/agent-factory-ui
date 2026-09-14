@@ -1,9 +1,17 @@
 import type { Agent, Session, InputSchema } from '../../types';
 
+export interface MessageAttachment {
+  name: string;
+  type: 'image' | 'binary';
+  data: string;
+  size: string;
+}
+
 export interface ChatMessage {
   id: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'system' | 'tool';
   content: string;
+  attachments?: MessageAttachment[];
   createdAt: string;
 }
 
@@ -12,6 +20,8 @@ export interface ChatHeaderProps {
   isIncognito: boolean;
   isMobile: boolean;
   onOpenSidebar: () => void;
+  onEditAgent: () => void;
+  onEditJson: () => void;
 }
 
 export interface ChatInputProps {

@@ -1,7 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import { Layout } from './components/Layout';
-import { ProtectedRoute } from './components/ProtectedRoute';
-import { PublicRoute } from './components/PublicRoute';
+import { Layout } from './layout/Layout';
+import { ProtectedRoute } from './layout/ProtectedRoute';
+import { PublicRoute } from './layout/PublicRoute';
 import { LoginPage } from './pages/Login';
 import { AgentsPage } from './pages/Agents';
 import { ChatPage } from './pages/Chat/Chat';

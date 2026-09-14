@@ -53,20 +53,10 @@
 ```
 src/
   api/           # API client and endpoint functions
-    client.ts    # Fetch wrapper with auth
-    index.ts     # API exports (authApi, agentsApi, etc.)
   components/    # Shared components
-    Layout.tsx   # Main layout with sidebar
-    ProtectedRoute.tsx
-    PublicRoute.tsx
   contexts/      # React contexts
-    AuthContext.tsx
+  layout /       # Main layout with sidebar
   pages/         # Page components
-    Login.tsx
-    Agents.tsx
-    Providers.tsx
-    ApiKeys.tsx
-    Users.tsx
   types/         # TypeScript types
   config/        # Environment config
   router.tsx     # Route definitions
@@ -78,7 +68,7 @@ src/
 ### Adding a New Page
 1. Create page component in `src/pages/`
 2. Add route in `src/router.tsx`
-3. Add navigation item in `src/components/Layout.tsx` (navItems array)
+3. Add navigation item in `src/layout/Layout.tsx` (navItems array)
 4. Use `useMediaQuery` from `@mantine/hooks` for responsive behavior
 
 ### Adding API Endpoints

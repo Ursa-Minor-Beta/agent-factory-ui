@@ -1,10 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { Modal, Box, Text, Button, Group, Alert, Code } from '@mantine/core';
 import { IconDeviceFloppy, IconAlertCircle, IconBulb } from '@tabler/icons-react';
-import { JsonEditor } from '../../components/JsonEditor';
-import { agentsApi } from '../../api';
-import type { AgentNode, AgentEdge } from '../../types';
-import type { AgentJsonModalProps } from './types';
+import { JsonEditor } from './JsonEditor';
+import { agentsApi } from '../api';
+import type { AgentNode, AgentEdge, AgentJsonModalProps } from '../types';
 
 export function AgentJsonModal({ agent, onClose, onSave, isMobile }: AgentJsonModalProps) {
   const [splitPercent, setSplitPercent] = useState(70);
