@@ -143,6 +143,7 @@ export interface Message {
   sessionId: string;
   role: 'user' | 'assistant' | 'system' | 'tool';
   content: string;
+  files?: string[]; // Array of file references: "inner:<fileId>:<fieldName>"
   toolCalls?: ToolCall[] | null;
   createdAt: string;
 }

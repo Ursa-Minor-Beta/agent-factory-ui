@@ -7,11 +7,20 @@ export interface MessageAttachment {
   size: string;
 }
 
+// Parsed file reference from message.files array
+export interface FileRef {
+  index: number;
+  fileId: string;
+  fieldName: string;
+  mimeType: string; // Extracted from placeholder
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system' | 'tool';
   content: string;
   attachments?: MessageAttachment[];
+  fileRefs?: FileRef[]; // Parsed file references for lazy loading
   createdAt: string;
   runId?: string;
 }

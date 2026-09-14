@@ -3,6 +3,7 @@ import { IconRefresh, IconCopy, IconCheck, IconListDetails, IconRepeat } from '@
 import type { ChatMessage } from '../types';
 import { CollapsibleContent } from './CollapsibleContent';
 import { AttachmentPreview } from './AttachmentPreview';
+import { FileRefPreview } from './FileContent';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -55,7 +56,14 @@ export function MessageBubble({ message, isFirst, showRetry, onRetry, onViewRun,
       >
         {message.content && <CollapsibleContent content={message.content} />}
         {message.attachments && message.attachments.length > 0 && (
-          <AttachmentPreview attachments={message.attachments} />
+          <Box mt={message.content ? 'sm' : 0}>
+            <AttachmentPreview attachments={message.attachments} />
+          </Box>
+        )}
+        {message.fileRefs && message.fileRefs.length > 0 && (
+          <Box mt={message.content || message.attachments ? 'sm' : 0}>
+            <FileRefPreview fileRefs={message.fileRefs} />
+          </Box>
         )}
         <Group
           gap={4}

@@ -12,7 +12,7 @@ import { ChatSidebar } from './ChatSidebar';
 import { AgentEditModal } from '../../components/AgentEditModal';
 import { AgentJsonModal } from '../../components/AgentJsonModal';
 import { RunDetailsModal } from '../../components/RunDetailsModal';
-import { getInputSchema, type ChatMessage, type MessageAttachment } from './types';
+import { getInputSchema, type ChatMessage, type MessageAttachment, type FileRef } from './types';
 
 // Helper to format field name as readable label
 function formatLabel(key: string): string {
@@ -163,15 +163,47 @@ function parseMessageContent(content: unknown): { text: string; attachments: Mes
   return { text: String(content ?? ''), attachments: [] };
 }
 
+// Parse file references from message.files array
+// Format: "inner:<fileId>:<fieldName>"
+function parseFileReferences(files: string[] | undefined, content: string): FileRef[] {
+  if (!files || files.length === 0) return [];
+
+  const fileRefs: FileRef[] = [];
+  // Match placeholders like [file:0:image/png]
+  const placeholderRegex = /\[file:(\d+):([^\]]+)\]/g;
+  let match;
+
+  while ((match = placeholderRegex.exec(content)) !== null) {
+    const index = parseInt(match[1], 10);
+    const mimeType = match[2];
+
+    if (index < files.length) {
+      const fileRef = files[index];
+      // Parse "inner:<fileId>:<fieldName>"
+      const parts = fileRef.split(':');
+      if (parts.length >= 2) {
+        const fileId = parts[1];
+        const fieldName = parts.slice(2).join(':'); // In case fieldName has colons
+        fileRefs.push({ index, fileId, fieldName, mimeType });
+      }
+    }
+  }
+
+  return fileRefs;
+}
+
 // Helper to map API message to ChatMessage
-function mapApiMessageToChatMessage(m: { id: string; role: 'user' | 'assistant' | 'system' | 'tool'; content: string; runId?: string; createdAt: string }): ChatMessage {
+function mapApiMessageToChatMessage(m: { id: string; role: 'user' | 'assistant' | 'system' | 'tool'; content: string; files?: string[]; runId?: string; createdAt: string }): ChatMessage {
   const { text, attachments } = parseMessageContent(m.content);
+  const fileRefs = parseFileReferences(m.files, typeof m.content === 'string' ? m.content : text);
+
   return {
     id: m.id,
     role: m.role,
     runId: m.runId,
     content: text,
     attachments: attachments.length > 0 ? attachments : undefined,
+    fileRefs: fileRefs.length > 0 ? fileRefs : undefined,
     createdAt: m.createdAt,
   };
 }

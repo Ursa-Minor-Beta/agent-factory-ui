@@ -6,3 +6,5 @@ export { usersApi } from './users';
 export { sessionsApi } from './sessions';
 export { secretsApi } from './secrets';
 export { runsApi } from './runs';
+export { filesApi } from './files';
+export type { FileData } from './files';
