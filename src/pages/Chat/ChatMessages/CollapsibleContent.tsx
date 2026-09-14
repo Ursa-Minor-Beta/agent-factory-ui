@@ -3,7 +3,7 @@ import { Button, Group, ScrollArea, CopyButton, Code, ActionIcon, Tooltip } from
 import { IconChevronDown, IconChevronUp, IconCopy, IconCheck } from '@tabler/icons-react';
 import { MarkdownRenderer } from '../../../components/MarkdownRenderer';
 
-const MAX_PREVIEW_LENGTH = 500;
+const MAX_PREVIEW_LENGTH = 2000;
 const MAX_MARKDOWN_LENGTH = 5000;
 const MAX_EXPANDED_HEIGHT = 400;
 

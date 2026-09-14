@@ -591,6 +591,7 @@ export function ChatPage() {
           onSend={handleSend}
           sending={sending}
           inputSchema={inputSchema}
+          draftKey={`chat-draft-${agentId}-${currentSessionId || 'new'}`}
         />
       </Box>
     </Box>

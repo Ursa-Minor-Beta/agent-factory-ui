@@ -1,10 +1,14 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Box, Card, Stack, Group, Textarea, ActionIcon, Text, UnstyledButton, Button } from '@mantine/core';
+import { useDebouncedCallback } from '@mantine/hooks';
 import { IconSend, IconChevronDown, IconChevronRight, IconPlayerPlay } from '@tabler/icons-react';
 import type { ChatInputProps } from './types';
 
-export function ChatInput({ onSend, sending, inputSchema }: ChatInputProps) {
+const DRAFT_DEBOUNCE_MS = 3000;
+
+export function ChatInput({ onSend, sending, inputSchema, draftKey }: ChatInputProps) {
   const fields = useMemo(() => Object.entries(inputSchema), [inputSchema]);
+  const fieldKeys = useMemo(() => new Set(fields.map(([k]) => k)), [fields]);
   const requiredFields = useMemo(() => fields.filter(([, schema]) => schema.required), [fields]);
   const optionalFields = useMemo(() => fields.filter(([, schema]) => !schema.required), [fields]);
   const hasNoInputs = fields.length === 0;
@@ -17,13 +21,56 @@ export function ChatInput({ onSend, sending, inputSchema }: ChatInputProps) {
   const [optionalOpen, setOptionalOpen] = useState(false);
   const inputRefs = useRef<Record<string, HTMLInputElement | HTMLTextAreaElement | null>>({});
 
-  // Reset values when schema changes
+  // Debounced save to localStorage
+  const saveDraft = useDebouncedCallback((draft: Record<string, string>) => {
+    const hasContent = Object.values(draft).some((v) => v.trim());
+    if (hasContent) {
+      localStorage.setItem(draftKey, JSON.stringify(draft));
+    } else {
+      localStorage.removeItem(draftKey);
+    }
+  }, DRAFT_DEBOUNCE_MS);
+
+  // Clear draft from localStorage
+  const clearDraft = useCallback(() => {
+    localStorage.removeItem(draftKey);
+    saveDraft.cancel();
+  }, [draftKey, saveDraft]);
+
+  // Flush draft on blur (save immediately)
+  const flushDraft = useCallback(() => {
+    saveDraft.flush();
+  }, [saveDraft]);
+
+  // Load draft on mount or when draftKey/schema changes
+  // Only load fields that exist in current schema
   useEffect(() => {
-    setValues({});
-  }, [inputSchema]);
+    try {
+      const saved = localStorage.getItem(draftKey);
+      if (saved) {
+        const parsed = JSON.parse(saved) as Record<string, string>;
+        // Filter to only include fields in current schema
+        const filtered: Record<string, string> = {};
+        for (const [key, value] of Object.entries(parsed)) {
+          if (fieldKeys.has(key)) {
+            filtered[key] = value;
+          }
+        }
+        setValues(filtered);
+      } else {
+        setValues({});
+      }
+    } catch {
+      setValues({});
+    }
+  }, [draftKey, fieldKeys]);
 
   const handleChange = (field: string, value: string) => {
-    setValues((prev) => ({ ...prev, [field]: value }));
+    setValues((prev) => {
+      const updated = { ...prev, [field]: value };
+      saveDraft(updated);
+      return updated;
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -61,6 +108,7 @@ export function ChatInput({ onSend, sending, inputSchema }: ChatInputProps) {
 
     onSend(input);
     setValues({});
+    clearDraft();
     Object.values(inputRefs.current).forEach((ref) => {
       if (ref) ref.value = '';
     });
@@ -85,6 +133,7 @@ export function ChatInput({ onSend, sending, inputSchema }: ChatInputProps) {
               value={values[key] || ''}
               onChange={(e) => handleChange(key, e.currentTarget.value)}
               onKeyDown={handleKeyDown}
+              onBlur={flushDraft}
               autosize
               minRows={isSingleField ? 2 : 1}
               maxRows={6}

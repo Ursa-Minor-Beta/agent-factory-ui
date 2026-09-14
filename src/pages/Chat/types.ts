@@ -29,6 +29,7 @@ export interface ChatInputProps {
   onSend: (input: Record<string, unknown>) => void;
   sending: boolean;
   inputSchema: InputSchema;
+  draftKey: string;
 }
 
 // Helper to extract input schema from agent nodes
