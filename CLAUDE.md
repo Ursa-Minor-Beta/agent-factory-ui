@@ -83,6 +83,24 @@ const { register, handleSubmit, reset, formState: { errors } } = useForm<FormTyp
 // Use reset({ field: '' }) when closing dialog
 ```
 
+### State Updates After API Calls
+Prefer optimistic updates over refetching:
+```typescript
+// Good - optimistic update
+await api.delete(id);
+setItems((prev) => prev.filter((item) => item.id !== id));
+
+// Good - optimistic update after mutation
+await api.update(id, { title });
+setItems((prev) => prev.map((item) =>
+  item.id === id ? { ...item, title } : item
+));
+
+// Avoid - unnecessary refetch
+await api.delete(id);
+loadItems(); // Extra API call
+```
+
 ## Backend API
 - Base URL: configured via `VITE_API_URL` env var
 - All endpoints prefixed with `/api/`
