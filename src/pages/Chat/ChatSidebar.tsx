@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react';
 import {
   Box,
   Text,
@@ -12,8 +13,9 @@ import {
   Center,
   NavLink,
   Divider,
+  TextInput,
 } from '@mantine/core';
-import { IconPlus, IconTrash, IconGhost, IconX } from '@tabler/icons-react';
+import { IconPlus, IconTrash, IconGhost, IconX, IconPencil, IconCheck } from '@tabler/icons-react';
 import type { ChatSidebarProps } from './types';
 
 function formatSessionTime(dateStr: string) {
@@ -35,6 +37,115 @@ function formatSessionTime(dateStr: string) {
 
 interface SidebarContentProps extends ChatSidebarProps {}
 
+function SessionItem({
+  session,
+  isActive,
+  onSelect,
+  onDelete,
+  onRename,
+}: {
+  session: ChatSidebarProps['sessions'][0];
+  isActive: boolean;
+  onSelect: () => void;
+  onDelete: (e: React.MouseEvent) => void;
+  onRename: (title: string) => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(session.title || '');
+  const [saving, setSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [editing]);
+
+  const handleSave = async () => {
+    if (saving) return;
+    const newTitle = title.trim();
+    if (newTitle === (session.title || '')) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      await onRename(newTitle || '');
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const displayText = session.title || formatSessionTime(session.updatedAt);
+
+  if (editing) {
+    return (
+      <Box px="sm" py={4}>
+        <TextInput
+          ref={inputRef}
+          size="xs"
+          value={title}
+          onChange={(e) => setTitle(e.currentTarget.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleSave();
+            if (e.key === 'Escape') {
+              setTitle(session.title || '');
+              setEditing(false);
+            }
+          }}
+          onBlur={handleSave}
+          disabled={saving}
+          rightSection={
+            <ActionIcon size="xs" variant="subtle" onClick={handleSave} loading={saving}>
+              <IconCheck size={12} />
+            </ActionIcon>
+          }
+        />
+      </Box>
+    );
+  }
+
+  return (
+    <NavLink
+      active={isActive}
+      label={
+        <Group justify="space-between" wrap="nowrap" gap={4}>
+          <Text size="sm" truncate style={{ flex: 1 }}>
+            {displayText}
+          </Text>
+          <Group gap={2} wrap="nowrap">
+            <ActionIcon
+              size="xs"
+              variant="subtle"
+              title='Rename'
+              onClick={(e) => {
+                e.stopPropagation();
+                setTitle(session.title || '');
+                setEditing(true);
+              }}
+            >
+              <IconPencil size={12} />
+            </ActionIcon>
+            <ActionIcon
+              size="xs"
+              variant="subtle"
+              color="red"
+              title="Remove"
+              onClick={onDelete}
+            >
+              <IconTrash size={12} />
+            </ActionIcon>
+          </Group>
+        </Group>
+      }
+      onClick={onSelect}
+      style={{ borderRadius: 'var(--mantine-radius-md)' }}
+    />
+  );
+}
+
 function SidebarContent({
   sessions,
   currentSessionId,
@@ -42,6 +153,7 @@ function SidebarContent({
   onNewChat,
   onSelectSession,
   onDeleteSession,
+  onRenameSession,
 }: SidebarContentProps) {
   return (
     <Stack gap="xs" h="100%">
@@ -85,26 +197,13 @@ function SidebarContent({
         ) : (
           <Stack gap={4}>
             {sessions.map((session) => (
-              <NavLink
+              <SessionItem
                 key={session.id}
-                active={currentSessionId === session.id}
-                label={
-                  <Group justify="space-between" wrap="nowrap">
-                    <Text size="sm" truncate style={{ flex: 1 }}>
-                      {formatSessionTime(session.updatedAt)}
-                    </Text>
-                    <ActionIcon
-                      size="xs"
-                      variant="subtle"
-                      color="red"
-                      onClick={(e) => onDeleteSession(session.id, e)}
-                    >
-                      <IconTrash size={14} />
-                    </ActionIcon>
-                  </Group>
-                }
-                onClick={() => onSelectSession(session)}
-                style={{ borderRadius: 'var(--mantine-radius-md)' }}
+                session={session}
+                isActive={currentSessionId === session.id}
+                onSelect={() => onSelectSession(session)}
+                onDelete={(e) => onDeleteSession(session.id, e)}
+                onRename={(title) => onRenameSession(session.id, title)}
               />
             ))}
           </Stack>
@@ -127,6 +226,7 @@ export function ChatSidebar({
   onNewChat,
   onSelectSession,
   onDeleteSession,
+  onRenameSession,
   isMobile,
   isOpen,
   onClose,
@@ -145,6 +245,7 @@ export function ChatSidebar({
         if (isMobile) onClose();
       }}
       onDeleteSession={onDeleteSession}
+      onRenameSession={onRenameSession}
     />
   );
 

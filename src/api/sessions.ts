@@ -25,12 +25,20 @@ function buildQueryString(params: SessionsQueryParams): string {
   return qs ? `?${qs}` : '';
 }
 
+export interface SessionUpdate {
+  title?: string | null;
+  status?: 'active' | 'archived';
+}
+
 export const sessionsApi = {
   list: (params: SessionsQueryParams = {}) =>
     api.get<Session[]>(`/api/sessions${buildQueryString(params)}`),
 
   getById: (id: string) =>
     api.get<Session>(`/api/sessions/${id}`),
+
+  update: (id: string, data: SessionUpdate) =>
+    api.patch<Session>(`/api/sessions/${id}`, data),
 
   delete: (id: string) =>
     api.delete<void>(`/api/sessions/${id}`),

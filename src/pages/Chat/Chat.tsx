@@ -465,6 +465,11 @@ export function ChatPage() {
     }
   };
 
+  const handleRenameSession = async (id: string, title: string) => {
+    await sessionsApi.update(id, { title: title || null });
+    loadSessions();
+  };
+
   const handleAgentSave = async () => {
     if (!agentId) return;
     try {
@@ -550,6 +555,7 @@ export function ChatPage() {
         onNewChat={handleNewChat}
         onSelectSession={handleSelectSession}
         onDeleteSession={handleDeleteSession}
+        onRenameSession={handleRenameSession}
         isMobile={isMobile}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}

@@ -64,4 +64,5 @@ export interface ChatSidebarProps {
   onNewChat: (incognito?: boolean) => void;
   onSelectSession: (session: Session) => void;
   onDeleteSession: (id: string, e: React.MouseEvent) => void;
+  onRenameSession: (id: string, title: string) => Promise<void>;
 }
