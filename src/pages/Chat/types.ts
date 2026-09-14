@@ -13,6 +13,7 @@ export interface ChatMessage {
   content: string;
   attachments?: MessageAttachment[];
   createdAt: string;
+  runId?: string;
 }
 
 export interface ChatHeaderProps {
@@ -53,6 +54,7 @@ export interface ChatMessagesProps {
   hasMore: boolean;
   loadingMore: boolean;
   onLoadMore: () => void;
+  onViewRun: (runId: string) => void;
 }
 
 export interface ChatSidebarProps {

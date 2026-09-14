@@ -3,14 +3,15 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Loader, Alert, Center, Modal, Text, Group, Button } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { IconAlertCircle } from '@tabler/icons-react';
-import { agentsApi, sessionsApi } from '../../api';
-import type { Agent, Session } from '../../types';
+import { agentsApi, sessionsApi, runsApi } from '../../api';
+import type { Agent, Session, Run } from '../../types';
 import { ChatHeader } from './ChatHeader';
 import { ChatInput } from './ChatInput';
 import { ChatMessages } from './ChatMessages';
 import { ChatSidebar } from './ChatSidebar';
 import { AgentEditModal } from '../../components/AgentEditModal';
 import { AgentJsonModal } from '../../components/AgentJsonModal';
+import { RunDetailsModal } from '../../components/RunDetailsModal';
 import { getInputSchema, type ChatMessage, type MessageAttachment } from './types';
 
 // Helper to format field name as readable label
@@ -208,6 +209,9 @@ export function ChatPage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [jsonModalOpen, setJsonModalOpen] = useState(false);
 
+  // Run details modal
+  const [selectedRun, setSelectedRun] = useState<Run | null>(null);
+
   // Derived state
   const isIncognitoSession = currentSessionId?.startsWith('incognito_') || false;
   const isNewChat = !currentSessionId && messages.length === 0;
@@ -404,6 +408,7 @@ export function ChatPage() {
         content: text,
         attachments: attachments.length > 0 ? attachments : undefined,
         createdAt: new Date().toISOString(),
+        runId: response.runId,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -470,6 +475,15 @@ export function ChatPage() {
     }
   };
 
+  const handleViewRun = async (runId: string) => {
+    try {
+      const run = await runsApi.getById(runId);
+      setSelectedRun(run);
+    } catch (err) {
+      console.error('Failed to load run:', err);
+    }
+  };
+
   if (loadingAgent) {
     return (
       <Center style={{ height: '100%', minHeight: 400 }}>
@@ -523,6 +537,12 @@ export function ChatPage() {
         isMobile={isMobile}
       />
 
+      <RunDetailsModal
+        run={selectedRun}
+        opened={!!selectedRun}
+        onClose={() => setSelectedRun(null)}
+      />
+
       <ChatSidebar
         sessions={sessions}
         currentSessionId={currentSessionId}
@@ -558,6 +578,7 @@ export function ChatPage() {
           hasMore={hasMoreMessages}
           loadingMore={loadingMoreMessages}
           onLoadMore={handleLoadMoreMessages}
+          onViewRun={handleViewRun}
         />
 
         <ChatInput

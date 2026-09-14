@@ -32,8 +32,8 @@ import {
 import { runsApi } from '../../api';
 import type { ListRunsParams } from '../../api/runs';
 import type { Run, RunStatus } from '../../types';
-import { RunDetailsModal } from './RunDetailsModal';
-import { statusColors, formatDuration } from './types';
+import { RunDetailsModal } from '../../components/RunDetailsModal';
+import { statusColors, formatDuration } from '../../types';
 
 const statusIcons: Record<RunStatus, React.ReactNode> = {
   pending: <IconClock size={14} />,

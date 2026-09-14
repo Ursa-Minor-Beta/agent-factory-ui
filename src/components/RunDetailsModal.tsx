@@ -29,10 +29,9 @@ import {
   IconCopy,
   IconRefresh,
 } from '@tabler/icons-react';
-import { runsApi } from '../../api';
-import type { Run } from '../../types';
-import type { RunDetailsModalProps } from './types';
-import { statusColors, nodeStatusColors, formatDuration } from './types';
+import { runsApi } from '../api';
+import type { Run, RunDetailsModalProps } from '../types';
+import { statusColors, nodeStatusColors, formatDuration } from '../types';
 
 export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetailsModalProps) {
   const [run, setRun] = useState<Run | null>(initialRun);
