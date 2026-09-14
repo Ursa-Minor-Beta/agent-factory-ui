@@ -27,6 +27,7 @@ import {
   IconLogout,
   IconChevronLeft,
   IconChevronRight,
+  IconFiles,
 } from '@tabler/icons-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -44,6 +45,7 @@ const navItems: NavItem[] = [
   { label: 'API Keys', path: '/api-keys', icon: <IconKey size={20} /> },
   { label: 'Sessions', path: '/sessions', icon: <IconMessages size={20} /> },
   { label: 'Runs', path: '/runs', icon: <IconHistory size={20} /> },
+  { label: 'Files', path: '/files', icon: <IconFiles size={20} /> },
   { label: 'Users', path: '/users', icon: <IconUsers size={20} />, adminOnly: true },
 ];
 

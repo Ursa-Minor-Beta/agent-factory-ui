@@ -12,6 +12,7 @@ const ChatPage = lazy(() => import('./pages/Chat/Chat').then(m => ({ default: m.
 const ProvidersPage = lazy(() => import('./pages/Providers').then(m => ({ default: m.ProvidersPage })));
 const ApiKeysPage = lazy(() => import('./pages/ApiKeys').then(m => ({ default: m.ApiKeysPage })));
 const SecretsPage = lazy(() => import('./pages/Secrets').then(m => ({ default: m.SecretsPage })));
+const FilesPage = lazy(() => import('./pages/Files').then(m => ({ default: m.FilesPage })));
 const RunsPage = lazy(() => import('./pages/Runs/index').then(m => ({ default: m.RunsPage })));
 const SessionsPage = lazy(() => import('./pages/Sessions/index').then(m => ({ default: m.SessionsPage })));
 const UsersPage = lazy(() => import('./pages/Users').then(m => ({ default: m.UsersPage })));
@@ -68,6 +69,10 @@ export const router = createBrowserRouter([
       {
         path: 'secrets',
         element: <SecretsPage />,
+      },
+      {
+        path: 'files',
+        element: <FilesPage />,
       },
       {
         path: 'runs',
