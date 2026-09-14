@@ -363,7 +363,7 @@ export function ChatPage() {
   }, [currentSessionId, urlSessionId, agentId, navigate]);
 
   const handleSend = async (input: Record<string, unknown>) => {
-    if (!agentId || sending || Object.keys(input).length === 0) return;
+    if (!agentId || sending) return;
 
     // Format user message content for display
     const displayContent = formatContent(input);

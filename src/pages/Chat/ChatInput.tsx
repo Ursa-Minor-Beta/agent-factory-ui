@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Box, Card, Stack, Group, Textarea, ActionIcon, Text, UnstyledButton } from '@mantine/core';
-import { IconSend, IconChevronDown, IconChevronRight } from '@tabler/icons-react';
+import { Box, Card, Stack, Group, Textarea, ActionIcon, Text, UnstyledButton, Button } from '@mantine/core';
+import { IconSend, IconChevronDown, IconChevronRight, IconPlayerPlay } from '@tabler/icons-react';
 import type { ChatInputProps } from './types';
 
 export function ChatInput({ onSend, sending, inputSchema }: ChatInputProps) {
   const fields = useMemo(() => Object.entries(inputSchema), [inputSchema]);
   const requiredFields = useMemo(() => fields.filter(([, schema]) => schema.required), [fields]);
   const optionalFields = useMemo(() => fields.filter(([, schema]) => !schema.required), [fields]);
+  const hasNoInputs = fields.length === 0;
 
   const isSingleField = fields.length === 1;
   const hasOptionalFields = optionalFields.length > 0;
@@ -53,7 +54,10 @@ export function ChatInput({ onSend, sending, inputSchema }: ChatInputProps) {
       }
     }
 
-    if (!hasAllRequired || sending) return;
+    if (!hasAllRequired || sending) {
+      console.warn('Cannot send:', { hasAllRequired, sending });
+      return;
+    }
 
     onSend(input);
     setValues({});
@@ -110,39 +114,51 @@ export function ChatInput({ onSend, sending, inputSchema }: ChatInputProps) {
           pointerEvents: 'auto',
         }}
       >
-        <Group align="flex-end" gap="sm" wrap="nowrap">
-          <Stack gap="xs" style={{ flex: 1 }}>
-            {requiredFields.map(([key, schema]) => renderField(key, schema))}
+        {hasNoInputs ? (
+          <Group justify="center">
+            <Button
+              leftSection={<IconPlayerPlay size={18} />}
+              onClick={handleSend}
+              loading={sending}
+            >
+              Run
+            </Button>
+          </Group>
+        ) : (
+          <Group align="flex-end" gap="sm" wrap="nowrap">
+            <Stack gap="xs" style={{ flex: 1 }}>
+              {requiredFields.map(([key, schema]) => renderField(key, schema))}
 
-            {hasOptionalFields && (
-              <>
-                <UnstyledButton onClick={() => setOptionalOpen(!optionalOpen)}>
-                  <Group gap={4}>
-                    {optionalOpen ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
-                    <Text size="xs" c="dimmed">
-                      {optionalFields.length} optional field{optionalFields.length > 1 ? 's' : ''}
-                    </Text>
-                  </Group>
-                </UnstyledButton>
-                {optionalOpen && (
-                  <Stack gap="xs">
-                    {optionalFields.map(([key, schema]) => renderField(key, schema))}
-                  </Stack>
-                )}
-              </>
-            )}
-          </Stack>
+              {hasOptionalFields && (
+                <>
+                  <UnstyledButton onClick={() => setOptionalOpen(!optionalOpen)}>
+                    <Group gap={4}>
+                      {optionalOpen ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
+                      <Text size="xs" c="dimmed">
+                        {optionalFields.length} optional field{optionalFields.length > 1 ? 's' : ''}
+                      </Text>
+                    </Group>
+                  </UnstyledButton>
+                  {optionalOpen && (
+                    <Stack gap="xs">
+                      {optionalFields.map(([key, schema]) => renderField(key, schema))}
+                    </Stack>
+                  )}
+                </>
+              )}
+            </Stack>
 
-          <ActionIcon
-            size="lg"
-            variant="filled"
-            onClick={handleSend}
-            disabled={!hasRequiredContent || sending}
-            title={isSingleField ? 'Press Enter to send' : 'Fill required fields'}
-          >
-            <IconSend size={18} />
-          </ActionIcon>
-        </Group>
+            <ActionIcon
+              size="lg"
+              variant="filled"
+              onClick={handleSend}
+              disabled={!hasRequiredContent || sending}
+              title={isSingleField ? 'Press Enter to send' : 'Fill required fields'}
+            >
+              <IconSend size={18} />
+            </ActionIcon>
+          </Group>
+        )}
       </Card>
     </Box>
   );

@@ -33,11 +33,11 @@ export interface ChatInputProps {
 // Helper to extract input schema from agent nodes
 export function getInputSchema(agent: Agent): InputSchema {
   const inputNode = agent.nodes.find((node) => node.type === 'input');
-  if (inputNode?.data?.schema) {
+  if (inputNode?.data?.schema && Object.keys(inputNode.data.schema).length > 0) {
     return inputNode.data.schema;
   }
-  // Default to single message field if no schema found
-  return { message: { type: 'string', required: true } };
+  // Return empty schema if no inputs defined (will show just Run button)
+  return {};
 }
 
 export interface ChatMessagesProps {
