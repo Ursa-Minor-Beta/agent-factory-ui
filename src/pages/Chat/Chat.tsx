@@ -163,6 +163,19 @@ function parseMessageContent(content: unknown): { text: string; attachments: Mes
   return { text: String(content ?? ''), attachments: [] };
 }
 
+// Helper to map API message to ChatMessage
+function mapApiMessageToChatMessage(m: { id: string; role: 'user' | 'assistant' | 'system' | 'tool'; content: string; runId?: string; createdAt: string }): ChatMessage {
+  const { text, attachments } = parseMessageContent(m.content);
+  return {
+    id: m.id,
+    role: m.role,
+    runId: m.runId,
+    content: text,
+    attachments: attachments.length > 0 ? attachments : undefined,
+    createdAt: m.createdAt,
+  };
+}
+
 export function ChatPage() {
   const { agentId, sessionId: urlSessionId } = useParams<{
     agentId: string;
@@ -302,17 +315,7 @@ export function ChatPage() {
       try {
         setLoadingMessages(true);
         const data = await sessionsApi.getMessages(currentSessionId, MESSAGES_PER_PAGE, 0);
-        const parsedMessages = data.map((m) => {
-          const { text, attachments } = parseMessageContent(m.content);
-          return {
-            id: m.id,
-            role: m.role,
-            content: text,
-            attachments: attachments.length > 0 ? attachments : undefined,
-            createdAt: m.createdAt,
-          };
-        });
-        setMessages(parsedMessages);
+        setMessages(data.map(mapApiMessageToChatMessage));
         setHasMoreMessages(data.length === MESSAGES_PER_PAGE);
       } catch (err) {
         console.error('Failed to load messages:', err);
@@ -335,18 +338,8 @@ export function ChatPage() {
         MESSAGES_PER_PAGE,
         messages.length
       );
-      const parsedMessages = data.map((m) => {
-        const { text, attachments } = parseMessageContent(m.content);
-        return {
-          id: m.id,
-          role: m.role,
-          content: text,
-          attachments: attachments.length > 0 ? attachments : undefined,
-          createdAt: m.createdAt,
-        };
-      });
       // Prepend older messages
-      setMessages((prev) => [...parsedMessages, ...prev]);
+      setMessages((prev) => [...data.map(mapApiMessageToChatMessage), ...prev]);
       setHasMoreMessages(data.length === MESSAGES_PER_PAGE);
     } catch (err) {
       console.error('Failed to load more messages:', err);
