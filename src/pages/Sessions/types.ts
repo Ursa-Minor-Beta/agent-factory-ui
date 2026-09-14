@@ -1,4 +1,4 @@
-import type { Session, Message } from '../../types';
+import type { Session } from '../../types';
 
 export interface SessionDetailsModalProps {
   session: Session | null;

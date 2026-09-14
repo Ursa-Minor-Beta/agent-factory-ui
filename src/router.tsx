@@ -1,23 +1,35 @@
+import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { Center, Loader } from '@mantine/core';
 import { Layout } from './layout/Layout';
 import { ProtectedRoute } from './layout/ProtectedRoute';
 import { PublicRoute } from './layout/PublicRoute';
-import { LoginPage } from './pages/Login';
-import { AgentsPage } from './pages/Agents';
-import { ChatPage } from './pages/Chat/Chat';
-import { ProvidersPage } from './pages/Providers';
-import { ApiKeysPage } from './pages/ApiKeys';
-import { SecretsPage } from './pages/Secrets';
-import { RunsPage } from './pages/Runs/index';
-import { SessionsPage } from './pages/Sessions/index';
-import { UsersPage } from './pages/Users';
+
+// Lazy load pages
+const LoginPage = lazy(() => import('./pages/Login').then(m => ({ default: m.LoginPage })));
+const AgentsPage = lazy(() => import('./pages/Agents').then(m => ({ default: m.AgentsPage })));
+const ChatPage = lazy(() => import('./pages/Chat/Chat').then(m => ({ default: m.ChatPage })));
+const ProvidersPage = lazy(() => import('./pages/Providers').then(m => ({ default: m.ProvidersPage })));
+const ApiKeysPage = lazy(() => import('./pages/ApiKeys').then(m => ({ default: m.ApiKeysPage })));
+const SecretsPage = lazy(() => import('./pages/Secrets').then(m => ({ default: m.SecretsPage })));
+const RunsPage = lazy(() => import('./pages/Runs/index').then(m => ({ default: m.RunsPage })));
+const SessionsPage = lazy(() => import('./pages/Sessions/index').then(m => ({ default: m.SessionsPage })));
+const UsersPage = lazy(() => import('./pages/Users').then(m => ({ default: m.UsersPage })));
+
+const PageLoader = () => (
+  <Center style={{ height: '100%', minHeight: 400 }}>
+    <Loader />
+  </Center>
+);
 
 export const router = createBrowserRouter([
   {
     path: '/login',
     element: (
       <PublicRoute>
-        <LoginPage />
+        <Suspense fallback={<PageLoader />}>
+          <LoginPage />
+        </Suspense>
       </PublicRoute>
     ),
   },

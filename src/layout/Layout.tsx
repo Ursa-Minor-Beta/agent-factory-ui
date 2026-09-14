@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   AppShell,
@@ -11,6 +12,8 @@ import {
   Divider,
   Tooltip,
   Box,
+  Center,
+  Loader,
 } from '@mantine/core';
 import { useDisclosure, useLocalStorage } from '@mantine/hooks';
 import {
@@ -199,7 +202,9 @@ export function Layout() {
           minHeight: '100vh',
         }}
       >
-        <Outlet />
+        <Suspense fallback={<Center style={{ height: '100%', minHeight: 400 }}><Loader /></Center>}>
+          <Outlet />
+        </Suspense>
       </AppShell.Main>
     </AppShell>
   );

@@ -121,7 +121,7 @@ export function RunsPage() {
         <Select
           placeholder="Status"
           value={statusFilter}
-          onChange={setStatusFilter}
+          onChange={(val) => setStatusFilter(val)}
           data={[
             { value: 'pending', label: 'Pending' },
             { value: 'running', label: 'Running' },
@@ -143,14 +143,14 @@ export function RunsPage() {
         <DatePickerInput
           placeholder="Started after"
           value={startedAfter}
-          onChange={setStartedAfter}
+          onChange={(val) => setStartedAfter(val ? new Date(val) : null)}
           clearable
           style={{ width: 150 }}
         />
         <DatePickerInput
           placeholder="Started before"
           value={startedBefore}
-          onChange={setStartedBefore}
+          onChange={(val) => setStartedBefore(val ? new Date(val) : null)}
           clearable
           style={{ width: 150 }}
         />

@@ -68,7 +68,7 @@ const theme = createTheme({
 function App() {
   return (
     <MantineProvider theme={theme} defaultColorScheme="dark">
-      <DatesProvider>
+      <DatesProvider settings={{ firstDayOfWeek: 1 }}>
         <AuthProvider>
           <RouterProvider router={router} />
         </AuthProvider>
