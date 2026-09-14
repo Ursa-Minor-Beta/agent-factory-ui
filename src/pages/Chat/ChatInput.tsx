@@ -9,8 +9,9 @@ const DRAFT_DEBOUNCE_MS = 3000;
 export function ChatInput({ onSend, sending, inputSchema, draftKey }: ChatInputProps) {
   const fields = useMemo(() => Object.entries(inputSchema), [inputSchema]);
   const fieldKeys = useMemo(() => new Set(fields.map(([k]) => k)), [fields]);
-  const requiredFields = useMemo(() => fields.filter(([, schema]) => schema.required), [fields]);
-  const optionalFields = useMemo(() => fields.filter(([, schema]) => !schema.required), [fields]);
+  // Field is truly required only if required=true AND no default value
+  const requiredFields = useMemo(() => fields.filter(([, schema]) => schema.required && schema.default === undefined), [fields]);
+  const optionalFields = useMemo(() => fields.filter(([, schema]) => !schema.required || schema.default !== undefined), [fields]);
   const hasNoInputs = fields.length === 0;
 
   const isSingleField = fields.length === 1;
@@ -86,7 +87,9 @@ export function ChatInput({ onSend, sending, inputSchema, draftKey }: ChatInputP
 
     for (const [key, schema] of fields) {
       const value = values[key]?.trim() || '';
-      if (schema.required && !value) {
+      // Field is truly required only if required=true AND no default
+      const isTrulyRequired = schema.required && schema.default === undefined;
+      if (isTrulyRequired && !value) {
         hasAllRequired = false;
         break;
       }
@@ -124,12 +127,17 @@ export function ChatInput({ onSend, sending, inputSchema, draftKey }: ChatInputP
       .trim();
   };
 
-  const renderField = (key: string, _schema: { type: string; required?: boolean }) => {
+  const renderField = (key: string, schema: { type: string; required?: boolean; default?: unknown }) => {
+    const hasDefault = schema.default !== undefined;
+    const defaultStr = hasDefault ? String(schema.default) : '';
+    const truncatedDefault = defaultStr.length > 50 ? `${defaultStr.slice(0, 50)}...` : defaultStr;
+    const defaultPlaceholder = hasDefault ? `Default: ${truncatedDefault}` : undefined;
+
     return <Textarea
               key={key}
               ref={(el) => { inputRefs.current[key] = el; }}
               label={!isSingleField ? formatLabel(key) : undefined}
-              placeholder={isSingleField ? `Enter ${formatLabel(key).toLowerCase()}...` : undefined}
+              placeholder={defaultPlaceholder}
               value={values[key] || ''}
               onChange={(e) => handleChange(key, e.currentTarget.value)}
               onKeyDown={handleKeyDown}
