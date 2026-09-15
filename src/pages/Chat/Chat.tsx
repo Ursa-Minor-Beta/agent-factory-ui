@@ -506,7 +506,6 @@ export function ChatPage() {
           },
           onDone: (data) => {
             if (data.cancelled) {
-              setError('Run was cancelled');
               return;
             }
 
