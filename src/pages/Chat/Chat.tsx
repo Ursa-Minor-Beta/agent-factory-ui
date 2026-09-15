@@ -320,6 +320,9 @@ export function ChatPage() {
   // Run details modal
   const [selectedRun, setSelectedRun] = useState<Run | null>(null);
 
+  // Chat input height for dynamic spacing
+  const [inputHeight, setInputHeight] = useState(100);
+
   // Derived state
   const isIncognitoSession = currentSessionId?.startsWith('incognito_') || false;
   const isNewChat = !currentSessionId && messages.length === 0;
@@ -753,6 +756,7 @@ export function ChatPage() {
           onViewRun={handleViewRun}
           onRepeat={handleRepeat}
           statusText={statusText}
+          inputHeight={inputHeight}
         />
 
         <ChatInput
@@ -761,6 +765,7 @@ export function ChatPage() {
           inputSchema={inputSchema}
           draftKey={`chat-draft-${agentId}-${currentSessionId || 'new'}`}
           onCancel={handleCancelRun}
+          onHeightChange={setInputHeight}
         />
       </Box>
     </Box>

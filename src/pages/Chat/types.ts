@@ -40,6 +40,7 @@ export interface ChatInputProps {
   inputSchema: InputSchema;
   draftKey: string;
   onCancel?: () => void;
+  onHeightChange?: (height: number) => void;
 }
 
 // Helper to extract input schema from agent nodes
@@ -69,6 +70,7 @@ export interface ChatMessagesProps {
   onViewRun: (runId: string) => void;
   onRepeat: (content: string) => void;
   statusText?: string;
+  inputHeight?: number;
 }
 
 export interface ChatSidebarProps {

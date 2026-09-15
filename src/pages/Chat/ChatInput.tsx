@@ -6,7 +6,23 @@ import type { ChatInputProps } from './types';
 
 const DRAFT_DEBOUNCE_MS = 3000;
 
-export function ChatInput({ onSend, sending, inputSchema, draftKey, onCancel }: ChatInputProps) {
+export function ChatInput({ onSend, sending, inputSchema, draftKey, onCancel, onHeightChange }: ChatInputProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Report height changes via ResizeObserver
+  useEffect(() => {
+    if (!containerRef.current || !onHeightChange) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        onHeightChange(entry.contentRect.height);
+      }
+    });
+
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [onHeightChange]);
+
   const fields = useMemo(() => Object.entries(inputSchema), [inputSchema]);
   const fieldKeys = useMemo(() => new Set(fields.map(([k]) => k)), [fields]);
   // Field is truly required only if required=true AND no default value
@@ -151,6 +167,7 @@ export function ChatInput({ onSend, sending, inputSchema, draftKey, onCancel }: 
 
   return (
     <Box
+      ref={containerRef}
       style={{
         position: 'absolute',
         bottom: 0,

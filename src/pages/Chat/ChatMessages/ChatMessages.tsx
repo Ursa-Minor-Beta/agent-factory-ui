@@ -22,6 +22,7 @@ export function ChatMessages({
   onViewRun,
   onRepeat,
   statusText,
+  inputHeight = 100,
 }: ChatMessagesProps) {
   const virtuosoRef = useRef<ElementRef<typeof Virtuoso>>(null);
   const isAtBottomRef = useRef(true);
@@ -181,7 +182,7 @@ export function ChatMessages({
                     </Paper>
                   </Box>
                 )}
-                <Box style={{ height: 200 }} />
+                <Box style={{ height: inputHeight + 16 }} />
               </>
             ),
         }}
