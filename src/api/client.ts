@@ -3,12 +3,14 @@ import { config } from '../config';
 export class ApiError extends Error {
   status: number;
   code: string;
+  runId?: string;
 
-  constructor(status: number, code: string, message: string) {
+  constructor(status: number, code: string, message: string, runId?: string) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
+    this.runId = runId;
   }
 }
 
@@ -110,7 +112,8 @@ export async function apiRequest<T>(
     throw new ApiError(
       response.status,
       data.error?.code || 'UNKNOWN_ERROR',
-      data.error?.message || 'An error occurred'
+      data.error?.message || 'An error occurred',
+      data.error?.runId || data.runId
     );
   }
 

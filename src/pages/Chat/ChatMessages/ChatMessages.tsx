@@ -1,7 +1,7 @@
 import { useRef, useEffect, type ElementRef } from 'react';
 import { Box, Text, Stack, Paper, Loader, Alert, Center, Button, Group } from '@mantine/core';
 import { Virtuoso } from 'react-virtuoso';
-import { IconAlertCircle, IconGhost, IconRefresh } from '@tabler/icons-react';
+import { IconAlertCircle, IconGhost, IconRefresh, IconListDetails } from '@tabler/icons-react';
 import type { ChatMessagesProps } from '../types';
 import { MessageBubble } from './MessageBubble';
 
@@ -13,6 +13,7 @@ export function ChatMessages({
   isNewChat,
   isIncognito,
   error,
+  errorRunId,
   onClearError,
   onRetry,
   hasMore,
@@ -94,15 +95,28 @@ export function ChatMessages({
         >
           <Group justify="space-between" align="center">
             <Text size="sm">{error}</Text>
-            <Button
-              size="xs"
-              variant="light"
-              color="red"
-              leftSection={<IconRefresh size={14} />}
-              onClick={onRetry}
-            >
-              Retry
-            </Button>
+            <Group gap="xs">
+              {errorRunId && (
+                <Button
+                  size="xs"
+                  variant="light"
+                  color="red"
+                  leftSection={<IconListDetails size={14} />}
+                  onClick={() => onViewRun(errorRunId)}
+                >
+                  Run Details
+                </Button>
+              )}
+              <Button
+                size="xs"
+                variant="light"
+                color="red"
+                leftSection={<IconRefresh size={14} />}
+                onClick={onRetry}
+              >
+                Retry
+              </Button>
+            </Group>
           </Group>
         </Alert>
       )}

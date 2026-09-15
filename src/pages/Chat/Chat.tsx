@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Loader, Alert, Center, Modal, Text, Group, Button } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { IconAlertCircle } from '@tabler/icons-react';
-import { agentsApi, sessionsApi, runsApi } from '../../api';
+import { agentsApi, sessionsApi, runsApi, ApiError } from '../../api';
 import type { Agent, Session, Run } from '../../types';
 import { ChatHeader } from './ChatHeader';
 import { ChatInput } from './ChatInput';
@@ -241,6 +241,7 @@ export function ChatPage() {
   // Chat state
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [errorRunId, setErrorRunId] = useState<string | undefined>();
   const [startIncognito, setStartIncognito] = useState(false);
   const [lastInput, setLastInput] = useState<Record<string, unknown> | null>(null);
 
@@ -439,6 +440,12 @@ export function ChatPage() {
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send message');
+      // Extract runId from ApiError if available
+      if (err instanceof ApiError && err.runId) {
+        setErrorRunId(err.runId);
+      } else {
+        setErrorRunId(undefined);
+      }
       // Don't remove user message - it may have been saved before the error
     } finally {
       setSending(false);
@@ -450,6 +457,7 @@ export function ChatPage() {
     // Remove the last user message (the failed one)
     setMessages((prev) => prev.slice(0, -1));
     setError('');
+    setErrorRunId(undefined);
     // Re-send with the same input
     handleSend(lastInput);
   }, [lastInput, sending]);
@@ -618,7 +626,8 @@ export function ChatPage() {
           isNewChat={isNewChat}
           isIncognito={startIncognito}
           error={error}
-          onClearError={() => setError('')}
+          errorRunId={errorRunId}
+          onClearError={() => { setError(''); setErrorRunId(undefined); }}
           onRetry={handleRetry}
           hasMore={hasMoreMessages}
           loadingMore={loadingMoreMessages}

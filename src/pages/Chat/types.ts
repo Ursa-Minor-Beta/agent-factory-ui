@@ -59,6 +59,7 @@ export interface ChatMessagesProps {
   isNewChat: boolean;
   isIncognito: boolean;
   error: string;
+  errorRunId?: string;
   onClearError: () => void;
   onRetry: () => void;
   hasMore: boolean;
