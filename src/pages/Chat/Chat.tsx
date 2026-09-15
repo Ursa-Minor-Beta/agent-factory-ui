@@ -40,10 +40,36 @@ function getBase64Size(base64: string): string {
 // Known image field names
 const IMAGE_FIELDS = ['screenshot', 'image', 'thumbnail', 'preview', 'photo', 'picture'];
 
-// Extract base64 attachments from object recursively
+// Check if string is an inner file reference (inner:<fileId>:<fieldName>)
+function isInnerFileRef(str: string): boolean {
+  return typeof str === 'string' && str.startsWith('inner:');
+}
+
+// Parse inner file reference to FileRef
+function parseInnerRef(str: string, fieldName: string): FileRef | null {
+  if (!isInnerFileRef(str)) return null;
+  const parts = str.split(':');
+  if (parts.length < 2) return null;
+  const fileId = parts[1];
+  const refFieldName = parts.slice(2).join(':') || fieldName;
+  // Guess mime type from field name
+  const lower = fieldName.toLowerCase();
+  let mimeType = 'application/octet-stream';
+  if (lower.includes('screenshot') || lower.includes('image') || lower.includes('png')) {
+    mimeType = 'image/png';
+  } else if (lower.includes('jpg') || lower.includes('jpeg') || lower.includes('photo')) {
+    mimeType = 'image/jpeg';
+  } else if (lower.includes('pdf')) {
+    mimeType = 'application/pdf';
+  }
+  return { index: 0, fileId, fieldName: refFieldName, mimeType };
+}
+
+// Extract base64 attachments and inner file refs from object recursively
 function extractAttachments(
   data: Record<string, unknown>,
   attachments: MessageAttachment[],
+  fileRefs: FileRef[],
   prefix = ''
 ): Record<string, unknown> {
   const cleaned: Record<string, unknown> = {};
@@ -61,14 +87,29 @@ function extractAttachments(
         size: getBase64Size(value),
       });
       // Don't include in cleaned output
+    } else if (typeof value === 'string' && isInnerFileRef(value)) {
+      // Handle inner file reference
+      const ref = parseInnerRef(value, fullKey);
+      if (ref) {
+        ref.index = fileRefs.length;
+        fileRefs.push(ref);
+      }
+      // Don't include in cleaned output
     } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
       // Handle nested objects (like screenshots: { name: base64 })
       const nestedAttachments: MessageAttachment[] = [];
-      const cleanedNested = extractAttachments(value as Record<string, unknown>, nestedAttachments, fullKey);
+      const nestedFileRefs: FileRef[] = [];
+      const cleanedNested = extractAttachments(value as Record<string, unknown>, nestedAttachments, nestedFileRefs, fullKey);
 
-      // Check if this object only contained base64 values
+      // Check if this object only contained base64 values or file refs
       if (nestedAttachments.length > 0) {
         attachments.push(...nestedAttachments);
+      }
+      if (nestedFileRefs.length > 0) {
+        nestedFileRefs.forEach(ref => {
+          ref.index = fileRefs.length;
+          fileRefs.push(ref);
+        });
       }
       if (Object.keys(cleanedNested).length > 0) {
         cleaned[key] = cleanedNested;
@@ -84,10 +125,21 @@ function extractAttachments(
             data: item,
             size: getBase64Size(item),
           });
+        } else if (typeof item === 'string' && isInnerFileRef(item)) {
+          const ref = parseInnerRef(item, `${fullKey}[${index}]`);
+          if (ref) {
+            ref.index = fileRefs.length;
+            fileRefs.push(ref);
+          }
         } else if (typeof item === 'object' && item !== null) {
           const nestedAttachments: MessageAttachment[] = [];
-          const cleanedItem = extractAttachments(item as Record<string, unknown>, nestedAttachments, `${fullKey}[${index}]`);
+          const nestedFileRefs: FileRef[] = [];
+          const cleanedItem = extractAttachments(item as Record<string, unknown>, nestedAttachments, nestedFileRefs, `${fullKey}[${index}]`);
           attachments.push(...nestedAttachments);
+          nestedFileRefs.forEach(ref => {
+            ref.index = fileRefs.length;
+            fileRefs.push(ref);
+          });
           if (Object.keys(cleanedItem).length > 0) {
             cleanedArray.push(cleanedItem);
           }
@@ -115,10 +167,11 @@ function stringifyValue(value: unknown): string {
   return String(value);
 }
 
-// Helper to format input/output object for display (returns text and attachments)
-function formatContentWithAttachments(data: Record<string, unknown>): { text: string; attachments: MessageAttachment[] } {
+// Helper to format input/output object for display (returns text, attachments, and file refs)
+function formatContentWithAttachments(data: Record<string, unknown>): { text: string; attachments: MessageAttachment[]; fileRefs: FileRef[] } {
   const attachments: MessageAttachment[] = [];
-  const cleaned = extractAttachments(data, attachments);
+  const fileRefs: FileRef[] = [];
+  const cleaned = extractAttachments(data, attachments, fileRefs);
 
   const entries = Object.entries(cleaned);
   let text = '';
@@ -128,7 +181,7 @@ function formatContentWithAttachments(data: Record<string, unknown>): { text: st
     text = entries.map(([key, value]) => `**${formatLabel(key)}**  \n${stringifyValue(value)}`).join('\n\n&nbsp;\n\n');
   }
 
-  return { text, attachments };
+  return { text, attachments, fileRefs };
 }
 
 // Legacy helper for user input display (no attachment extraction needed)
@@ -140,7 +193,7 @@ function formatContent(data: Record<string, unknown>): string {
 }
 
 // Helper to parse JSON message content (handles both string and object input)
-function parseMessageContent(content: unknown): { text: string; attachments: MessageAttachment[] } {
+function parseMessageContent(content: unknown): { text: string; attachments: MessageAttachment[]; fileRefs: FileRef[] } {
   // If content is already an object, format it directly
   if (typeof content === 'object' && content !== null) {
     return formatContentWithAttachments(content as Record<string, unknown>);
@@ -156,11 +209,11 @@ function parseMessageContent(content: unknown): { text: string; attachments: Mes
     } catch {
       // Not JSON, use as-is
     }
-    return { text: content, attachments: [] };
+    return { text: content, attachments: [], fileRefs: [] };
   }
 
   // For other primitives, convert to string
-  return { text: String(content ?? ''), attachments: [] };
+  return { text: String(content ?? ''), attachments: [], fileRefs: [] };
 }
 
 // Parse file references from message.files array
@@ -194,8 +247,11 @@ function parseFileReferences(files: string[] | undefined, content: string): File
 
 // Helper to map API message to ChatMessage
 function mapApiMessageToChatMessage(m: { id: string; role: 'user' | 'assistant' | 'system' | 'tool'; content: string; files?: string[]; runId?: string; createdAt: string }): ChatMessage {
-  const { text, attachments } = parseMessageContent(m.content);
-  const fileRefs = parseFileReferences(m.files, typeof m.content === 'string' ? m.content : text);
+  const { text, attachments, fileRefs: contentFileRefs } = parseMessageContent(m.content);
+  const messageFileRefs = parseFileReferences(m.files, typeof m.content === 'string' ? m.content : text);
+
+  // Merge file refs from content and message.files array
+  const allFileRefs = [...contentFileRefs, ...messageFileRefs];
 
   return {
     id: m.id,
@@ -203,7 +259,7 @@ function mapApiMessageToChatMessage(m: { id: string; role: 'user' | 'assistant' 
     runId: m.runId,
     content: text,
     attachments: attachments.length > 0 ? attachments : undefined,
-    fileRefs: fileRefs.length > 0 ? fileRefs : undefined,
+    fileRefs: allFileRefs.length > 0 ? allFileRefs : undefined,
     createdAt: m.createdAt,
   };
 }
@@ -427,12 +483,13 @@ export function ChatPage() {
         }
       }
 
-      const { text, attachments } = parseMessageContent(response.response);
+      const { text, attachments, fileRefs } = parseMessageContent(response.response);
       const assistantMessage: ChatMessage = {
         id: `response-${Date.now()}`,
         role: 'assistant',
         content: text,
         attachments: attachments.length > 0 ? attachments : undefined,
+        fileRefs: fileRefs.length > 0 ? fileRefs : undefined,
         createdAt: new Date().toISOString(),
         runId: response.runId,
       };

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Modal,
   Text,
@@ -31,7 +31,83 @@ import {
 } from '@tabler/icons-react';
 import { runsApi } from '../api';
 import type { Run, RunDetailsModalProps } from '../types';
-import { statusColors, nodeStatusColors, formatDuration } from '../types';
+import { statusColors, nodeStatusColors, formatDuration, resolveRunOutput, extractInnerFileRefs } from '../types';
+import { FileRefPreview } from '../pages/Chat/ChatMessages/FileContent';
+
+// Helper to render JSON data, extracting file refs for separate display
+function DataWithFileRefs({ data }: { data: unknown }) {
+  const fileRefs = useMemo(() => {
+    if (!data) return [];
+    return extractInnerFileRefs(data);
+  }, [data]);
+
+  // Create a cleaned version of data with file refs replaced by placeholders
+  const cleanedData = useMemo(() => {
+    if (!data || fileRefs.length === 0) return data;
+
+    const replaceRefs = (obj: unknown): unknown => {
+      if (typeof obj === 'string' && obj.startsWith('inner:')) {
+        return '[File Reference]';
+      }
+      if (Array.isArray(obj)) {
+        return obj.map(replaceRefs);
+      }
+      if (typeof obj === 'object' && obj !== null) {
+        const result: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(obj)) {
+          result[key] = replaceRefs(value);
+        }
+        return result;
+      }
+      return obj;
+    };
+
+    return replaceRefs(data);
+  }, [data, fileRefs.length]);
+
+  if (!data) {
+    return (
+      <Text size="sm" c="dimmed" ta="center" py="md">
+        No data
+      </Text>
+    );
+  }
+
+  return (
+    <>
+      <Code block style={{ backgroundColor: 'transparent' }}>
+        {JSON.stringify(cleanedData, null, 2)}
+      </Code>
+      {fileRefs.length > 0 && (
+        <Box mt="sm">
+          <Text size="xs" c="dimmed" mb="xs">Files ({fileRefs.length})</Text>
+          <FileRefPreview
+            fileRefs={fileRefs.map((ref) => ({
+              fileId: ref.fileId,
+              mimeType: guessMimeType(ref.fieldName),
+              fieldName: ref.path || ref.fieldName,
+            }))}
+          />
+        </Box>
+      )}
+    </>
+  );
+}
+
+// Guess mime type from field name
+function guessMimeType(fieldName: string): string {
+  const lower = fieldName.toLowerCase();
+  if (lower.includes('screenshot') || lower.includes('image') || lower.includes('png')) {
+    return 'image/png';
+  }
+  if (lower.includes('jpg') || lower.includes('jpeg') || lower.includes('photo')) {
+    return 'image/jpeg';
+  }
+  if (lower.includes('pdf')) {
+    return 'application/pdf';
+  }
+  return 'application/octet-stream';
+}
 
 export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetailsModalProps) {
   const [run, setRun] = useState<Run | null>(initialRun);
@@ -40,6 +116,12 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
   useEffect(() => {
     setRun(initialRun);
   }, [initialRun]);
+
+  // Resolve nodeRef references in output
+  const resolvedOutput = useMemo(() => {
+    if (!run) return null;
+    return resolveRunOutput(run);
+  }, [run]);
 
   const handleRefresh = async () => {
     if (!run) return;
@@ -168,8 +250,8 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
             <Card withBorder padding="md">
               <Group justify="space-between" mb="sm">
                 <Title order={5}>Output</Title>
-                {run.output && (
-                  <CopyButton value={JSON.stringify(run.output, null, 2)}>
+                {resolvedOutput && Object.keys(resolvedOutput).length > 0 && (
+                  <CopyButton value={JSON.stringify(resolvedOutput, null, 2)}>
                     {({ copied, copy }) => (
                       <Tooltip label={copied ? 'Copied' : 'Copy'}>
                         <ActionIcon variant="subtle" size="sm" onClick={copy}>
@@ -181,11 +263,9 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
                 )}
               </Group>
               <Paper p="xs" radius="sm" style={{ backgroundColor: 'var(--mantine-color-dark-7)' }}>
-                <ScrollArea.Autosize mah={200}>
-                  {run.output ? (
-                    <Code block style={{ backgroundColor: 'transparent' }}>
-                      {JSON.stringify(run.output, null, 2)}
-                    </Code>
+                <ScrollArea.Autosize mah={300}>
+                  {resolvedOutput && Object.keys(resolvedOutput).length > 0 ? (
+                    <DataWithFileRefs data={resolvedOutput} />
                   ) : (
                     <Text size="sm" c="dimmed" ta="center" py="md">
                       No output yet
@@ -246,9 +326,9 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
                             <Text size="xs" c="dimmed" fw={500} mb={4}>
                               INPUT
                             </Text>
-                            <Code block style={{ fontSize: 11 }}>
-                              {JSON.stringify(state.input, null, 2)}
-                            </Code>
+                            <ScrollArea.Autosize mah={200}>
+                              <DataWithFileRefs data={state.input} />
+                            </ScrollArea.Autosize>
                           </Paper>
                         )}
                         {state.output !== undefined && (
@@ -256,9 +336,9 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
                             <Text size="xs" c="dimmed" fw={500} mb={4}>
                               OUTPUT
                             </Text>
-                            <Code block style={{ fontSize: 11 }}>
-                              {JSON.stringify(state.output, null, 2)}
-                            </Code>
+                            <ScrollArea.Autosize mah={200}>
+                              <DataWithFileRefs data={state.output} />
+                            </ScrollArea.Autosize>
                           </Paper>
                         )}
                       </SimpleGrid>
@@ -267,9 +347,9 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
                           <Text size="xs" c="dimmed" fw={500} mb={4}>
                             STATE
                           </Text>
-                          <Code block style={{ fontSize: 11 }}>
-                            {JSON.stringify(state.state, null, 2)}
-                          </Code>
+                          <ScrollArea.Autosize mah={200}>
+                            <DataWithFileRefs data={state.state} />
+                          </ScrollArea.Autosize>
                         </Paper>
                       )}
                     </Stack>
