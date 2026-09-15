@@ -30,6 +30,7 @@ import { AgentJsonModal } from '../../components/AgentJsonModal';
 import { AgentDeleteModal } from './AgentDeleteModal';
 
 const ITEMS_PER_PAGE = 12;
+const SORT_STORAGE_KEY = 'agents-sort';
 
 export function AgentsPage() {
   const isMobile = useMediaQuery('(max-width: 768px)') ?? false;
@@ -58,8 +59,17 @@ export function AgentsPage() {
   const [isSystemFilter, setIsSystemFilter] = useState<string | null>('all');
   const [createdAfter, setCreatedAfter] = useState('');
   const [createdBefore, setCreatedBefore] = useState('');
-  const [sortValue, setSortValue] = useState<string | null>('name-asc');
+  const [sortValue, setSortValue] = useState<string | null>(() => {
+    return localStorage.getItem(SORT_STORAGE_KEY) || 'name-asc';
+  });
   const [page, setPage] = useState(1);
+
+  // Persist sort value
+  const handleSortChange = (val: string | null) => {
+    const value = val || 'name-asc';
+    setSortValue(value);
+    localStorage.setItem(SORT_STORAGE_KEY, value);
+  };
 
   // Parse sort value
   const [sortBy, sortOrder] = (sortValue || 'name-asc').split('-') as [AgentQueryParams['sortBy'], AgentQueryParams['sortOrder']];
@@ -171,7 +181,7 @@ export function AgentsPage() {
         </Button>
         <Select
           value={sortValue}
-          onChange={(val) => setSortValue(val || 'name-asc')}
+          onChange={handleSortChange}
           data={[
             { value: 'name-asc', label: 'Name A-Z' },
             { value: 'name-desc', label: 'Name Z-A' },
