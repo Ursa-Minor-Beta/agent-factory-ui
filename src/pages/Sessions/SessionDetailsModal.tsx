@@ -17,7 +17,6 @@ import {
   Loader,
   Center,
   Alert,
-  Textarea,
 } from '@mantine/core';
 import {
   IconCheck,
@@ -131,26 +130,6 @@ export function SessionDetailsModal({ session, opened, onClose }: SessionDetails
               </Group>
             </Box>
           </SimpleGrid>
-        </Card>
-
-        {/* Agent Notes */}
-        <Card withBorder padding="md">
-          <Text size="xs" c="dimmed" tt="uppercase" fw={500} mb="xs">
-            Agent Notes
-          </Text>
-          <Textarea
-            value={session.agentNotes || ''}
-            readOnly
-            autosize
-            minRows={2}
-            maxRows={10}
-            styles={{
-              input: {
-                backgroundColor: 'var(--mantine-color-dark-7)',
-                cursor: 'default',
-              },
-            }}
-          />
         </Card>
 
         {/* Messages */}

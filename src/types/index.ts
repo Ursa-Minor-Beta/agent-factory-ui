@@ -126,7 +126,6 @@ export interface Session {
   title?: string | null;
   status: 'active' | 'archived';
   incognito: boolean;
-  agentNotes?: string;
   createdAt: string;
   updatedAt: string;
 }
