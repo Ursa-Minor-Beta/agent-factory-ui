@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Box, Card, Stack, Group, Textarea, ActionIcon, Text, UnstyledButton, Button } from '@mantine/core';
 import { useDebouncedCallback } from '@mantine/hooks';
-import { IconSend, IconChevronDown, IconChevronRight, IconPlayerPlay } from '@tabler/icons-react';
+import { IconSend, IconChevronDown, IconChevronRight, IconPlayerPlay, IconPlayerStop } from '@tabler/icons-react';
 import type { ChatInputProps } from './types';
 
 const DRAFT_DEBOUNCE_MS = 3000;
 
-export function ChatInput({ onSend, sending, inputSchema, draftKey }: ChatInputProps) {
+export function ChatInput({ onSend, sending, inputSchema, draftKey, onCancel }: ChatInputProps) {
   const fields = useMemo(() => Object.entries(inputSchema), [inputSchema]);
   const fieldKeys = useMemo(() => new Set(fields.map(([k]) => k)), [fields]);
   // Field is truly required only if required=true AND no default value
@@ -173,13 +173,21 @@ export function ChatInput({ onSend, sending, inputSchema, draftKey }: ChatInputP
       >
         {hasNoInputs ? (
           <Group justify="center">
-            <Button
-              leftSection={<IconPlayerPlay size={18} />}
-              onClick={handleSend}
-              loading={sending}
-            >
-              Run
-            </Button>
+            {sending ? (
+              <Button
+                leftSection={<IconPlayerStop size={18} />}
+                onClick={onCancel}
+              >
+                Stop
+              </Button>
+            ) : (
+              <Button
+                leftSection={<IconPlayerPlay size={18} />}
+                onClick={handleSend}
+              >
+                Run
+              </Button>
+            )}
           </Group>
         ) : (
           <Group align="flex-end" gap="sm" wrap="nowrap">
@@ -205,15 +213,26 @@ export function ChatInput({ onSend, sending, inputSchema, draftKey }: ChatInputP
               )}
             </Stack>
 
-            <ActionIcon
-              size="lg"
-              variant="filled"
-              onClick={handleSend}
-              disabled={!hasRequiredContent || sending}
-              title={isSingleField ? 'Press Enter to send' : 'Fill required fields'}
-            >
-              <IconSend size={18} />
-            </ActionIcon>
+            {sending ? (
+              <ActionIcon
+                size="lg"
+                variant="filled"
+                onClick={onCancel}
+                title="Stop"
+              >
+                <IconPlayerStop size={18} />
+              </ActionIcon>
+            ) : (
+              <ActionIcon
+                size="lg"
+                variant="filled"
+                onClick={handleSend}
+                disabled={!hasRequiredContent}
+                title={isSingleField ? 'Press Enter to send' : 'Fill required fields'}
+              >
+                <IconSend size={18} />
+              </ActionIcon>
+            )}
           </Group>
         )}
       </Card>

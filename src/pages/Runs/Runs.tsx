@@ -28,6 +28,7 @@ import {
   IconSortAscending,
   IconSortDescending,
   IconRobot,
+  IconPlayerStop,
 } from '@tabler/icons-react';
 import { runsApi } from '../../api';
 import type { ListRunsParams } from '../../api/runs';
@@ -40,6 +41,8 @@ const statusIcons: Record<RunStatus, React.ReactNode> = {
   running: <IconPlayerPlay size={14} />,
   completed: <IconCheck size={14} />,
   failed: <IconX size={14} />,
+  cancelling: <IconClock size={14} />,
+  cancelled: <IconPlayerStop size={14} />,
 };
 
 const PAGE_SIZE = 20;
@@ -127,6 +130,8 @@ export function RunsPage() {
             { value: 'running', label: 'Running' },
             { value: 'completed', label: 'Completed' },
             { value: 'failed', label: 'Failed' },
+            { value: 'cancelling', label: 'Cancelling' },
+            { value: 'cancelled', label: 'Cancelled' },
           ]}
           clearable
           style={{ width: 140 }}

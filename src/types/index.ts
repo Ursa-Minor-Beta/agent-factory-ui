@@ -157,7 +157,7 @@ export interface ChatResponse {
 
 // Run types
 export type NodeStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
-export type RunStatus = 'pending' | 'running' | 'completed' | 'failed';
+export type RunStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelling' | 'cancelled';
 
 export interface NodeState {
   status: NodeStatus;
@@ -235,6 +235,8 @@ export const statusColors: Record<RunStatus, string> = {
   running: 'blue',
   completed: 'green',
   failed: 'red',
+  cancelling: 'orange',
+  cancelled: 'gray',
 };
 
 export const nodeStatusColors: Record<NodeStatus, string> = {

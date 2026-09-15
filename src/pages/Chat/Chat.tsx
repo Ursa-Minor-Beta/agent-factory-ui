@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Loader, Alert, Center, Modal, Text, Group, Button } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
@@ -301,6 +301,12 @@ export function ChatPage() {
   const [startIncognito, setStartIncognito] = useState(false);
   const [lastInput, setLastInput] = useState<Record<string, unknown> | null>(null);
 
+  // Run cancellation state
+  const [currentRunId, setCurrentRunId] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [statusText, setStatusText] = useState<string | undefined>();
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   // Mobile sidebar
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -465,49 +471,105 @@ export function ChatPage() {
     setSending(true);
     setError('');
     setLastInput(input);
+    setCurrentRunId(null);
+    setCancelling(false);
 
     const shouldBeIncognito = isNewChat && startIncognito;
 
+    // Create abort controller for request cancellation
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     try {
-      const response = await sessionsApi.chat(agentId, {
-        input,
-        sessionId: currentSessionId || undefined,
-        incognito: shouldBeIncognito,
-      });
+      await sessionsApi.chatStream(
+        agentId,
+        {
+          input,
+          sessionId: currentSessionId || undefined,
+          incognito: shouldBeIncognito,
+        },
+        {
+          onInit: (data) => {
+            // Store runId immediately for cancel support
+            setCurrentRunId(data.runId);
+            if (data.isNewSession && data.sessionId) {
+              setCurrentSessionId(data.sessionId);
+              setStartIncognito(false);
+              if (!data.sessionId.startsWith('incognito_')) {
+                loadSessions();
+              }
+            }
+          },
+          onStatus: (data) => {
+            // Update status text for display
+            setStatusText(data.statusText);
+          },
+          onDone: (data) => {
+            if (data.cancelled) {
+              setError('Run was cancelled');
+              return;
+            }
 
-      if (response.isNewSession && response.sessionId) {
-        setCurrentSessionId(response.sessionId);
-        setStartIncognito(false);
-        if (!response.sessionId.startsWith('incognito_')) {
-          loadSessions();
-        }
-      }
+            const { text, attachments, fileRefs } = parseMessageContent(data.response);
+            const assistantMessage: ChatMessage = {
+              id: `response-${Date.now()}`,
+              role: 'assistant',
+              content: text,
+              attachments: attachments.length > 0 ? attachments : undefined,
+              fileRefs: fileRefs.length > 0 ? fileRefs : undefined,
+              createdAt: new Date().toISOString(),
+              runId: data.runId,
+            };
 
-      const { text, attachments, fileRefs } = parseMessageContent(response.response);
-      const assistantMessage: ChatMessage = {
-        id: `response-${Date.now()}`,
-        role: 'assistant',
-        content: text,
-        attachments: attachments.length > 0 ? attachments : undefined,
-        fileRefs: fileRefs.length > 0 ? fileRefs : undefined,
-        createdAt: new Date().toISOString(),
-        runId: response.runId,
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
+            setMessages((prev) => [...prev, assistantMessage]);
+          },
+          onError: (data) => {
+            setError(data.message);
+            if (data.runId) {
+              setErrorRunId(data.runId);
+            }
+          },
+        },
+        abortController.signal
+      );
     } catch (err) {
+      // Handle abort/cancel
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        // Don't show error for user-initiated cancel
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Failed to send message');
-      // Extract runId from ApiError if available
       if (err instanceof ApiError && err.runId) {
         setErrorRunId(err.runId);
       } else {
         setErrorRunId(undefined);
       }
-      // Don't remove user message - it may have been saved before the error
     } finally {
       setSending(false);
+      setCurrentRunId(null);
+      setCancelling(false);
+      setStatusText(undefined);
+      abortControllerRef.current = null;
     }
   };
+
+  const handleCancelRun = useCallback(async () => {
+    if (cancelling || !agentId) return;
+
+    setCancelling(true);
+
+    // If we have a runId, cancel it on the server using the new endpoint
+    if (currentRunId) {
+      try {
+        await sessionsApi.cancelChat(agentId, currentRunId);
+      } catch {
+        // Ignore cancel errors - we'll still abort the request
+      }
+    }
+
+    // Abort the fetch request
+    abortControllerRef.current?.abort();
+  }, [agentId, currentRunId, cancelling]);
 
   const handleRetry = useCallback(() => {
     if (!lastInput || sending) return;
@@ -691,6 +753,7 @@ export function ChatPage() {
           onLoadMore={handleLoadMoreMessages}
           onViewRun={handleViewRun}
           onRepeat={handleRepeat}
+          statusText={statusText}
         />
 
         <ChatInput
@@ -698,6 +761,7 @@ export function ChatPage() {
           sending={sending}
           inputSchema={inputSchema}
           draftKey={`chat-draft-${agentId}-${currentSessionId || 'new'}`}
+          onCancel={handleCancelRun}
         />
       </Box>
     </Box>

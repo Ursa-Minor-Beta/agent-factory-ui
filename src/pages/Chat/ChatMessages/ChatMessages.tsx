@@ -21,6 +21,7 @@ export function ChatMessages({
   onLoadMore,
   onViewRun,
   onRepeat,
+  statusText,
 }: ChatMessagesProps) {
   const virtuosoRef = useRef<ElementRef<typeof Virtuoso>>(null);
   const isAtBottomRef = useRef(true);
@@ -135,6 +136,20 @@ export function ChatMessages({
             onLoadMore();
           }
         }}
+        itemContent={(index, message) => {
+          const isLastMessage = index === messages.length - 1;
+          const showRetry = error && isLastMessage && message.role === 'user' && !sending;
+          return (
+            <MessageBubble
+              message={message}
+              isFirst={index === 0}
+              showRetry={!!showRetry}
+              onRetry={onRetry}
+              onViewRun={onViewRun}
+              onRepeat={onRepeat}
+            />
+          );
+        }}
         components={{
           Header: () =>
             loadingMore ? (
@@ -153,30 +168,22 @@ export function ChatMessages({
                     <Paper
                       p="sm"
                       radius="lg"
-                      style={{ backgroundColor: 'var(--mantine-color-dark-5)' }}
+                      style={{ backgroundColor: 'var(--mantine-color-dark-5)', minWidth: 100 }}
                     >
-                      <Loader size="xs" />
+                      <Group gap="xs">
+                        <Loader type="dots" size="xs" />
+                        {statusText && (
+                          <Text size="xs" c="dimmed">
+                            {statusText}
+                          </Text>
+                        )}
+                      </Group>
                     </Paper>
                   </Box>
                 )}
                 <Box style={{ height: 130 }} />
               </>
             ),
-        }}
-        itemContent={(index, message) => {
-          const isLastMessage = index === messages.length - 1;
-          const showRetry = error && isLastMessage && message.role === 'user' && !sending;
-
-          return (
-            <MessageBubble
-              message={message}
-              isFirst={index === 0}
-              showRetry={!!showRetry}
-              onRetry={onRetry}
-              onViewRun={onViewRun}
-              onRepeat={onRepeat}
-            />
-          );
         }}
       />
     </Box>

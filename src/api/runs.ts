@@ -1,6 +1,12 @@
 import { api } from './client';
 import type { Run, RunStatus } from '../types';
 
+export interface CancelRunResponse {
+  id: string;
+  status: RunStatus;
+  message?: string;
+}
+
 export interface ListRunsParams {
   userId?: string;
   agentId?: string;
@@ -24,6 +30,9 @@ export const runsApi = {
 
   getById: (id: string) =>
     api.get<Run>(`/api/runs/${id}`),
+
+  cancel: (id: string) =>
+    api.post<CancelRunResponse>(`/api/runs/${id}/cancel`),
 
   listAll: (params?: ListRunsParams) => {
     const searchParams = new URLSearchParams();

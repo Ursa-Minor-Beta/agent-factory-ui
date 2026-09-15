@@ -27,23 +27,12 @@ export function MessageBubble({ message, isFirst, showRetry, onRetry, onViewRun,
         gap: 8,
       }}
     >
-      {showRetry && (
-        <Tooltip label="Retry">
-          <ActionIcon
-            variant="subtle"
-            color="red"
-            size="sm"
-            onClick={onRetry}
-          >
-            <IconRefresh size={16} />
-          </ActionIcon>
-        </Tooltip>
-      )}
       <Paper
         className="message-bubble"
         p="sm"
         radius="lg"
         style={{
+          minWidth: '40px',
           maxWidth: '80%',
           position: 'relative',
           backgroundColor:

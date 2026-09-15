@@ -148,7 +148,7 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
           <Badge color={statusColors[run.status]} variant="light">
             {run.status}
           </Badge>
-          {(run.status === 'pending' || run.status === 'running') && (
+          {(run.status === 'pending' || run.status === 'running' || run.status === 'cancelling') && (
             <Tooltip label="Refresh">
               <ActionIcon variant="subtle" size="sm" onClick={handleRefresh} loading={loading}>
                 <IconRefresh size={16} />
