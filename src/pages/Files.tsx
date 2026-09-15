@@ -30,7 +30,8 @@ const PAGE_SIZE_OPTIONS = ['10', '25', '50', '100'];
 const DEFAULT_PAGE_SIZE = 25;
 
 // Format file size
-function formatSize(bytes: number): string {
+function formatSize(bytes: number | undefined | null): string {
+  if (bytes == null || isNaN(bytes)) return '—';
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
