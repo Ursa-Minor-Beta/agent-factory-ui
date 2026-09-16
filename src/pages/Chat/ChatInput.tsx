@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Box, Card, Stack, Group, Textarea, ActionIcon, Text, UnstyledButton, Button } from '@mantine/core';
 import { useDebouncedCallback } from '@mantine/hooks';
-import { IconSend, IconChevronDown, IconChevronRight, IconPlayerPlay, IconPlayerStop } from '@tabler/icons-react';
+import { IconSend, IconChevronDown, IconPlayerPlay, IconPlayerStop, IconChevronUp } from '@tabler/icons-react';
 import type { ChatInputProps } from './types';
 
 const DRAFT_DEBOUNCE_MS = 3000;
@@ -207,50 +207,62 @@ export function ChatInput({ onSend, sending, inputSchema, draftKey, onCancel, on
             )}
           </Group>
         ) : (
-          <Group align="flex-end" gap="sm" wrap="nowrap">
-            <Stack gap="xs" style={{ flex: 1 }}>
-              {requiredFields.map(([key, schema]) => renderField(key, schema))}
+          <Stack gap="xs">
+            {/* Required inputs + send/stop button in one row */}
+            <Group align="flex-end" gap="sm" wrap="nowrap">
+              <Stack gap="xs" style={{ flex: 1 }}>
+                {requiredFields.map(([key, schema]) => renderField(key, schema))}
+              </Stack>
 
-              {hasOptionalFields && (
-                <>
-                  <UnstyledButton onClick={() => setOptionalOpen(!optionalOpen)}>
-                    <Group gap={4}>
-                      {optionalOpen ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
-                      <Text size="xs" c="dimmed">
-                        {optionalFields.length} optional field{optionalFields.length > 1 ? 's' : ''}
-                      </Text>
-                    </Group>
-                  </UnstyledButton>
-                  {optionalOpen && (
-                    <Stack gap="xs">
-                      {optionalFields.map(([key, schema]) => renderField(key, schema))}
-                    </Stack>
-                  )}
-                </>
+              {sending ? (
+                <ActionIcon
+                  size="lg"
+                  variant="filled"
+                  onClick={onCancel}
+                  title="Stop"
+                >
+                  <IconPlayerStop size={18} />
+                </ActionIcon>
+              ) : (
+                <ActionIcon
+                  size="lg"
+                  variant="filled"
+                  onClick={handleSend}
+                  disabled={!hasRequiredContent}
+                  title={isSingleField ? 'Press Enter to send' : 'Fill required fields'}
+                >
+                  <IconSend size={18} />
+                </ActionIcon>
               )}
-            </Stack>
+            </Group>
 
-            {sending ? (
-              <ActionIcon
-                size="lg"
-                variant="filled"
-                onClick={onCancel}
-                title="Stop"
+            {/* Optional fields - collapsible */}
+            {hasOptionalFields && (
+              <Box
+                style={{
+                  maxHeight: optionalOpen ? '500px' : '0',
+                  overflow: 'hidden',
+                  transition: 'max-height 200ms ease-out',
+                }}
               >
-                <IconPlayerStop size={18} />
-              </ActionIcon>
-            ) : (
-              <ActionIcon
-                size="lg"
-                variant="filled"
-                onClick={handleSend}
-                disabled={!hasRequiredContent}
-                title={isSingleField ? 'Press Enter to send' : 'Fill required fields'}
-              >
-                <IconSend size={18} />
-              </ActionIcon>
+                <Stack gap="xs">
+                  {optionalFields.map(([key, schema]) => renderField(key, schema))}
+                </Stack>
+              </Box>
             )}
-          </Group>
+
+            {/* Expand button at the bottom */}
+            {hasOptionalFields && (
+              <UnstyledButton onClick={() => setOptionalOpen(!optionalOpen)}>
+                <Group gap={4}>
+                  {optionalOpen ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}
+                  <Text size="xs" c="dimmed">
+                    {optionalFields.length} optional field{optionalFields.length > 1 ? 's' : ''}
+                  </Text>
+                </Group>
+              </UnstyledButton>
+            )}
+          </Stack>
         )}
       </Card>
     </Box>
