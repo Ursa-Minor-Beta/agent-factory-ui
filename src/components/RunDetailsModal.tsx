@@ -227,9 +227,9 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
           </Card>
 
           {run.error && (
-            <Alert icon={<IconAlertCircle size={16} />} color="red" variant="light" title={
-              <Group gap="xs">
-                <Text>Error</Text>
+            <Alert icon={<IconAlertCircle size={16} />} color="red" variant="light">
+              <Group justify="space-between" wrap="nowrap" gap="xs">
+                <Text style={{ wordBreak: 'break-word' }}>{run.error}</Text>
                 <CopyButton value={run.error}>
                   {({ copied, copy }) => (
                     <Tooltip label={copied ? 'Copied' : 'Copy error'}>
@@ -240,8 +240,6 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
                   )}
                 </CopyButton>
               </Group>
-            }>
-              {run.error}
             </Alert>
           )}
 
@@ -339,27 +337,19 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
                   <Accordion.Panel>
                     <Stack gap="sm">
                       {state.error && (
-                        <Alert
-                          icon={<IconAlertCircle size={14} />}
-                          color="red"
-                          variant="light"
-                          p="xs"
-                          title={
-                            <Group gap="xs">
-                              <Text size="xs">Error</Text>
-                              <CopyButton value={state.error}>
-                                {({ copied, copy }) => (
-                                  <Tooltip label={copied ? 'Copied' : 'Copy error'}>
-                                    <ActionIcon variant="subtle" size="xs" color="red" onClick={copy}>
-                                      {copied ? <IconCheck size={10} /> : <IconCopy size={10} />}
-                                    </ActionIcon>
-                                  </Tooltip>
-                                )}
-                              </CopyButton>
-                            </Group>
-                          }
-                        >
-                          <Text size="xs">{state.error}</Text>
+                        <Alert icon={<IconAlertCircle size={14} />} color="red" variant="light" p="xs">
+                          <Group justify="space-between" wrap="nowrap" gap="xs">
+                            <Text size="xs" style={{ wordBreak: 'break-word' }}>{state.error}</Text>
+                            <CopyButton value={state.error}>
+                              {({ copied, copy }) => (
+                                <Tooltip label={copied ? 'Copied' : 'Copy error'}>
+                                  <ActionIcon variant="subtle" size="xs" color="red" onClick={copy}>
+                                    {copied ? <IconCheck size={10} /> : <IconCopy size={10} />}
+                                  </ActionIcon>
+                                </Tooltip>
+                              )}
+                            </CopyButton>
+                          </Group>
                         </Alert>
                       )}
                       <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
