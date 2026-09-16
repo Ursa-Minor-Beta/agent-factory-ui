@@ -12,7 +12,7 @@ import { ChatSidebar } from './ChatSidebar';
 import { AgentEditModal } from '../../components/AgentEditModal';
 import { AgentJsonModal } from '../../components/AgentJsonModal';
 import { RunDetailsModal } from '../../components/RunDetailsModal';
-import { getInputSchema, type ChatMessage, type MessageAttachment, type FileRef } from './types';
+import { getInputSchema, type ChatMessage, type FileRef } from './types';
 
 // Helper to format field name as readable label
 function formatLabel(key: string): string {
@@ -21,24 +21,6 @@ function formatLabel(key: string): string {
     .replace(/([A-Z])/g, ' $1')
     .trim();
 }
-
-// Detect if string looks like base64 (long alphanumeric string)
-function isBase64(str: string): boolean {
-  if (typeof str !== 'string' || str.length < 200) return false;
-  const base64Regex = /^[A-Za-z0-9+/=]+$/;
-  return base64Regex.test(str.slice(0, 500));
-}
-
-// Get base64 size in human readable format
-function getBase64Size(base64: string): string {
-  const bytes = Math.ceil((base64.length * 3) / 4);
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-// Known image field names
-const IMAGE_FIELDS = ['screenshot', 'image', 'thumbnail', 'preview', 'photo', 'picture'];
 
 // Check if string is an inner file reference (inner:<fileId>:<fieldName>)
 function isInnerFileRef(str: string): boolean {
@@ -65,10 +47,9 @@ function parseInnerRef(str: string, fieldName: string): FileRef | null {
   return { index: 0, fileId, fieldName: refFieldName, mimeType };
 }
 
-// Extract base64 attachments and inner file refs from object recursively
-function extractAttachments(
+// Extract inner file refs from object recursively
+function extractFileRefs(
   data: Record<string, unknown>,
-  attachments: MessageAttachment[],
   fileRefs: FileRef[],
   prefix = ''
 ): Record<string, unknown> {
@@ -76,66 +57,35 @@ function extractAttachments(
 
   for (const [key, value] of Object.entries(data)) {
     const fullKey = prefix ? `${prefix}.${key}` : key;
-    const keyLower = key.toLowerCase();
 
-    if (typeof value === 'string' && isBase64(value)) {
-      const isImage = IMAGE_FIELDS.some(f => keyLower.includes(f));
-      attachments.push({
-        name: fullKey,
-        type: isImage ? 'image' : 'binary',
-        data: value,
-        size: getBase64Size(value),
-      });
-      // Don't include in cleaned output
-    } else if (typeof value === 'string' && isInnerFileRef(value)) {
-      // Handle inner file reference
+    if (typeof value === 'string' && isInnerFileRef(value)) {
       const ref = parseInnerRef(value, fullKey);
       if (ref) {
         ref.index = fileRefs.length;
         fileRefs.push(ref);
       }
-      // Don't include in cleaned output
     } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      // Handle nested objects (like screenshots: { name: base64 })
-      const nestedAttachments: MessageAttachment[] = [];
       const nestedFileRefs: FileRef[] = [];
-      const cleanedNested = extractAttachments(value as Record<string, unknown>, nestedAttachments, nestedFileRefs, fullKey);
-
-      // Check if this object only contained base64 values or file refs
-      if (nestedAttachments.length > 0) {
-        attachments.push(...nestedAttachments);
-      }
-      if (nestedFileRefs.length > 0) {
-        nestedFileRefs.forEach(ref => {
-          ref.index = fileRefs.length;
-          fileRefs.push(ref);
-        });
-      }
+      const cleanedNested = extractFileRefs(value as Record<string, unknown>, nestedFileRefs, fullKey);
+      nestedFileRefs.forEach(ref => {
+        ref.index = fileRefs.length;
+        fileRefs.push(ref);
+      });
       if (Object.keys(cleanedNested).length > 0) {
         cleaned[key] = cleanedNested;
       }
     } else if (Array.isArray(value)) {
       const cleanedArray: unknown[] = [];
       value.forEach((item, index) => {
-        if (typeof item === 'string' && isBase64(item)) {
-          const isImage = IMAGE_FIELDS.some(f => keyLower.includes(f));
-          attachments.push({
-            name: `${fullKey}[${index}]`,
-            type: isImage ? 'image' : 'binary',
-            data: item,
-            size: getBase64Size(item),
-          });
-        } else if (typeof item === 'string' && isInnerFileRef(item)) {
+        if (typeof item === 'string' && isInnerFileRef(item)) {
           const ref = parseInnerRef(item, `${fullKey}[${index}]`);
           if (ref) {
             ref.index = fileRefs.length;
             fileRefs.push(ref);
           }
         } else if (typeof item === 'object' && item !== null) {
-          const nestedAttachments: MessageAttachment[] = [];
           const nestedFileRefs: FileRef[] = [];
-          const cleanedItem = extractAttachments(item as Record<string, unknown>, nestedAttachments, nestedFileRefs, `${fullKey}[${index}]`);
-          attachments.push(...nestedAttachments);
+          const cleanedItem = extractFileRefs(item as Record<string, unknown>, nestedFileRefs, `${fullKey}[${index}]`);
           nestedFileRefs.forEach(ref => {
             ref.index = fileRefs.length;
             fileRefs.push(ref);
@@ -167,11 +117,10 @@ function stringifyValue(value: unknown): string {
   return String(value);
 }
 
-// Helper to format input/output object for display (returns text, attachments, and file refs)
-function formatContentWithAttachments(data: Record<string, unknown>): { text: string; attachments: MessageAttachment[]; fileRefs: FileRef[] } {
-  const attachments: MessageAttachment[] = [];
+// Helper to format input/output object for display (returns text and file refs)
+function formatContentWithFileRefs(data: Record<string, unknown>): { text: string; fileRefs: FileRef[] } {
   const fileRefs: FileRef[] = [];
-  const cleaned = extractAttachments(data, attachments, fileRefs);
+  const cleaned = extractFileRefs(data, fileRefs);
 
   const entries = Object.entries(cleaned);
   let text = '';
@@ -181,7 +130,7 @@ function formatContentWithAttachments(data: Record<string, unknown>): { text: st
     text = entries.map(([key, value]) => `**${formatLabel(key)}**  \n${stringifyValue(value)}`).join('\n\n&nbsp;\n\n');
   }
 
-  return { text, attachments, fileRefs };
+  return { text, fileRefs };
 }
 
 // Legacy helper for user input display (no attachment extraction needed)
@@ -192,11 +141,46 @@ function formatContent(data: Record<string, unknown>): string {
   return entries.map(([key, value]) => `**${formatLabel(key)}**  \n${stringifyValue(value)}`).join('\n\n&nbsp;\n\n');
 }
 
+// Extract text from nested node output structure like {"output-1":{"output-1":"text"}}
+function extractNodeOutput(data: Record<string, unknown>): Record<string, unknown> | string {
+  const keys = Object.keys(data);
+
+  // If single key and value is an object with a single string value, unwrap it
+  if (keys.length === 1) {
+    const value = data[keys[0]];
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      const innerKeys = Object.keys(value as Record<string, unknown>);
+      if (innerKeys.length === 1) {
+        const innerValue = (value as Record<string, unknown>)[innerKeys[0]];
+        // If the inner value is a string, return it directly
+        if (typeof innerValue === 'string') {
+          return innerValue;
+        }
+        // If it's another object, recursively extract
+        if (typeof innerValue === 'object' && innerValue !== null) {
+          return extractNodeOutput(innerValue as Record<string, unknown>);
+        }
+      }
+    }
+    // Single key with string value
+    if (typeof value === 'string') {
+      return value;
+    }
+  }
+
+  // Return as-is for complex structures
+  return data;
+}
+
 // Helper to parse JSON message content (handles both string and object input)
-function parseMessageContent(content: unknown): { text: string; attachments: MessageAttachment[]; fileRefs: FileRef[] } {
-  // If content is already an object, format it directly
+function parseMessageContent(content: unknown): { text: string; fileRefs: FileRef[] } {
+  // If content is already an object, try to extract node output
   if (typeof content === 'object' && content !== null) {
-    return formatContentWithAttachments(content as Record<string, unknown>);
+    const extracted = extractNodeOutput(content as Record<string, unknown>);
+    if (typeof extracted === 'string') {
+      return { text: extracted, fileRefs: [] };
+    }
+    return formatContentWithFileRefs(extracted as Record<string, unknown>);
   }
 
   // If content is a string, try to parse as JSON
@@ -204,16 +188,20 @@ function parseMessageContent(content: unknown): { text: string; attachments: Mes
     try {
       const parsed = JSON.parse(content);
       if (typeof parsed === 'object' && parsed !== null) {
-        return formatContentWithAttachments(parsed);
+        const extracted = extractNodeOutput(parsed);
+        if (typeof extracted === 'string') {
+          return { text: extracted, fileRefs: [] };
+        }
+        return formatContentWithFileRefs(extracted as Record<string, unknown>);
       }
     } catch {
       // Not JSON, use as-is
     }
-    return { text: content, attachments: [], fileRefs: [] };
+    return { text: content, fileRefs: [] };
   }
 
   // For other primitives, convert to string
-  return { text: String(content ?? ''), attachments: [], fileRefs: [] };
+  return { text: String(content ?? ''), fileRefs: [] };
 }
 
 // Parse file references from message.files array
@@ -247,7 +235,7 @@ function parseFileReferences(files: string[] | undefined, content: string): File
 
 // Helper to map API message to ChatMessage
 function mapApiMessageToChatMessage(m: { id: string; role: 'user' | 'assistant' | 'system' | 'tool'; content: string; files?: string[]; runId?: string; createdAt: string }): ChatMessage {
-  const { text, attachments, fileRefs: contentFileRefs } = parseMessageContent(m.content);
+  const { text, fileRefs: contentFileRefs } = parseMessageContent(m.content);
   const messageFileRefs = parseFileReferences(m.files, typeof m.content === 'string' ? m.content : text);
 
   // Merge file refs from content and message.files array
@@ -258,7 +246,6 @@ function mapApiMessageToChatMessage(m: { id: string; role: 'user' | 'assistant' 
     role: m.role,
     runId: m.runId,
     content: text,
-    attachments: attachments.length > 0 ? attachments : undefined,
     fileRefs: allFileRefs.length > 0 ? allFileRefs : undefined,
     createdAt: m.createdAt,
   };
@@ -467,6 +454,7 @@ export function ChatPage() {
       id: `temp-${Date.now()}`,
       role: 'user',
       content: displayContent,
+      rawInput: input,
       createdAt: new Date().toISOString(),
     };
 
@@ -512,12 +500,11 @@ export function ChatPage() {
               return;
             }
 
-            const { text, attachments, fileRefs } = parseMessageContent(data.response);
+            const { text, fileRefs } = parseMessageContent(data.response);
             const assistantMessage: ChatMessage = {
               id: `response-${Date.now()}`,
               role: 'assistant',
               content: text,
-              attachments: attachments.length > 0 ? attachments : undefined,
               fileRefs: fileRefs.length > 0 ? fileRefs : undefined,
               createdAt: new Date().toISOString(),
               runId: data.runId,
@@ -583,14 +570,10 @@ export function ChatPage() {
     handleSend(lastInput);
   }, [lastInput, sending]);
 
-  const handleRepeat = useCallback((content: string) => {
+  const handleRepeat = useCallback((input: Record<string, unknown>) => {
     if (sending) return;
-    // Get the first field from schema to use for the repeated content
-    const schemaFields = Object.keys(inputSchema);
-    if (schemaFields.length === 0) return;
-    const firstField = schemaFields[0];
-    handleSend({ [firstField]: content });
-  }, [sending, inputSchema]);
+    handleSend(input);
+  }, [sending]);
 
   const handleNewChat = (incognito = false) => {
     setCurrentSessionId(null);

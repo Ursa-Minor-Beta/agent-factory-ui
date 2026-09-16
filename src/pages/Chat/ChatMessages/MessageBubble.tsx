@@ -11,7 +11,7 @@ interface MessageBubbleProps {
   showRetry: boolean;
   onRetry: () => void;
   onViewRun: (runId: string) => void;
-  onRepeat?: (content: string) => void;
+  onRepeat?: (input: Record<string, unknown>) => void;
 }
 
 export function MessageBubble({ message, isFirst, showRetry, onRetry, onViewRun, onRepeat }: MessageBubbleProps) {
@@ -85,12 +85,12 @@ export function MessageBubble({ message, isFirst, showRetry, onRetry, onViewRun,
               </ActionIcon>
             </Tooltip>
           )}
-          {message.role === 'user' && onRepeat && (
+          {message.role === 'user' && onRepeat && message.rawInput && (
             <Tooltip label="Repeat">
               <ActionIcon
                 variant="subtle"
                 size="xs"
-                onClick={() => onRepeat(message.content)}
+                onClick={() => onRepeat(message.rawInput!)}
               >
                 <IconRepeat size={12} />
               </ActionIcon>

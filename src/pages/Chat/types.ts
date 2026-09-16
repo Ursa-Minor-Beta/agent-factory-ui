@@ -23,6 +23,7 @@ export interface ChatMessage {
   fileRefs?: FileRef[]; // Parsed file references for lazy loading
   createdAt: string;
   runId?: string;
+  rawInput?: Record<string, unknown>; // Original input for user messages (for repeat)
 }
 
 export interface ChatHeaderProps {
@@ -68,7 +69,7 @@ export interface ChatMessagesProps {
   loadingMore: boolean;
   onLoadMore: () => void;
   onViewRun: (runId: string) => void;
-  onRepeat: (content: string) => void;
+  onRepeat: (input: Record<string, unknown>) => void;
   statusText?: string;
   inputHeight?: number;
 }
