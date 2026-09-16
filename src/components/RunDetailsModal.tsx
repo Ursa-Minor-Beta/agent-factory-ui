@@ -358,9 +358,18 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
                       <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
                         {state.input !== undefined && (
                           <Paper p="xs" radius="sm" withBorder>
-                            <Text size="xs" c="dimmed" fw={500} mb={4}>
-                              INPUT
-                            </Text>
+                            <Group justify="space-between" mb={4}>
+                              <Text size="xs" c="dimmed" fw={500}>INPUT</Text>
+                              <CopyButton value={JSON.stringify(state.input, null, 2)}>
+                                {({ copied, copy }) => (
+                                  <Tooltip label={copied ? 'Copied' : 'Copy'}>
+                                    <ActionIcon variant="subtle" size="xs" onClick={copy}>
+                                      {copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
+                                    </ActionIcon>
+                                  </Tooltip>
+                                )}
+                              </CopyButton>
+                            </Group>
                             <ScrollArea.Autosize mah={200}>
                               <DataWithFileRefs data={state.input} />
                             </ScrollArea.Autosize>
@@ -368,9 +377,18 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
                         )}
                         {state.output !== undefined && (
                           <Paper p="xs" radius="sm" withBorder>
-                            <Text size="xs" c="dimmed" fw={500} mb={4}>
-                              OUTPUT
-                            </Text>
+                            <Group justify="space-between" mb={4}>
+                              <Text size="xs" c="dimmed" fw={500}>OUTPUT</Text>
+                              <CopyButton value={JSON.stringify(state.output, null, 2)}>
+                                {({ copied, copy }) => (
+                                  <Tooltip label={copied ? 'Copied' : 'Copy'}>
+                                    <ActionIcon variant="subtle" size="xs" onClick={copy}>
+                                      {copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
+                                    </ActionIcon>
+                                  </Tooltip>
+                                )}
+                              </CopyButton>
+                            </Group>
                             <ScrollArea.Autosize mah={200}>
                               <DataWithFileRefs data={state.output} />
                             </ScrollArea.Autosize>
@@ -379,9 +397,18 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
                       </SimpleGrid>
                       {state.state !== undefined && (
                         <Paper p="xs" radius="sm" withBorder mt="sm">
-                          <Text size="xs" c="dimmed" fw={500} mb={4}>
-                            STATE
-                          </Text>
+                          <Group justify="space-between" mb={4}>
+                            <Text size="xs" c="dimmed" fw={500}>STATE</Text>
+                            <CopyButton value={JSON.stringify(state.state, null, 2)}>
+                              {({ copied, copy }) => (
+                                <Tooltip label={copied ? 'Copied' : 'Copy'}>
+                                  <ActionIcon variant="subtle" size="xs" onClick={copy}>
+                                    {copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
+                                  </ActionIcon>
+                                </Tooltip>
+                              )}
+                            </CopyButton>
+                          </Group>
                           <ScrollArea.Autosize mah={200}>
                             <DataWithFileRefs data={state.state} />
                           </ScrollArea.Autosize>
