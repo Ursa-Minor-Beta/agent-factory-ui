@@ -73,8 +73,21 @@ src/
 
 ### Adding API Endpoints
 1. Add function in relevant file under `src/api/`
-2. Use the `api` helper from `client.ts`
-3. Define TypeScript types in `src/types/`
+2. Choose the right helper from `client.ts`:
+   - `api.get/post/put/delete` - for standard endpoints that return `{ data: T }` format
+   - `fetchWithRefresh` - for endpoints that return raw JSON (e.g., `/api`, `/health`)
+3. Define TypeScript types in `src/types/` or in the api file
+
+```typescript
+// Standard endpoint with { data: T } response
+getItems: () => api.get<Item[]>('/api/items')
+
+// Raw JSON response (no data wrapper)
+getHealth: async (): Promise<HealthCheck> => {
+  const response = await fetchWithRefresh('/health');
+  return response.json();
+}
+```
 
 ### Form Pattern
 ```typescript

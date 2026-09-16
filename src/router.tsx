@@ -16,6 +16,7 @@ const FilesPage = lazy(() => import('./pages/Files').then(m => ({ default: m.Fil
 const RunsPage = lazy(() => import('./pages/Runs/index').then(m => ({ default: m.RunsPage })));
 const SessionsPage = lazy(() => import('./pages/Sessions/index').then(m => ({ default: m.SessionsPage })));
 const UsersPage = lazy(() => import('./pages/Users').then(m => ({ default: m.UsersPage })));
+const SettingsPage = lazy(() => import('./pages/Settings').then(m => ({ default: m.SettingsPage })));
 
 const PageLoader = () => (
   <Center style={{ height: '100%', minHeight: 400 }}>
@@ -87,6 +88,14 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute adminOnly>
             <UsersPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'settings',
+        element: (
+          <ProtectedRoute adminOnly>
+            <SettingsPage />
           </ProtectedRoute>
         ),
       },

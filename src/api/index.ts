@@ -8,3 +8,5 @@ export { secretsApi } from './secrets';
 export { runsApi } from './runs';
 export { filesApi } from './files';
 export type { FileData, FileListItem } from './files';
+export { systemApi } from './system';
+export type { ApiInfo, HealthCheck, ReseedResult } from './system';
