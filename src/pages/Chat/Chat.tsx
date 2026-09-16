@@ -241,11 +241,25 @@ function mapApiMessageToChatMessage(m: { id: string; role: 'user' | 'assistant' 
   // Merge file refs from content and message.files array
   const allFileRefs = [...contentFileRefs, ...messageFileRefs];
 
+  // For user messages, try to parse the original JSON to get rawInput
+  let rawInput: Record<string, unknown> | undefined;
+  if (m.role === 'user' && typeof m.content === 'string') {
+    try {
+      const parsed = JSON.parse(m.content);
+      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+        rawInput = parsed;
+      }
+    } catch {
+      // Not JSON, no rawInput
+    }
+  }
+
   return {
     id: m.id,
     role: m.role,
     runId: m.runId,
     content: text,
+    rawInput,
     fileRefs: allFileRefs.length > 0 ? allFileRefs : undefined,
     createdAt: m.createdAt,
   };
