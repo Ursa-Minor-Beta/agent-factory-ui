@@ -304,7 +304,14 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
               Node Execution ({Object.keys(run.nodeStates).length} nodes)
             </Title>
             <Accordion variant="separated">
-              {Object.entries(run.nodeStates).map(([nodeId, state]) => (
+              {Object.entries(run.nodeStates)
+                .sort(([, a], [, b]) => {
+                  if (!a.startedAt && !b.startedAt) return 0;
+                  if (!a.startedAt) return 1;
+                  if (!b.startedAt) return -1;
+                  return new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime();
+                })
+                .map(([nodeId, state]) => (
                 <Accordion.Item key={nodeId} value={nodeId}>
                   <Accordion.Control>
                     <Group gap="sm">
