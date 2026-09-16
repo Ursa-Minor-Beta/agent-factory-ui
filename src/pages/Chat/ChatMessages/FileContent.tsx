@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Box, Text, ActionIcon, Loader, Image, Tooltip, Modal } from '@mantine/core';
-import { IconFile, IconDownload, IconRefresh, IconAlertCircle, IconFileTypePdf } from '@tabler/icons-react';
+import { IconFile, IconDownload, IconAlertCircle, IconFileTypePdf } from '@tabler/icons-react';
 import { filesApi, type FileData } from '../../../api';
 
 // Simple in-memory cache for fetched files
@@ -176,7 +176,7 @@ function FileItem({ fileId, mimeType, fieldName, onPreview }: FileContentProps) 
           onClick={handleDownload}
         >
           <IconFileTypePdf size={24} style={{ color: 'var(--mantine-color-red-5)' }} />
-          <Text size={10} c="dimmed" mt={2}>PDF</Text>
+          <Text size='xs' c="dimmed" mt={2}>PDF</Text>
         </Box>
       </Tooltip>
     );
@@ -203,7 +203,7 @@ function FileItem({ fileId, mimeType, fieldName, onPreview }: FileContentProps) 
         onClick={handleDownload}
       >
         <IconFile size={24} style={{ color: 'var(--mantine-color-dimmed)' }} />
-        <Text size={10} c="dimmed" mt={2} truncate style={{ maxWidth: 70 }}>
+        <Text size='xs' c="dimmed" mt={2} truncate style={{ maxWidth: 70 }}>
           {mimeType.split('/')[1] || 'file'}
         </Text>
       </Box>

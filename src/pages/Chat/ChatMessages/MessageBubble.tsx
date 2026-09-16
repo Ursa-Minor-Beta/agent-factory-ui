@@ -1,5 +1,5 @@
 import { Box, Paper, ActionIcon, Tooltip, Group, CopyButton } from '@mantine/core';
-import { IconRefresh, IconCopy, IconCheck, IconListDetails, IconRepeat } from '@tabler/icons-react';
+import { IconCopy, IconCheck, IconListDetails, IconRepeat } from '@tabler/icons-react';
 import type { ChatMessage } from '../types';
 import { CollapsibleContent } from './CollapsibleContent';
 import { AttachmentPreview } from './AttachmentPreview';
@@ -14,7 +14,7 @@ interface MessageBubbleProps {
   onRepeat?: (input: Record<string, unknown>) => void;
 }
 
-export function MessageBubble({ message, isFirst, showRetry, onRetry, onViewRun, onRepeat }: MessageBubbleProps) {
+export function MessageBubble({ message, isFirst, showRetry, onViewRun, onRepeat }: MessageBubbleProps) {
   return (
     <Box
       px="md"
