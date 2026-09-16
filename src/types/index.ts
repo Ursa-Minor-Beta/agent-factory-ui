@@ -50,7 +50,7 @@ export interface InputSchema {
 export interface AgentNode {
   id: string;
   type: string;
-  position: { x: number; y: number };
+  position?: { x: number; y: number };
   data: {
     schema?: InputSchema;
     [key: string]: unknown;

@@ -10,3 +10,5 @@ export { filesApi } from './files';
 export type { FileData, FileListItem } from './files';
 export { systemApi } from './system';
 export type { ApiInfo, HealthCheck, ReseedResult } from './system';
+export { nodesApi } from './nodes';
+export type { NodeType, NodeTypeSchema, NodeTypeField } from './nodes';

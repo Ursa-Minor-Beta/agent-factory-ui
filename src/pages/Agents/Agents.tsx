@@ -27,7 +27,7 @@ import { AgentCard } from './AgentCard';
 import { AgentFilters } from './AgentFilters';
 import { AgentEditModal } from '../../components/AgentEditModal';
 import { AgentJsonModal } from '../../components/AgentJsonModal';
-import { AgentCreateModal } from '../../components/AgentCreateModal';
+import { AgentCreateModal } from './AgentCreate';
 import { AgentDeleteModal } from './AgentDeleteModal';
 
 const ITEMS_PER_PAGE = 12;
