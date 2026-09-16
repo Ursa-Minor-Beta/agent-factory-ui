@@ -44,7 +44,10 @@ export function ProvidersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
+  const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deletingProvider, setDeletingProvider] = useState<ProviderConfig | null>(null);
   const [search, setSearch] = useState('');
 
   const { register, handleSubmit, control, watch, reset, formState: { errors } } = useForm<ProviderForm>({
@@ -105,13 +108,23 @@ export function ProvidersPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this provider?')) return;
+  const handleOpenDeleteModal = (provider: ProviderConfig) => {
+    setDeletingProvider(provider);
+    openDeleteModal();
+  };
+
+  const handleDelete = async () => {
+    if (!deletingProvider) return;
+    setDeleting(true);
     try {
-      await providersApi.delete(id);
+      await providersApi.delete(deletingProvider.id);
+      closeDeleteModal();
+      setDeletingProvider(null);
       loadProviders();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete provider');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -205,7 +218,7 @@ export function ProvidersPage() {
                   <ActionIcon
                     variant="subtle"
                     color="red"
-                    onClick={() => handleDelete(provider.id)}
+                    onClick={() => handleOpenDeleteModal(provider)}
                   >
                     <IconTrash size={18} />
                   </ActionIcon>
@@ -257,13 +270,11 @@ export function ProvidersPage() {
                 {...register('apiKey')}
               />
             )}
-            {watchProvider === 'ollama' && (
-              <TextInput
-                label="Base URL"
-                placeholder="http://localhost:11434"
-                {...register('baseUrl')}
-              />
-            )}
+            <TextInput
+              label="Base URL"
+              placeholder={watchProvider === 'ollama' ? 'http://localhost:11434' : 'Optional custom endpoint'}
+              {...register('baseUrl')}
+            />
             <Group justify="flex-end" mt="md">
               <Button variant="subtle" onClick={closeModal}>
                 Cancel
@@ -274,6 +285,31 @@ export function ProvidersPage() {
             </Group>
           </Stack>
         </form>
+      </Modal>
+
+      <Modal
+        opened={deleteModalOpened}
+        onClose={closeDeleteModal}
+        title="Delete Provider"
+        size="sm"
+        centered
+      >
+        <Stack>
+          <Text size="sm">
+            Are you sure you want to delete the provider <strong>{deletingProvider?.name}</strong>?
+          </Text>
+          <Text size="sm" c="dimmed">
+            This action cannot be undone.
+          </Text>
+          <Group justify="flex-end" mt="md">
+            <Button variant="subtle" onClick={closeDeleteModal} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button color="red" onClick={handleDelete} loading={deleting}>
+              Delete
+            </Button>
+          </Group>
+        </Stack>
       </Modal>
     </Box>
   );

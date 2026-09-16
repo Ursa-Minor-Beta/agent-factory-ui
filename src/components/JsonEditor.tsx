@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Box, Text } from '@mantine/core';
+import { Box, Text, useMantineColorScheme } from '@mantine/core';
 import AceEditor from 'react-ace';
 
 import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/theme-one_dark';
+import 'ace-builds/src-noconflict/theme-chrome';
 import 'ace-builds/src-noconflict/ext-language_tools';
 
 export interface JsonEditorProps {
@@ -15,6 +16,7 @@ export interface JsonEditorProps {
 }
 
 export function JsonEditor({ value, onChange, readOnly = false, height = '100%', label }: JsonEditorProps) {
+  const { colorScheme } = useMantineColorScheme();
   // Keep internal string state so edits persist even when JSON is invalid
   const [internalValue, setInternalValue] = useState(() => JSON.stringify(value, null, 2));
   const lastExternalValue = useRef<string>(JSON.stringify(value, null, 2));
@@ -50,12 +52,12 @@ export function JsonEditor({ value, onChange, readOnly = false, height = '100%',
           minHeight: 0,
           borderRadius: 8,
           overflow: 'hidden',
-          border: '1px solid var(--mantine-color-dark-5)',
+          border: '1px solid var(--mantine-color-default-border)',
         }}
       >
         <AceEditor
           mode="json"
-          theme="one_dark"
+          theme={colorScheme === 'dark' ? 'one_dark' : 'chrome'}
           value={internalValue}
           onChange={handleChange}
           readOnly={readOnly}

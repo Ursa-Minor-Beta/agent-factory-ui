@@ -15,7 +15,10 @@ import {
   Badge,
   Pagination,
   Select,
+  Button,
+  Stack,
 } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import {
   IconTrash,
   IconAlertCircle,
@@ -50,6 +53,9 @@ export function FilesPage() {
   const [error, setError] = useState('');
   const [previewFile, setPreviewFile] = useState<FileData | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
+  const [deletingFile, setDeletingFile] = useState<FileListItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Pagination state
   const [page, setPage] = useState(1);
@@ -113,14 +119,24 @@ export function FilesPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this file?')) return;
+  const handleOpenDeleteModal = (file: FileListItem) => {
+    setDeletingFile(file);
+    openDeleteModal();
+  };
+
+  const handleDelete = async () => {
+    if (!deletingFile) return;
+    setDeleting(true);
     try {
-      await filesApi.delete(id);
+      await filesApi.delete(deletingFile.id);
+      closeDeleteModal();
+      setDeletingFile(null);
       // Reload current page after deletion
       loadFiles(page, pageSize);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete file');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -172,7 +188,7 @@ export function FilesPage() {
                         height: 40,
                         borderRadius: 4,
                         overflow: 'hidden',
-                        backgroundColor: 'var(--mantine-color-dark-6)',
+                        backgroundColor: 'var(--mantine-color-default)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -214,7 +230,7 @@ export function FilesPage() {
                         <ActionIcon
                           variant="subtle"
                           color="red"
-                          onClick={() => handleDelete(file.id)}
+                          onClick={() => handleOpenDeleteModal(file)}
                         >
                           <IconTrash size={18} />
                         </ActionIcon>
@@ -278,6 +294,32 @@ export function FilesPage() {
             fit="contain"
           />
         ) : null}
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        opened={deleteModalOpened}
+        onClose={closeDeleteModal}
+        title="Delete File"
+        size="sm"
+        centered
+      >
+        <Stack>
+          <Text size="sm">
+            Are you sure you want to delete <strong>{deletingFile?.name}</strong>?
+          </Text>
+          <Text size="sm" c="dimmed">
+            This action cannot be undone.
+          </Text>
+          <Group justify="flex-end" mt="md">
+            <Button variant="subtle" onClick={closeDeleteModal} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button color="red" onClick={handleDelete} loading={deleting}>
+              Delete
+            </Button>
+          </Group>
+        </Stack>
       </Modal>
     </Box>
   );

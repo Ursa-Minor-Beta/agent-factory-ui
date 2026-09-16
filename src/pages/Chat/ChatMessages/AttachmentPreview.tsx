@@ -41,7 +41,7 @@ export function AttachmentPreview({ attachments }: { attachments: MessageAttachm
                 borderRadius: 8,
                 overflow: 'hidden',
                 cursor: 'pointer',
-                border: '1px solid var(--mantine-color-dark-4)',
+                border: '1px solid var(--mantine-color-default-border)',
               }}
             >
               {att.type === 'image' ? (
@@ -72,7 +72,7 @@ export function AttachmentPreview({ attachments }: { attachments: MessageAttachm
                     display: 'flex',
                     alignItems: 'center',
                     gap: 8,
-                    backgroundColor: 'var(--mantine-color-dark-6)',
+                    backgroundColor: 'var(--mantine-color-default)',
                   }}
                   onClick={() => downloadBase64(att.data, att.name, false)}
                 >

@@ -50,9 +50,12 @@ export function ApiKeysPage() {
   const [error, setError] = useState('');
   const [createModalOpened, { open: openCreateModal, close: closeCreateModal }] = useDisclosure(false);
   const [keyModalOpened, { open: openKeyModal, close: closeKeyModal }] = useDisclosure(false);
+  const [revokeModalOpened, { open: openRevokeModal, close: closeRevokeModal }] = useDisclosure(false);
   const [newPlainKey, setNewPlainKey] = useState('');
   const [permissions, setPermissions] = useState<string[]>(['agents:read', 'agents:run']);
   const [saving, setSaving] = useState(false);
+  const [revoking, setRevoking] = useState(false);
+  const [revokingKey, setRevokingKey] = useState<ApiKey | null>(null);
   const [search, setSearch] = useState('');
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<ApiKeyForm>();
@@ -105,13 +108,23 @@ export function ApiKeysPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to revoke this API key?')) return;
+  const handleOpenRevokeModal = (apiKey: ApiKey) => {
+    setRevokingKey(apiKey);
+    openRevokeModal();
+  };
+
+  const handleRevoke = async () => {
+    if (!revokingKey) return;
+    setRevoking(true);
     try {
-      await authApi.revokeApiKey(id);
+      await authApi.revokeApiKey(revokingKey.id);
+      closeRevokeModal();
+      setRevokingKey(null);
       loadApiKeys();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to revoke API key');
+    } finally {
+      setRevoking(false);
     }
   };
 
@@ -204,7 +217,7 @@ export function ApiKeysPage() {
                   <ActionIcon
                     variant="subtle"
                     color="red"
-                    onClick={() => handleDelete(apiKey.id)}
+                    onClick={() => handleOpenRevokeModal(apiKey)}
                   >
                     <IconTrash size={18} />
                   </ActionIcon>
@@ -270,7 +283,7 @@ export function ApiKeysPage() {
           <Group
             p="md"
             style={{
-              backgroundColor: 'var(--mantine-color-dark-6)',
+              backgroundColor: 'var(--mantine-color-default)',
               borderRadius: 'var(--mantine-radius-md)',
             }}
           >
@@ -295,6 +308,32 @@ export function ApiKeysPage() {
           </Group>
           <Group justify="flex-end">
             <Button onClick={closeKeyModal}>Done</Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      {/* Revoke Confirmation Modal */}
+      <Modal
+        opened={revokeModalOpened}
+        onClose={closeRevokeModal}
+        title="Revoke API Key"
+        size="sm"
+        centered
+      >
+        <Stack>
+          <Text size="sm">
+            Are you sure you want to revoke the API key <strong>{revokingKey?.name}</strong>?
+          </Text>
+          <Text size="sm" c="dimmed">
+            Any applications using this key will lose access immediately.
+          </Text>
+          <Group justify="flex-end" mt="md">
+            <Button variant="subtle" onClick={closeRevokeModal} disabled={revoking}>
+              Cancel
+            </Button>
+            <Button color="red" onClick={handleRevoke} loading={revoking}>
+              Revoke
+            </Button>
           </Group>
         </Stack>
       </Modal>

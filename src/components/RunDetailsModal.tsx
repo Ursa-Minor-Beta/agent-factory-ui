@@ -260,7 +260,7 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
                   )}
                 </CopyButton>
               </Group>
-              <Paper p="xs" radius="sm" style={{ backgroundColor: 'var(--mantine-color-dark-7)' }}>
+              <Paper p="xs" radius="sm" style={{ backgroundColor: 'var(--mantine-color-default)' }}>
                 <ScrollArea.Autosize mah={200}>
                   <Code block style={{ backgroundColor: 'transparent' }}>
                     {JSON.stringify(run.input, null, 2)}
@@ -284,7 +284,7 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
                   </CopyButton>
                 )}
               </Group>
-              <Paper p="xs" radius="sm" style={{ backgroundColor: 'var(--mantine-color-dark-7)' }}>
+              <Paper p="xs" radius="sm" style={{ backgroundColor: 'var(--mantine-color-default)' }}>
                 <ScrollArea.Autosize mah={300}>
                   {resolvedOutput && Object.keys(resolvedOutput).length > 0 ? (
                     <DataWithFileRefs data={resolvedOutput} />

@@ -55,7 +55,7 @@ export function LoginPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'var(--mantine-color-dark-8)',
+        backgroundColor: 'var(--mantine-color-body)',
       }}
     >
       <Card
@@ -66,7 +66,7 @@ export function LoginPage() {
           maxWidth: 400,
           width: '100%',
           margin: '0 16px',
-          backgroundColor: 'var(--mantine-color-dark-6)',
+          backgroundColor: 'var(--mantine-color-default)',
         }}
       >
         <Title order={2} ta="center" mb="xs">

@@ -40,8 +40,11 @@ export function SecretsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
+  const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
   const [editingSecret, setEditingSecret] = useState<Secret | null>(null);
+  const [deletingSecret, setDeletingSecret] = useState<Secret | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [search, setSearch] = useState('');
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<SecretForm>();
@@ -116,13 +119,23 @@ export function SecretsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this secret?')) return;
+  const handleOpenDeleteModal = (secret: Secret) => {
+    setDeletingSecret(secret);
+    openDeleteModal();
+  };
+
+  const handleDelete = async () => {
+    if (!deletingSecret) return;
+    setDeleting(true);
     try {
-      await secretsApi.delete(id);
+      await secretsApi.delete(deletingSecret.id);
+      closeDeleteModal();
+      setDeletingSecret(null);
       loadSecrets();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete secret');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -208,7 +221,7 @@ export function SecretsPage() {
                     <ActionIcon
                       variant="subtle"
                       color="red"
-                      onClick={() => handleDelete(secret.id)}
+                      onClick={() => handleOpenDeleteModal(secret)}
                     >
                       <IconTrash size={18} />
                     </ActionIcon>
@@ -276,6 +289,31 @@ export function SecretsPage() {
             </Group>
           </Stack>
         </form>
+      </Modal>
+
+      <Modal
+        opened={deleteModalOpened}
+        onClose={closeDeleteModal}
+        title="Delete Secret"
+        size="sm"
+        centered
+      >
+        <Stack>
+          <Text size="sm">
+            Are you sure you want to delete the secret <Code>{deletingSecret?.name}</Code>?
+          </Text>
+          <Text size="sm" c="dimmed">
+            This action cannot be undone.
+          </Text>
+          <Group justify="flex-end" mt="md">
+            <Button variant="subtle" onClick={closeDeleteModal} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button color="red" onClick={handleDelete} loading={deleting}>
+              Delete
+            </Button>
+          </Group>
+        </Stack>
       </Modal>
     </Box>
   );

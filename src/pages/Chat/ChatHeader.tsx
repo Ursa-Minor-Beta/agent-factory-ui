@@ -1,4 +1,4 @@
-import { Box, Card, Group, ActionIcon, Text, Tooltip } from '@mantine/core';
+import { Box, Card, Group, ActionIcon, Text, Tooltip, useMantineColorScheme } from '@mantine/core';
 import { IconMenu2, IconGhost, IconPencil, IconCode } from '@tabler/icons-react';
 import type { ChatHeaderProps } from './types';
 
@@ -10,6 +10,9 @@ export function ChatHeader({
   onEditAgent,
   onEditJson,
 }: ChatHeaderProps) {
+  const { colorScheme } = useMantineColorScheme();
+  const glassBg = colorScheme === 'dark' ? 'rgba(28, 28, 34, 0.85)' : 'rgba(255, 255, 255, 0.85)';
+
   return (
     <Box
       style={{
@@ -26,9 +29,9 @@ export function ChatHeader({
         radius="lg"
         mr="lg"
         style={{
-          backgroundColor: 'rgba(28, 28, 34, 0.85)',
+          backgroundColor: glassBg,
           backdropFilter: 'blur(12px)',
-          border: '1px solid var(--mantine-color-dark-4)',
+          border: '1px solid var(--mantine-color-default-border)',
           pointerEvents: 'auto',
         }}
       >

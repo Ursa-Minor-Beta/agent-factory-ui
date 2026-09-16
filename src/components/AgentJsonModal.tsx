@@ -145,7 +145,7 @@ export function AgentJsonModal({ agent, onClose, onSave }: AgentJsonModalProps) 
                 top: tipsPosition.y,
                 zIndex: 1000,
                 width: 320,
-                backgroundColor: 'var(--mantine-color-dark-7)',
+                backgroundColor: 'var(--mantine-color-default)',
               }}
               onMouseMove={(e) => {
                 if (!tipsDragRef.current.isDragging) return;
@@ -167,8 +167,8 @@ export function AgentJsonModal({ agent, onClose, onSave }: AgentJsonModalProps) 
                 py="xs"
                 style={{
                   cursor: 'grab',
-                  backgroundColor: 'var(--mantine-color-dark-6)',
-                  borderBottom: '1px solid var(--mantine-color-dark-4)',
+                  backgroundColor: 'var(--mantine-color-default-hover)',
+                  borderBottom: '1px solid var(--mantine-color-default-border)',
                 }}
                 onMouseDown={(e) => {
                   tipsDragRef.current.isDragging = true;

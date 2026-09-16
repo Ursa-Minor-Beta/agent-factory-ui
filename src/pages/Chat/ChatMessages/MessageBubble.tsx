@@ -40,7 +40,7 @@ export function MessageBubble({ message, isFirst, showRetry, onRetry, onViewRun,
               ? showRetry
                 ? 'var(--mantine-color-red-9)'
                 : 'var(--mantine-color-cyan-9)'
-              : 'var(--mantine-color-dark-5)',
+              : 'var(--mantine-color-default)',
         }}
       >
         {message.content && <CollapsibleContent content={message.content} />}

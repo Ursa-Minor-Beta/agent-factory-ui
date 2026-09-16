@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Box, Card, Stack, Group, Textarea, ActionIcon, Text, UnstyledButton, Button } from '@mantine/core';
+import { Box, Card, Stack, Group, Textarea, ActionIcon, Text, UnstyledButton, Button, useMantineColorScheme } from '@mantine/core';
 import { useDebouncedCallback } from '@mantine/hooks';
 import { IconSend, IconChevronDown, IconPlayerPlay, IconPlayerStop, IconChevronUp } from '@tabler/icons-react';
 import type { ChatInputProps } from './types';
@@ -8,6 +8,8 @@ const DRAFT_DEBOUNCE_MS = 3000;
 
 export function ChatInput({ onSend, sending, inputSchema, draftKey, onCancel, onHeightChange }: ChatInputProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { colorScheme } = useMantineColorScheme();
+  const glassBg = colorScheme === 'dark' ? 'rgba(28, 28, 34, 0.85)' : 'rgba(255, 255, 255, 0.85)';
 
   // Report height changes via ResizeObserver
   useEffect(() => {
@@ -182,9 +184,9 @@ export function ChatInput({ onSend, sending, inputSchema, draftKey, onCancel, on
         radius="lg"
         mr="lg"
         style={{
-          backgroundColor: 'rgba(28, 28, 34, 0.85)',
+          backgroundColor: glassBg,
           backdropFilter: 'blur(12px)',
-          border: '1px solid var(--mantine-color-dark-4)',
+          border: '1px solid var(--mantine-color-default-border)',
           pointerEvents: 'auto',
         }}
       >

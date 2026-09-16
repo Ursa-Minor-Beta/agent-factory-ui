@@ -56,7 +56,7 @@ export function MarkdownRenderer({ children }: MarkdownRendererProps) {
           <Box
             component="pre"
             style={{
-              backgroundColor: 'var(--mantine-color-dark-7)',
+              backgroundColor: 'var(--mantine-color-default)',
               padding: 'var(--mantine-spacing-xs)',
               borderRadius: 'var(--mantine-radius-sm)',
               overflow: 'auto',
@@ -98,7 +98,7 @@ export function MarkdownRenderer({ children }: MarkdownRendererProps) {
           <Box
             component="th"
             style={{
-              border: '1px solid var(--mantine-color-dark-4)',
+              border: '1px solid var(--mantine-color-default-border)',
               padding: '6px 10px',
               textAlign: 'left',
             }}
@@ -110,7 +110,7 @@ export function MarkdownRenderer({ children }: MarkdownRendererProps) {
           <Box
             component="td"
             style={{
-              border: '1px solid var(--mantine-color-dark-4)',
+              border: '1px solid var(--mantine-color-default-border)',
               padding: '6px 10px',
             }}
           >
