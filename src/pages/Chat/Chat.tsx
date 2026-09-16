@@ -707,7 +707,6 @@ export function ChatPage() {
         agent={jsonModalOpen ? agent : null}
         onClose={() => setJsonModalOpen(false)}
         onSave={handleAgentSave}
-        isMobile={isMobile}
       />
 
       <RunDetailsModal

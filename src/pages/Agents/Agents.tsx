@@ -291,7 +291,6 @@ export function AgentsPage() {
         agent={jsonViewAgent}
         onClose={() => setJsonViewAgent(null)}
         onSave={loadAgents}
-        isMobile={isMobile}
       />
 
       <AgentDeleteModal

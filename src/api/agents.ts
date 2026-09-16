@@ -5,16 +5,12 @@ export interface CreateAgentInput {
   name: string;
   description?: string;
   nodes?: Agent['nodes'];
-  edges?: Agent['edges'];
-  variables?: Agent['variables'];
 }
 
 export interface UpdateAgentInput {
   name?: string;
   description?: string;
   nodes?: Agent['nodes'];
-  edges?: Agent['edges'];
-  variables?: Agent['variables'];
   status?: 'draft' | 'published';
 }
 

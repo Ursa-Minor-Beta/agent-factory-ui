@@ -57,28 +57,12 @@ export interface AgentNode {
   };
 }
 
-export interface AgentEdge {
-  id: string;
-  source: string;
-  sourceHandle?: string;
-  target: string;
-  targetHandle?: string;
-}
-
-export interface AgentVariable {
-  name: string;
-  type: 'string' | 'number' | 'boolean';
-  defaultValue?: unknown;
-}
-
 export interface Agent {
   id: string;
   userId: string;
   name: string;
   description?: string;
   nodes: AgentNode[];
-  edges: AgentEdge[];
-  variables: AgentVariable[];
   status: 'draft' | 'published';
   isSystem?: boolean;
   createdAt: string;
@@ -219,7 +203,6 @@ export interface AgentJsonModalProps {
   agent: Agent | null;
   onClose: () => void;
   onSave: () => void;
-  isMobile: boolean;
 }
 
 // Run Details Modal types

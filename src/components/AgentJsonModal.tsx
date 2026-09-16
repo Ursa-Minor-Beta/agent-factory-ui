@@ -3,7 +3,7 @@ import { Modal, Box, Text, Button, Group, Alert, Code, ActionIcon, Tooltip, Pape
 import { IconDeviceFloppy, IconAlertCircle, IconBulb, IconX, IconGripHorizontal } from '@tabler/icons-react';
 import { JsonEditor } from './JsonEditor';
 import { agentsApi } from '../api';
-import type { AgentNode, AgentEdge, AgentJsonModalProps } from '../types';
+import type { AgentNode, AgentJsonModalProps } from '../types';
 
 const TIPS_POSITION_KEY = 'agent-json-tips-position';
 const TIPS_PANEL_WIDTH = 320;
@@ -33,15 +33,9 @@ function clampToViewport(pos: { x: number; y: number }): { x: number; y: number 
   };
 }
 
-export function AgentJsonModal({ agent, onClose, onSave, isMobile }: AgentJsonModalProps) {
-  const [splitPercent, setSplitPercent] = useState(70);
-  const isDraggingRef = useRef(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
+export function AgentJsonModal({ agent, onClose, onSave }: AgentJsonModalProps) {
   const [nodes, setNodes] = useState<AgentNode[]>([]);
-  const [edges, setEdges] = useState<AgentEdge[]>([]);
   const [nodesValid, setNodesValid] = useState(true);
-  const [edgesValid, setEdgesValid] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
@@ -69,9 +63,7 @@ export function AgentJsonModal({ agent, onClose, onSave, isMobile }: AgentJsonMo
   useEffect(() => {
     if (agent) {
       setNodes(agent.nodes);
-      setEdges(agent.edges);
       setNodesValid(true);
-      setEdgesValid(true);
       setHasChanges(false);
       setError('');
     }
@@ -85,21 +77,13 @@ export function AgentJsonModal({ agent, onClose, onSave, isMobile }: AgentJsonMo
     }
   };
 
-  const handleEdgesChange = (value: unknown, isValid: boolean) => {
-    setEdgesValid(isValid);
-    if (isValid) {
-      setEdges(value as AgentEdge[]);
-      setHasChanges(true);
-    }
-  };
-
   const handleSave = async () => {
-    if (!agent || !nodesValid || !edgesValid) return;
+    if (!agent || !nodesValid) return;
 
     try {
       setSaving(true);
       setError('');
-      await agentsApi.update(agent.id, { nodes, edges });
+      await agentsApi.update(agent.id, { nodes });
       setHasChanges(false);
       onSave();
       onClose();
@@ -110,7 +94,7 @@ export function AgentJsonModal({ agent, onClose, onSave, isMobile }: AgentJsonMo
     }
   };
 
-  const canSave = nodesValid && edgesValid && hasChanges && !saving;
+  const canSave = nodesValid && hasChanges && !saving;
 
   return (
     <Modal
@@ -214,85 +198,16 @@ export function AgentJsonModal({ agent, onClose, onSave, isMobile }: AgentJsonMo
             </Paper>
           )}
 
-          <Box
-            ref={containerRef}
-            style={{
-              display: 'flex',
-              flexDirection: isMobile ? 'column' : 'row',
-              flex: 1,
-              minHeight: 0,
-              userSelect: isDraggingRef.current ? 'none' : undefined,
-            }}
-            onMouseMove={(e) => {
-              if (!isDraggingRef.current || isMobile || !containerRef.current) return;
-              const rect = containerRef.current.getBoundingClientRect();
-              const percent = ((e.clientX - rect.left) / rect.width) * 100;
-              setSplitPercent(Math.min(Math.max(percent, 20), 80));
-            }}
-            onMouseUp={() => { isDraggingRef.current = false; }}
-            onMouseLeave={() => { isDraggingRef.current = false; }}
-          >
-            <Box style={{
-              width: isMobile ? '100%' : `${splitPercent}%`,
-              flex: isMobile ? 1 : undefined,
-              display: 'flex',
-              flexDirection: 'column',
-              minWidth: 0,
-              minHeight: isMobile ? 0 : undefined,
-              paddingRight: isMobile ? 0 : 8,
-            }}>
-              <Group justify="space-between" mb="xs">
-                <Text fw={600}>Nodes ({nodes.length})</Text>
-                {!nodesValid && <Text size="xs" c="red">Invalid JSON</Text>}
-              </Group>
-              <Box style={{ flex: 1, minHeight: 0 }} onKeyDown={(e) => e.stopPropagation()}>
-                <JsonEditor
-                  value={nodes}
-                  onChange={handleNodesChange}
-                />
-              </Box>
-            </Box>
-
-            {!isMobile && (
-              <Box
-                onMouseDown={() => { isDraggingRef.current = true; }}
-                style={{
-                  width: 8,
-                  cursor: 'col-resize',
-                  backgroundColor: 'var(--mantine-color-dark-5)',
-                  borderRadius: 4,
-                  transition: 'background-color 0.15s',
-                  flexShrink: 0,
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--mantine-color-cyan-7)'; }}
-                onMouseLeave={(e) => {
-                  if (!isDraggingRef.current) {
-                    e.currentTarget.style.backgroundColor = 'var(--mantine-color-dark-5)';
-                  }
-                }}
+          <Box style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <Group justify="space-between" mb="xs">
+              <Text fw={600}>Nodes ({nodes.length})</Text>
+              {!nodesValid && <Text size="xs" c="red">Invalid JSON</Text>}
+            </Group>
+            <Box style={{ flex: 1, minHeight: 0 }} onKeyDown={(e) => e.stopPropagation()}>
+              <JsonEditor
+                value={nodes}
+                onChange={handleNodesChange}
               />
-            )}
-
-            <Box style={{
-              width: isMobile ? '100%' : `${100 - splitPercent}%`,
-              flex: isMobile ? 1 : undefined,
-              display: 'flex',
-              flexDirection: 'column',
-              minWidth: 0,
-              minHeight: isMobile ? 0 : undefined,
-              paddingLeft: isMobile ? 0 : 8,
-              marginTop: isMobile ? 16 : 0,
-            }}>
-              <Group justify="space-between" mb="xs">
-                <Text fw={600}>Edges ({edges.length})</Text>
-                {!edgesValid && <Text size="xs" c="red">Invalid JSON</Text>}
-              </Group>
-              <Box style={{ flex: 1, minHeight: 0 }} onKeyDown={(e) => e.stopPropagation()}>
-                <JsonEditor
-                  value={edges}
-                  onChange={handleEdgesChange}
-                />
-              </Box>
             </Box>
           </Box>
 
