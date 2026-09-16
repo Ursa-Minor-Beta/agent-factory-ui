@@ -155,6 +155,15 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
               </ActionIcon>
             </Tooltip>
           )}
+          <CopyButton value={JSON.stringify(run, null, 2)}>
+            {({ copied, copy }) => (
+              <Tooltip label={copied ? 'Copied' : 'Copy entire run'}>
+                <ActionIcon variant="subtle" size="sm" onClick={copy}>
+                  {copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
+                </ActionIcon>
+              </Tooltip>
+            )}
+          </CopyButton>
         </Group>
       }
       fullScreen
@@ -218,7 +227,20 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
           </Card>
 
           {run.error && (
-            <Alert icon={<IconAlertCircle size={16} />} color="red" variant="light" title="Error">
+            <Alert icon={<IconAlertCircle size={16} />} color="red" variant="light" title={
+              <Group gap="xs">
+                <Text>Error</Text>
+                <CopyButton value={run.error}>
+                  {({ copied, copy }) => (
+                    <Tooltip label={copied ? 'Copied' : 'Copy error'}>
+                      <ActionIcon variant="subtle" size="xs" color="red" onClick={copy}>
+                        {copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
+                      </ActionIcon>
+                    </Tooltip>
+                  )}
+                </CopyButton>
+              </Group>
+            }>
               {run.error}
             </Alert>
           )}
@@ -315,7 +337,20 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
                           color="red"
                           variant="light"
                           p="xs"
-                          title="Error"
+                          title={
+                            <Group gap="xs">
+                              <Text size="xs">Error</Text>
+                              <CopyButton value={state.error}>
+                                {({ copied, copy }) => (
+                                  <Tooltip label={copied ? 'Copied' : 'Copy error'}>
+                                    <ActionIcon variant="subtle" size="xs" color="red" onClick={copy}>
+                                      {copied ? <IconCheck size={10} /> : <IconCopy size={10} />}
+                                    </ActionIcon>
+                                  </Tooltip>
+                                )}
+                              </CopyButton>
+                            </Group>
+                          }
                         >
                           <Text size="xs">{state.error}</Text>
                         </Alert>

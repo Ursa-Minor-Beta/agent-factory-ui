@@ -54,6 +54,38 @@ async function waitForRefresh(): Promise<boolean> {
   }
 }
 
+// Fetch with automatic token refresh - returns raw Response for streaming use cases
+export async function fetchWithRefresh(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<Response> {
+  const headers: HeadersInit = {
+    ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+    ...options.headers,
+  };
+
+  const makeRequest = () =>
+    fetch(`${config.apiBaseUrl}${endpoint}`, {
+      ...options,
+      headers,
+      credentials: 'include',
+    });
+
+  let response = await makeRequest();
+
+  // Handle 401 with token refresh
+  if (response.status === 401) {
+    const refreshed = await waitForRefresh();
+    if (refreshed) {
+      response = await makeRequest();
+    } else {
+      redirectToLogin();
+    }
+  }
+
+  return response;
+}
+
 export async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {},

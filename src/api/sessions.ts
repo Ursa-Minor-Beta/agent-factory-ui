@@ -1,5 +1,4 @@
-import { api } from './client';
-import { config } from '../config';
+import { api, fetchWithRefresh } from './client';
 import type { Session, Message, ChatResponse } from '../types';
 
 // SSE Event types
@@ -103,12 +102,9 @@ export const sessionsApi = {
     callbacks: ChatStreamCallbacks,
     signal?: AbortSignal
   ): Promise<void> => {
-    const response = await fetch(`${config.apiBaseUrl}/api/agents/${agentId}/chat/stream`, {
+    const response = await fetchWithRefresh(`/api/agents/${agentId}/chat/stream`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
-      credentials: 'include',
-      mode: 'cors',
       signal,
     });
 
