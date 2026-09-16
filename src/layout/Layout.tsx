@@ -14,6 +14,7 @@ import {
   Box,
   Center,
   Loader,
+  useMantineColorScheme,
 } from '@mantine/core';
 import { useDisclosure, useLocalStorage } from '@mantine/hooks';
 import {
@@ -28,6 +29,8 @@ import {
   IconChevronLeft,
   IconChevronRight,
   IconFiles,
+  IconSun,
+  IconMoon,
 } from '@tabler/icons-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -58,6 +61,7 @@ export function Layout() {
     key: 'nav-sidebar-collapsed',
     defaultValue: true,
   });
+  const { colorScheme, toggleColorScheme } = useMantineColorScheme();
 
   const handleLogout = async () => {
     await logout();
@@ -82,8 +86,8 @@ export function Layout() {
       <AppShell.Navbar
         p="xs"
         style={{
-          backgroundColor: 'var(--mantine-color-dark-6)',
-          borderRight: '1px solid var(--mantine-color-dark-4)',
+          backgroundColor: 'var(--mantine-color-body)',
+          borderRight: '1px solid var(--mantine-color-default-border)',
           transition: 'width 200ms ease',
         }}
       >
@@ -187,6 +191,12 @@ export function Layout() {
               <Menu.Label>{user?.email}</Menu.Label>
               <Divider />
               <Menu.Item
+                leftSection={colorScheme === 'dark' ? <IconSun size={16} /> : <IconMoon size={16} />}
+                onClick={toggleColorScheme}
+              >
+                {colorScheme === 'dark' ? 'Light mode' : 'Dark mode'}
+              </Menu.Item>
+              <Menu.Item
                 leftSection={<IconLogout size={16} />}
                 onClick={handleLogout}
                 color="red"
@@ -200,7 +210,6 @@ export function Layout() {
 
       <AppShell.Main
         style={{
-          backgroundColor: 'var(--mantine-color-dark-8)',
           minHeight: '100vh',
         }}
       >

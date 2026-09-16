@@ -59,7 +59,7 @@ const theme = createTheme({
     },
     Tooltip: {
       defaultProps: {
-        color: 'dark.5',
+        color: 'gray',
       },
     },
   },
