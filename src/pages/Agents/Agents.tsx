@@ -27,6 +27,7 @@ import { AgentCard } from './AgentCard';
 import { AgentFilters } from './AgentFilters';
 import { AgentEditModal } from '../../components/AgentEditModal';
 import { AgentJsonModal } from '../../components/AgentJsonModal';
+import { AgentCreateModal } from '../../components/AgentCreateModal';
 import { AgentDeleteModal } from './AgentDeleteModal';
 
 const ITEMS_PER_PAGE = 12;
@@ -44,6 +45,7 @@ export function AgentsPage() {
 
   // Modals
   const [editModalOpened, { open: openEditModal, close: closeEditModal }] = useDisclosure(false);
+  const [createModalOpened, { open: openCreateModal, close: closeCreateModal }] = useDisclosure(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [jsonViewAgent, setJsonViewAgent] = useState<Agent | null>(null);
   const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
@@ -195,9 +197,7 @@ export function AgentsPage() {
         <Box style={{ flex: 1 }} />
         <Button
           leftSection={<IconPlus size={16} />}
-          onClick={() => handleOpenEditModal()}
-          disabled
-          title="Soon"
+          onClick={openCreateModal}
         >
           New Agent
         </Button>
@@ -283,6 +283,13 @@ export function AgentsPage() {
         opened={editModalOpened}
         onClose={closeEditModal}
         agent={editingAgent}
+        onSave={loadAgents}
+        isMobile={isMobile}
+      />
+
+      <AgentCreateModal
+        opened={createModalOpened}
+        onClose={closeCreateModal}
         onSave={loadAgents}
         isMobile={isMobile}
       />
