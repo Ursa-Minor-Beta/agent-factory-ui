@@ -62,6 +62,13 @@ const theme = createTheme({
         color: 'gray',
       },
     },
+    Code: {
+      styles: {
+        root: {
+          backgroundColor: 'transparent',
+        },
+      },
+    },
   },
 });
 
