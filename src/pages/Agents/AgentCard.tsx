@@ -5,11 +5,10 @@ import {
   IconEdit,
   IconMessageCircle,
   IconChevronRight,
-  IconCode,
 } from '@tabler/icons-react';
 import type { AgentCardProps } from './types';
 
-export function AgentCard({ agent, isAdmin, onEdit, onDelete, onViewJson }: AgentCardProps) {
+export function AgentCard({ agent, isAdmin, onEdit, onDelete }: AgentCardProps) {
   return (
     <Card
       withBorder
@@ -67,13 +66,6 @@ export function AgentCard({ agent, isAdmin, onEdit, onDelete, onViewJson }: Agen
           <IconChevronRight size={14} />
         </Link>
         <Group gap="xs">
-          <ActionIcon
-            variant="subtle"
-            onClick={() => onViewJson(agent)}
-            title="View JSON"
-          >
-            <IconCode size={18} />
-          </ActionIcon>
           <ActionIcon
             variant="subtle"
             onClick={() => onEdit(agent)}

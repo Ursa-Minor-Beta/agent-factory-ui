@@ -9,16 +9,19 @@ import {
   ActionIcon,
   Tooltip,
   Badge,
+  Code,
+  CopyButton,
 } from '@mantine/core';
-import { IconAlertCircle, IconBulb } from '@tabler/icons-react';
-import { JsonEditor } from '../../../components/JsonEditor';
+import { IconAlertCircle, IconBulb, IconCopy, IconCheck } from '@tabler/icons-react';
+import { JsonEditor } from '../JsonEditor';
 import { TipsPanel } from './TipsPanel';
 import { NodeTypesPanel } from './NodeTypesPanel';
 import { useAgentCreate } from './useAgentCreate';
 import type { AgentCreateModalProps } from './agentCreate.types';
 
-export function AgentCreateModal({ opened, onClose, onSave }: AgentCreateModalProps) {
+export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreateModalProps) {
   const {
+    isEditMode,
     register,
     handleSubmit,
     errors,
@@ -41,7 +44,7 @@ export function AgentCreateModal({ opened, onClose, onSave }: AgentCreateModalPr
     containerRef,
     handleResizeStart,
     handleClose,
-  } = useAgentCreate({ opened, onClose, onSave });
+  } = useAgentCreate({ opened, onClose, onSave, agent });
 
   return (
     <Modal
@@ -49,7 +52,7 @@ export function AgentCreateModal({ opened, onClose, onSave }: AgentCreateModalPr
       onClose={handleClose}
       title={
         <Group gap="sm">
-          <Text fw={600}>New Agent</Text>
+          <Text fw={600}>{isEditMode ? 'Edit Agent' : 'New Agent'}</Text>
           <Tooltip label={tipsOpen ? 'Hide tips' : 'Show tips'}>
             <ActionIcon
               variant={tipsOpen ? 'filled' : 'subtle'}
@@ -98,11 +101,12 @@ export function AgentCreateModal({ opened, onClose, onSave }: AgentCreateModalPr
                 marginRight: 8,
               }}
             >
-              <Group gap="md" mb="md">
+              <Group gap="md" mb="md" align="flex-end">
                 <TextInput
                   label="Name"
                   placeholder="Enter agent name"
                   error={errors.name?.message}
+                  disabled={agent?.isSystem}
                   style={{ flex: 1 }}
                   {...register('name', { required: 'Name is required' })}
                 />
@@ -112,6 +116,21 @@ export function AgentCreateModal({ opened, onClose, onSave }: AgentCreateModalPr
                   style={{ flex: 2 }}
                   {...register('description')}
                 />
+                {isEditMode && agent && (
+                  <Group gap="xs" pb={4}>
+                    <Text size="sm" c="dimmed">ID:</Text>
+                    <Code>{agent.id}</Code>
+                    <CopyButton value={agent.id}>
+                      {({ copied, copy }) => (
+                        <Tooltip label={copied ? 'Copied' : 'Copy'}>
+                          <ActionIcon variant="subtle" size="sm" onClick={copy}>
+                            {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
+                          </ActionIcon>
+                        </Tooltip>
+                      )}
+                    </CopyButton>
+                  </Group>
+                )}
               </Group>
 
               <Box style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -171,7 +190,7 @@ export function AgentCreateModal({ opened, onClose, onSave }: AgentCreateModalPr
               Cancel
             </Button>
             <Button type="submit" loading={saving} disabled={!nodesValid}>
-              Create Agent
+              {isEditMode ? 'Save' : 'Create Agent'}
             </Button>
           </Group>
         </Box>

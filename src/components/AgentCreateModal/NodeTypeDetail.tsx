@@ -1,6 +1,6 @@
 import { Group, Text, ActionIcon, Button, ScrollArea } from '@mantine/core';
 import { IconArrowLeft, IconPlus } from '@tabler/icons-react';
-import type { NodeType } from '../../../api';
+import type { NodeType } from '../../api';
 
 interface NodeTypeDetailProps {
   nodeType: NodeType;

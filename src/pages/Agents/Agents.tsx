@@ -25,9 +25,7 @@ import type { Agent, AgentQueryParams } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { AgentCard } from './AgentCard';
 import { AgentFilters } from './AgentFilters';
-import { AgentEditModal } from '../../components/AgentEditModal';
-import { AgentJsonModal } from '../../components/AgentJsonModal';
-import { AgentCreateModal } from './AgentCreate';
+import { AgentCreateModal } from '../../components/AgentCreateModal';
 import { AgentDeleteModal } from './AgentDeleteModal';
 
 const ITEMS_PER_PAGE = 12;
@@ -44,10 +42,8 @@ export function AgentsPage() {
   const [error, setError] = useState('');
 
   // Modals
-  const [editModalOpened, { open: openEditModal, close: closeEditModal }] = useDisclosure(false);
   const [createModalOpened, { open: openCreateModal, close: closeCreateModal }] = useDisclosure(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
-  const [jsonViewAgent, setJsonViewAgent] = useState<Agent | null>(null);
   const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
 
   // Filter panel
@@ -143,7 +139,12 @@ export function AgentsPage() {
 
   const handleOpenEditModal = (agent?: Agent) => {
     setEditingAgent(agent || null);
-    openEditModal();
+    openCreateModal();
+  };
+
+  const handleCloseCreateModal = () => {
+    setEditingAgent(null);
+    closeCreateModal();
   };
 
   const clearFilters = () => {
@@ -253,7 +254,6 @@ export function AgentsPage() {
                 isAdmin={isAdmin}
                 onEdit={handleOpenEditModal}
                 onDelete={setAgentToDelete}
-                onViewJson={setJsonViewAgent}
               />
             ))}
           </SimpleGrid>
@@ -279,25 +279,12 @@ export function AgentsPage() {
         </>
       )}
 
-      <AgentEditModal
-        opened={editModalOpened}
-        onClose={closeEditModal}
-        agent={editingAgent}
-        onSave={loadAgents}
-        isMobile={isMobile}
-      />
-
       <AgentCreateModal
         opened={createModalOpened}
-        onClose={closeCreateModal}
+        onClose={handleCloseCreateModal}
         onSave={loadAgents}
         isMobile={isMobile}
-      />
-
-      <AgentJsonModal
-        agent={jsonViewAgent}
-        onClose={() => setJsonViewAgent(null)}
-        onSave={loadAgents}
+        agent={editingAgent}
       />
 
       <AgentDeleteModal

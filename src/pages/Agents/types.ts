@@ -1,14 +1,13 @@
 import type { Agent } from '../../types';
 
 // Re-export shared types from main types
-export type { AgentForm, AgentEditModalProps, AgentJsonModalProps } from '../../types';
+export type { AgentForm, AgentEditModalProps } from '../../types';
 
 export interface AgentCardProps {
   agent: Agent;
   isAdmin: boolean;
   onEdit: (agent: Agent) => void;
   onDelete: (agent: Agent) => void;
-  onViewJson: (agent: Agent) => void;
 }
 
 export interface AgentFiltersProps {

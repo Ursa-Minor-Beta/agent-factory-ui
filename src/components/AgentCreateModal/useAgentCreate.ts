@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
-import { agentsApi, nodesApi } from '../../../api';
-import type { NodeType } from '../../../api';
-import type { AgentNode } from '../../../types';
+import { agentsApi, nodesApi } from '../../api';
+import type { NodeType } from '../../api';
+import type { Agent, AgentNode } from '../../types';
 import {
   DEFAULT_NODES,
   generateNodeId,
@@ -14,9 +14,11 @@ interface UseAgentCreateOptions {
   opened: boolean;
   onClose: () => void;
   onSave: () => void;
+  agent?: Agent | null;
 }
 
-export function useAgentCreate({ opened, onClose, onSave }: UseAgentCreateOptions) {
+export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreateOptions) {
+  const isEditMode = Boolean(agent);
   // Form state
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -61,13 +63,18 @@ export function useAgentCreate({ opened, onClose, onSave }: UseAgentCreateOption
   // Reset state and load node types when modal opens
   useEffect(() => {
     if (opened) {
-      reset({ name: '', description: '' });
-      setNodes(DEFAULT_NODES);
+      if (agent) {
+        reset({ name: agent.name, description: agent.description || '' });
+        setNodes(agent.nodes || DEFAULT_NODES);
+      } else {
+        reset({ name: '', description: '' });
+        setNodes(DEFAULT_NODES);
+      }
       setNodesValid(true);
       setError('');
       loadNodeTypes();
     }
-  }, [opened, reset, loadNodeTypes]);
+  }, [opened, agent, reset, loadNodeTypes]);
 
   const handleClose = useCallback(() => {
     reset({ name: '', description: '' });
@@ -136,20 +143,28 @@ export function useAgentCreate({ opened, onClose, onSave }: UseAgentCreateOption
       setSaving(true);
       setError('');
       try {
-        await agentsApi.create({
-          name: data.name,
-          description: data.description || undefined,
-          nodes,
-        });
+        if (agent) {
+          await agentsApi.update(agent.id, {
+            name: data.name,
+            description: data.description || undefined,
+            nodes,
+          });
+        } else {
+          await agentsApi.create({
+            name: data.name,
+            description: data.description || undefined,
+            nodes,
+          });
+        }
         handleClose();
         onSave();
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to create agent');
+        setError(err instanceof Error ? err.message : agent ? 'Failed to update agent' : 'Failed to create agent');
       } finally {
         setSaving(false);
       }
     },
-    [nodesValid, nodes, handleClose, onSave]
+    [agent, nodesValid, nodes, handleClose, onSave]
   );
 
   // Resize handlers
@@ -179,6 +194,10 @@ export function useAgentCreate({ opened, onClose, onSave }: UseAgentCreateOption
   }, []);
 
   return {
+    // Mode
+    isEditMode,
+    agent,
+
     // Form
     register,
     handleSubmit,

@@ -1,4 +1,4 @@
-import type { AgentNode } from '../../../types';
+import type { Agent, AgentNode } from '../../types';
 
 // Constants
 export const TIPS_POSITION_KEY = 'agent-create-tips-position';
@@ -17,6 +17,7 @@ export interface AgentCreateModalProps {
   onClose: () => void;
   onSave: () => void;
   isMobile?: boolean;
+  agent?: Agent | null;
 }
 
 export interface TipsPosition {

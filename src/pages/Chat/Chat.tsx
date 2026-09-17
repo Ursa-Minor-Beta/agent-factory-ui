@@ -9,8 +9,7 @@ import { ChatHeader } from './ChatHeader';
 import { ChatInput } from './ChatInput';
 import { ChatMessages } from './ChatMessages';
 import { ChatSidebar } from './ChatSidebar';
-import { AgentEditModal } from '../../components/AgentEditModal';
-import { AgentJsonModal } from '../../components/AgentJsonModal';
+import { AgentCreateModal } from '../../components/AgentCreateModal';
 import { RunDetailsModal } from '../../components/RunDetailsModal';
 import { getInputSchema, type ChatMessage, type FileRef } from './types';
 
@@ -317,7 +316,6 @@ export function ChatPage() {
 
   // Edit agent modal
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [jsonModalOpen, setJsonModalOpen] = useState(false);
 
   // Run details modal
   const [selectedRun, setSelectedRun] = useState<Run | null>(null);
@@ -693,18 +691,12 @@ export function ChatPage() {
         </Group>
       </Modal>
 
-      <AgentEditModal
+      <AgentCreateModal
         opened={editModalOpen}
         onClose={() => setEditModalOpen(false)}
         agent={agent}
         onSave={handleAgentSave}
         isMobile={isMobile}
-      />
-
-      <AgentJsonModal
-        agent={jsonModalOpen ? agent : null}
-        onClose={() => setJsonModalOpen(false)}
-        onSave={handleAgentSave}
       />
 
       <RunDetailsModal
@@ -733,7 +725,6 @@ export function ChatPage() {
           isMobile={isMobile}
           onOpenSidebar={() => setSidebarOpen(true)}
           onEditAgent={() => setEditModalOpen(true)}
-          onEditJson={() => setJsonModalOpen(true)}
         />
 
         <ChatMessages

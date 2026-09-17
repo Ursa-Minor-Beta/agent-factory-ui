@@ -1,6 +1,6 @@
 import { Text, Stack, Paper, Group, ActionIcon, Tooltip, ScrollArea } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
-import type { NodeType } from '../../../api';
+import type { NodeType } from '../../api';
 
 interface NodeTypeListProps {
   nodeTypes: NodeType[];

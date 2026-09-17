@@ -32,7 +32,6 @@ export interface ChatHeaderProps {
   isMobile: boolean;
   onOpenSidebar: () => void;
   onEditAgent: () => void;
-  onEditJson: () => void;
 }
 
 export interface ChatInputProps {

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Paper, Text, Alert, Center, Loader } from '@mantine/core';
 import { IconAlertCircle } from '@tabler/icons-react';
-import type { NodeType } from '../../../api';
+import type { NodeType } from '../../api';
 import { NodeTypeList } from './NodeTypeList';
 import { NodeTypeDetail } from './NodeTypeDetail';
 

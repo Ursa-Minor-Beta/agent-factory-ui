@@ -1,5 +1,5 @@
 import { Box, Card, Group, ActionIcon, Text, Tooltip, useMantineColorScheme } from '@mantine/core';
-import { IconMenu2, IconGhost, IconPencil, IconCode } from '@tabler/icons-react';
+import { IconMenu2, IconGhost, IconPencil } from '@tabler/icons-react';
 import type { ChatHeaderProps } from './types';
 
 export function ChatHeader({
@@ -8,7 +8,6 @@ export function ChatHeader({
   isMobile,
   onOpenSidebar,
   onEditAgent,
-  onEditJson,
 }: ChatHeaderProps) {
   const { colorScheme } = useMantineColorScheme();
   const glassBg = colorScheme === 'dark' ? 'rgba(28, 28, 34, 0.85)' : 'rgba(255, 255, 255, 0.85)';
@@ -50,11 +49,6 @@ export function ChatHeader({
             )}
           </Group>
           <Group gap="xs">
-            <Tooltip label="Edit JSON">
-              <ActionIcon variant="subtle" onClick={onEditJson}>
-                <IconCode size={18} />
-              </ActionIcon>
-            </Tooltip>
             <Tooltip label="Edit agent">
               <ActionIcon variant="subtle" onClick={onEditAgent}>
                 <IconPencil size={18} />
