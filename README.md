@@ -1,6 +1,6 @@
 # Agent Factory UI
 
-React frontend for the Agent Factory platform.
+React frontend for the Agent Factory platform [agent-factory](https://github.com/Ursa-Minor-Beta/agent-factory).
 
 ## Tech Stack
 
