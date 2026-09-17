@@ -169,7 +169,7 @@ export function ChatMessages({
                     <Paper
                       p="sm"
                       radius="lg"
-                      style={{ backgroundColor: 'var(--mantine-color-default)', minWidth: 100 }}
+                      style={{ backgroundColor: 'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))', minWidth: 100 }}
                     >
                       <Group gap="xs">
                         <Loader type="dots" size="xs" />

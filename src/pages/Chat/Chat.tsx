@@ -574,7 +574,7 @@ export function ChatPage() {
     abortControllerRef.current?.abort();
   }, [agentId, currentRunId, cancelling]);
 
-  const handleRetry = useCallback(() => {
+  const handleRetry = () => {
     if (!lastInput || sending) return;
     // Remove the last user message (the failed one)
     setMessages((prev) => prev.slice(0, -1));
@@ -582,12 +582,12 @@ export function ChatPage() {
     setErrorRunId(undefined);
     // Re-send with the same input
     handleSend(lastInput);
-  }, [lastInput, sending]);
+  };
 
-  const handleRepeat = useCallback((input: Record<string, unknown>) => {
+  const handleRepeat = (input: Record<string, unknown>) => {
     if (sending) return;
     handleSend(input);
-  }, [sending]);
+  };
 
   const handleNewChat = (incognito = false) => {
     setCurrentSessionId(null);

@@ -38,9 +38,9 @@ export function MessageBubble({ message, isFirst, showRetry, onViewRun, onRepeat
           backgroundColor:
             message.role === 'user'
               ? showRetry
-                ? 'var(--mantine-color-red-9)'
-                : 'var(--mantine-color-cyan-9)'
-              : 'var(--mantine-color-default)',
+                ? 'light-dark(var(--mantine-color-red-1), var(--mantine-color-red-9))'
+                : 'light-dark(var(--mantine-color-cyan-1), var(--mantine-color-cyan-9))'
+              : 'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))',
         }}
       >
         {message.content && <CollapsibleContent content={message.content} />}
