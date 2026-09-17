@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Button, Group, ScrollArea, CopyButton, Code, ActionIcon, Tooltip } from '@mantine/core';
-import { IconChevronDown, IconChevronUp, IconCopy, IconCheck } from '@tabler/icons-react';
+import { Button, Group, ScrollArea, Code } from '@mantine/core';
+import { IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 import { MarkdownRenderer } from '../../../components/MarkdownRenderer';
 
 const MAX_PREVIEW_LENGTH = 5000;
@@ -36,15 +36,6 @@ export function CollapsibleContent({ content }: { content: string }) {
           >
             {expanded ? 'Show less' : `Show more (${Math.round(content.length / 1000)}k chars)`}
           </Button>
-          <CopyButton value={content}>
-            {({ copied, copy }) => (
-              <Tooltip label={copied ? 'Copied' : 'Copy full content'}>
-                <ActionIcon variant="subtle" size="sm" onClick={copy}>
-                  {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
-                </ActionIcon>
-              </Tooltip>
-            )}
-          </CopyButton>
         </Group>
       </>
     );
@@ -69,15 +60,6 @@ export function CollapsibleContent({ content }: { content: string }) {
         >
           {expanded ? 'Show less' : 'Show more'}
         </Button>
-        <CopyButton value={content}>
-          {({ copied, copy }) => (
-            <Tooltip label={copied ? 'Copied' : 'Copy full content'}>
-              <ActionIcon variant="subtle" size="sm" onClick={copy}>
-                {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
-              </ActionIcon>
-            </Tooltip>
-          )}
-        </CopyButton>
       </Group>
     </>
   );
