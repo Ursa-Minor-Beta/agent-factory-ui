@@ -2,6 +2,8 @@
 
 React frontend for the Agent Factory platform [agent-factory](https://github.com/Ursa-Minor-Beta/agent-factory).
 
+> **⚠️ Note:** The current version is actively being built. There could be breaking changes.
+
 ## Tech Stack
 
 - **React 19** with TypeScript
