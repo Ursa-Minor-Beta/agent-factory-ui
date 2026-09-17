@@ -70,6 +70,7 @@ src/
 2. Add route in `src/router.tsx`
 3. Add navigation item in `src/layout/Layout.tsx` (navItems array)
 4. Use `useMediaQuery` from `@mantine/hooks` for responsive behavior
+5. **Update README.md** - Add the new feature to the Features section
 
 ### Adding API Endpoints
 1. Add function in relevant file under `src/api/`

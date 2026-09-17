@@ -1,33 +1,29 @@
 # Agent Factory UI
 
-React frontend for the Agent Factory platform [agent-factory](https://github.com/Ursa-Minor-Beta/agent-factory).
+React frontend for the Agent Factory platform.
 
 > **⚠️ Note:** The current version is actively being built. There could be breaking changes.
-
-## Tech Stack
-
-- **React 19** with TypeScript
-- **Vite** for fast development and building
-- **Mantine UI** for components
-- **React Router** for navigation
-- **React Hook Form** for form handling
-- **React Virtuoso** for virtualized lists
 
 ## Features
 
 - **Authentication** - Cookie-based auth with automatic token refresh
 - **Agents Management** - Create, edit, delete AI agents
 - **Chat Interface** - Real-time chat with agents, incognito mode support
+- **Sessions** - Manage and review chat sessions
+- **Runs** - Track agent execution runs
+- **Files** - Upload and manage files for agents
 - **Provider Settings** - Configure OpenAI, Anthropic, Ollama providers
+- **Secrets** - Store and manage secrets for agent configurations
 - **API Keys** - Generate and manage API keys with permissions
 - **User Management** - Admin-only user creation (admin role required)
+- **Light/Dark Theme** - Switch between color schemes
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 20+
-- Agent Factory backend running on `http://localhost:3000`
+- [Agent-factory](https://github.com/Ursa-Minor-Beta/agent-factory) running on `http://localhost:3000`
 
 ### Local Development
 
