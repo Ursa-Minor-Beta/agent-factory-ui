@@ -112,7 +112,8 @@ function extractFileRefs(
 function stringifyValue(value: unknown): string {
   if (value === null || value === undefined) return '';
   if (typeof value === 'object') {
-    return JSON.stringify(value, null, 2);
+    // Wrap JSON in markdown code block for proper formatting
+    return '```json\n' + JSON.stringify(value, null, 2) + '\n```';
   }
   return String(value);
 }
