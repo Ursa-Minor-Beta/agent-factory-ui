@@ -257,7 +257,7 @@ export function ChatInput({ onSend, sending, inputSchema, draftKey, onCancel, on
             {hasOptionalFields && (
               <UnstyledButton onClick={() => setOptionalOpen(!optionalOpen)}>
                 <Group gap={4}>
-                  {optionalOpen ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}
+                  {optionalOpen ? <IconChevronDown size={14} /> : < IconChevronUp size={14} />}
                   <Text size="xs" c="dimmed">
                     {optionalFields.length} optional field{optionalFields.length > 1 ? 's' : ''}
                   </Text>
