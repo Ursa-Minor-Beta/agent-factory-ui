@@ -21,29 +21,46 @@ function formatLabel(key: string): string {
     .trim();
 }
 
-// Check if string is an inner file reference (inner:<fileId>:<fieldName>)
+// Regex for new {{inner:<fileId>}} format
+const INNER_REF_REGEX = /\{\{inner:([a-f0-9]+)\}\}/g;
+
+// Check if string is an inner file reference
+// Supports both old format (inner:<fileId>) and new format ({{inner:<fileId>}})
 function isInnerFileRef(str: string): boolean {
-  return typeof str === 'string' && str.startsWith('inner:');
+  if (typeof str !== 'string') return false;
+  return str.startsWith('inner:') || /\{\{inner:[a-f0-9]+\}\}/.test(str);
+}
+
+// Guess mime type from field name
+function guessMimeType(fieldName: string): string {
+  const lower = fieldName.toLowerCase();
+  if (lower.includes('screenshot') || lower.includes('image') || lower.includes('png')) {
+    return 'image/png';
+  } else if (lower.includes('jpg') || lower.includes('jpeg') || lower.includes('photo')) {
+    return 'image/jpeg';
+  } else if (lower.includes('pdf')) {
+    return 'application/pdf';
+  }
+  return 'application/octet-stream';
 }
 
 // Parse inner file reference to FileRef
+// Supports: "inner:<fileId>:<fieldName>" or "{{inner:<fileId>}}"
 function parseInnerRef(str: string, fieldName: string): FileRef | null {
   if (!isInnerFileRef(str)) return null;
+
+  // New format: {{inner:<fileId>}}
+  const newMatch = str.match(/^\{\{inner:([a-f0-9]+)\}\}$/);
+  if (newMatch) {
+    return { index: 0, fileId: newMatch[1], fieldName, mimeType: guessMimeType(fieldName) };
+  }
+
+  // Old format: inner:<fileId>:<fieldName>
   const parts = str.split(':');
   if (parts.length < 2) return null;
   const fileId = parts[1];
   const refFieldName = parts.slice(2).join(':') || fieldName;
-  // Guess mime type from field name
-  const lower = fieldName.toLowerCase();
-  let mimeType = 'application/octet-stream';
-  if (lower.includes('screenshot') || lower.includes('image') || lower.includes('png')) {
-    mimeType = 'image/png';
-  } else if (lower.includes('jpg') || lower.includes('jpeg') || lower.includes('photo')) {
-    mimeType = 'image/jpeg';
-  } else if (lower.includes('pdf')) {
-    mimeType = 'application/pdf';
-  }
-  return { index: 0, fileId, fieldName: refFieldName, mimeType };
+  return { index: 0, fileId, fieldName: refFieldName, mimeType: guessMimeType(fieldName) };
 }
 
 // Extract inner file refs from object recursively
@@ -172,13 +189,66 @@ function extractNodeOutput(data: Record<string, unknown>): Record<string, unknow
   return data;
 }
 
+// Extract {{inner:...}} file refs from a string and clean up the text
+function extractFileRefsFromString(text: string): { cleanedText: string; fileRefs: FileRef[] } {
+  const fileRefs: FileRef[] = [];
+  let cleanedText = text;
+
+  // First, try to extract and remove embedded JSON with file refs like: {"screenshot":"{{inner:...}}"}
+  // This pattern matches JSON objects that only contain file references
+  const embeddedJsonRegex = /\s*\{[^{}]*"([^"]+)"\s*:\s*"\{\{inner:([a-f0-9]+)\}\}"[^{}]*\}/g;
+  let jsonMatch: RegExpExecArray | null;
+
+  while ((jsonMatch = embeddedJsonRegex.exec(text)) !== null) {
+    const fieldName = jsonMatch[1];
+    const fileId = jsonMatch[2];
+    fileRefs.push({
+      index: fileRefs.length,
+      fileId,
+      fieldName,
+      mimeType: guessMimeType(fieldName),
+    });
+  }
+
+  // Remove embedded JSON blocks with file refs
+  cleanedText = cleanedText.replace(embeddedJsonRegex, '');
+
+  // Also handle standalone {{inner:...}} patterns (without JSON wrapper)
+  const standaloneRegex = /\{\{inner:([a-f0-9]+)\}\}/g;
+  let standaloneMatch: RegExpExecArray | null;
+  const seenIds = new Set(fileRefs.map(r => r.fileId));
+
+  while ((standaloneMatch = standaloneRegex.exec(text)) !== null) {
+    const fileId = standaloneMatch[1];
+    if (!seenIds.has(fileId)) {
+      seenIds.add(fileId);
+      fileRefs.push({
+        index: fileRefs.length,
+        fileId,
+        fieldName: 'file',
+        mimeType: 'application/octet-stream',
+      });
+    }
+  }
+
+  // Remove any remaining standalone placeholders
+  cleanedText = cleanedText.replace(standaloneRegex, '');
+
+  // Clean up trailing/leading whitespace and periods followed by nothing
+  cleanedText = cleanedText.replace(/\.\s*$/, '.').trim();
+
+  return { cleanedText, fileRefs };
+}
+
 // Helper to parse JSON message content (handles both string and object input)
 function parseMessageContent(content: unknown): { text: string; fileRefs: FileRef[] } {
   // If content is already an object, try to extract node output
   if (typeof content === 'object' && content !== null) {
     const extracted = extractNodeOutput(content as Record<string, unknown>);
     if (typeof extracted === 'string') {
-      return { text: extracted, fileRefs: [] };
+      // Extract file refs from the string content
+      const { cleanedText, fileRefs } = extractFileRefsFromString(extracted);
+      return { text: cleanedText, fileRefs };
     }
     return formatContentWithFileRefs(extracted as Record<string, unknown>);
   }
@@ -190,14 +260,20 @@ function parseMessageContent(content: unknown): { text: string; fileRefs: FileRe
       if (typeof parsed === 'object' && parsed !== null) {
         const extracted = extractNodeOutput(parsed);
         if (typeof extracted === 'string') {
-          return { text: extracted, fileRefs: [] };
+          // Extract file refs from the string content
+          const { cleanedText, fileRefs } = extractFileRefsFromString(extracted);
+          return { text: cleanedText, fileRefs };
         }
         return formatContentWithFileRefs(extracted as Record<string, unknown>);
       }
     } catch {
-      // Not JSON, use as-is
+      // Not JSON, but might still contain file refs
+      const { cleanedText, fileRefs } = extractFileRefsFromString(content);
+      return { text: cleanedText, fileRefs };
     }
-    return { text: content, fileRefs: [] };
+    // Extract file refs from plain string content
+    const { cleanedText, fileRefs } = extractFileRefsFromString(content);
+    return { text: cleanedText, fileRefs };
   }
 
   // For other primitives, convert to string
@@ -205,16 +281,18 @@ function parseMessageContent(content: unknown): { text: string; fileRefs: FileRe
 }
 
 // Parse file references from message.files array
-// Format: "inner:<fileId>:<fieldName>"
+// Supports both old format "inner:<fileId>:<fieldName>" and new format "{{inner:<fileId>}}"
 function parseFileReferences(files: string[] | undefined, content: string): FileRef[] {
   if (!files || files.length === 0) return [];
 
   const fileRefs: FileRef[] = [];
-  // Match placeholders like [file:0:image/png]
-  const placeholderRegex = /\[file:(\d+):([^\]]+)\]/g;
-  let match;
+  const seenFileIds = new Set<string>();
 
-  while ((match = placeholderRegex.exec(content)) !== null) {
+  // First, try old format: match placeholders like [file:0:image/png] in content
+  const oldPlaceholderRegex = /\[file:(\d+):([^\]]+)\]/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = oldPlaceholderRegex.exec(content)) !== null) {
     const index = parseInt(match[1], 10);
     const mimeType = match[2];
 
@@ -224,11 +302,37 @@ function parseFileReferences(files: string[] | undefined, content: string): File
       const parts = fileRef.split(':');
       if (parts.length >= 2) {
         const fileId = parts[1];
-        const fieldName = parts.slice(2).join(':'); // In case fieldName has colons
-        fileRefs.push({ index, fileId, fieldName, mimeType });
+        if (!seenFileIds.has(fileId)) {
+          seenFileIds.add(fileId);
+          const fieldName = parts.slice(2).join(':');
+          fileRefs.push({ index: fileRefs.length, fileId, fieldName, mimeType });
+        }
       }
     }
   }
+
+  // New format: files array contains "{{inner:<fileId>}}"
+  // Find corresponding {{inner:<fileId>}} in content to get field context
+  files.forEach((fileEntry) => {
+    const newMatch = fileEntry.match(/^\{\{inner:([a-f0-9]+)\}\}$/);
+    if (newMatch) {
+      const fileId = newMatch[1];
+      if (!seenFileIds.has(fileId)) {
+        seenFileIds.add(fileId);
+        // Try to find field name from content JSON structure
+        // Look for patterns like "fieldName":"{{inner:<fileId>}}"
+        const fieldPattern = new RegExp(`"([^"]+)"\\s*:\\s*"\\{\\{inner:${fileId}\\}\\}"`, 'i');
+        const fieldMatch = content.match(fieldPattern);
+        const fieldName = fieldMatch ? fieldMatch[1] : 'file';
+        fileRefs.push({
+          index: fileRefs.length,
+          fileId,
+          fieldName,
+          mimeType: guessMimeType(fieldName),
+        });
+      }
+    }
+  });
 
   return fileRefs;
 }
