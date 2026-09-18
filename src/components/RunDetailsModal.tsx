@@ -301,7 +301,7 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
             <Title order={5} mb="md">
               Node Execution ({Object.keys(run.nodeStates).length} nodes)
             </Title>
-            <Accordion variant="separated">
+            <Accordion variant="separated" multiple>
               {Object.entries(run.nodeStates)
                 .sort(([, a], [, b]) => {
                   if (!a.startedAt && !b.startedAt) return 0;
