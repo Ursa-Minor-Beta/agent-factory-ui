@@ -32,10 +32,6 @@ export function NodeTypesPanel({
         />
       ) : (
         <>
-          <Text fw={600} mb="sm">
-            Available Nodes
-          </Text>
-
           {loading ? (
             <Center py="xl">
               <Loader size="sm" />
