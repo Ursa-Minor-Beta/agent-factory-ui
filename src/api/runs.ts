@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { Run, RunStatus } from '../types';
+import type { Run, RunSummary, RunStatus } from '../types';
 
 export interface CancelRunResponse {
   id: string;
@@ -17,19 +17,20 @@ export interface ListRunsParams {
   sortOrder?: 'asc' | 'desc';
   skip?: number;
   limit?: number;
+  includeChildren?: boolean;
 }
 
 export interface ListRunsResponse {
-  runs: Run[];
+  runs: RunSummary[];
   total: number;
 }
 
 export const runsApi = {
   listByAgent: (agentId: string, limit?: number) =>
-    api.get<Run[]>(`/api/agents/${agentId}/runs${limit ? `?limit=${limit}` : ''}`),
+    api.get<RunSummary[]>(`/api/agents/${agentId}/runs${limit ? `?limit=${limit}` : ''}`),
 
-  getById: (id: string) =>
-    api.get<Run>(`/api/runs/${id}`),
+  getById: (id: string, includeChildren?: boolean) =>
+    api.get<Run>(`/api/runs/${id}${includeChildren ? '?includeChildren=true' : ''}`),
 
   cancel: (id: string) =>
     api.post<CancelRunResponse>(`/api/runs/${id}/cancel`),
@@ -45,6 +46,7 @@ export const runsApi = {
     if (params?.sortOrder) searchParams.set('sortOrder', params.sortOrder);
     if (params?.skip !== undefined) searchParams.set('skip', String(params.skip));
     if (params?.limit !== undefined) searchParams.set('limit', String(params.limit));
+    if (params?.includeChildren) searchParams.set('includeChildren', 'true');
     const query = searchParams.toString();
     return api.get<ListRunsResponse>(`/api/executions${query ? `?${query}` : ''}`);
   },

@@ -163,6 +163,23 @@ export interface Run {
   error?: string | null;
   startedAt: string;
   completedAt?: string | null;
+  parentRunId?: string;
+  triggeredBy?: { triggerType: 'agent_node' | 'tool_call'; nodeId: string; toolName?: string };
+  childRuns?: Run[]; // Only when includeChildren=true
+}
+
+// Summary returned by list endpoints (without input/output/nodeStates)
+export interface RunSummary {
+  id: string;
+  agentId: string;
+  userId: string;
+  status: RunStatus;
+  error: string | null;
+  startedAt: string;
+  completedAt: string | null;
+  parentRunId?: string;
+  triggeredBy?: { triggerType: 'agent_node' | 'tool_call'; nodeId: string; toolName?: string };
+  childRunIds?: string[]; // Only when includeChildren=true
 }
 
 // Secret types
@@ -207,7 +224,7 @@ export interface AgentJsonModalProps {
 
 // Run Details Modal types
 export interface RunDetailsModalProps {
-  run: Run | null;
+  runId: string | null;
   opened: boolean;
   onClose: () => void;
 }

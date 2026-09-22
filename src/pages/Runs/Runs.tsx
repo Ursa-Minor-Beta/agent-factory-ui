@@ -32,7 +32,7 @@ import {
 } from '@tabler/icons-react';
 import { runsApi } from '../../api';
 import type { ListRunsParams } from '../../api/runs';
-import type { Run, RunStatus } from '../../types';
+import type { RunSummary, RunStatus } from '../../types';
 import { RunDetailsModal } from '../../components/RunDetailsModal';
 import { statusColors, formatDuration } from '../../types';
 
@@ -48,11 +48,11 @@ const statusIcons: Record<RunStatus, React.ReactNode> = {
 const PAGE_SIZE = 20;
 
 export function RunsPage() {
-  const [runs, setRuns] = useState<Run[]>([]);
+  const [runs, setRuns] = useState<RunSummary[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedRun, setSelectedRun] = useState<Run | null>(null);
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [detailsOpened, { open: openDetails, close: closeDetails }] = useDisclosure(false);
 
   // Filters
@@ -72,6 +72,7 @@ export function RunsPage() {
         sortOrder,
         skip: (page - 1) * PAGE_SIZE,
         limit: PAGE_SIZE,
+        includeChildren: true,
       };
       if (statusFilter) params.status = statusFilter as RunStatus;
       if (agentFilter.trim()) params.agentId = agentFilter.trim();
@@ -93,8 +94,8 @@ export function RunsPage() {
     loadRuns();
   }, [statusFilter, startedAfter, startedBefore, sortBy, sortOrder, page]);
 
-  const handleViewDetails = (run: Run) => {
-    setSelectedRun(run);
+  const handleViewDetails = (runId: string) => {
+    setSelectedRunId(runId);
     openDetails();
   };
 
@@ -210,61 +211,47 @@ export function RunsPage() {
                 <Table.Th>Agent ID</Table.Th>
                 <Table.Th>Started</Table.Th>
                 <Table.Th>Duration</Table.Th>
-                <Table.Th>Nodes</Table.Th>
+                <Table.Th>Child Runs</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {runs.map((run) => {
-                const nodeStates = Object.values(run.nodeStates);
-                const completedNodes = nodeStates.filter((n) => n.status === 'completed').length;
-                const failedNodes = nodeStates.filter((n) => n.status === 'failed').length;
-
-                return (
-                  <Table.Tr
-                    key={run.id}
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => handleViewDetails(run)}
-                  >
-                    <Table.Td>
-                      <Badge
-                        color={statusColors[run.status]}
-                        variant="light"
-                        leftSection={statusIcons[run.status]}
-                      >
-                        {run.status}
+              {runs.map((run) => (
+                <Table.Tr
+                  key={run.id}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => handleViewDetails(run.id)}
+                >
+                  <Table.Td>
+                    <Badge
+                      color={statusColors[run.status]}
+                      variant="light"
+                      leftSection={statusIcons[run.status]}
+                    >
+                      {run.status}
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text size="sm" ff="monospace">{run.agentId}</Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text size="sm" c="dimmed">
+                      {new Date(run.startedAt).toLocaleString()}
+                    </Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text size="sm" c="dimmed">
+                      {formatDuration(run.startedAt, run.completedAt)}
+                    </Text>
+                  </Table.Td>
+                  <Table.Td>
+                    {run.childRunIds && run.childRunIds.length > 0 && (
+                      <Badge size="sm" variant="light" color="cyan">
+                        {run.childRunIds.length}
                       </Badge>
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="sm" ff="monospace">{run.agentId}</Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="sm" c="dimmed">
-                        {new Date(run.startedAt).toLocaleString()}
-                      </Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="sm" c="dimmed">
-                        {formatDuration(run.startedAt, run.completedAt)}
-                      </Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <Group gap={4}>
-                        <Badge size="sm" color="green" variant="light">
-                          {completedNodes}
-                        </Badge>
-                        {failedNodes > 0 && (
-                          <Badge size="sm" color="red" variant="light">
-                            {failedNodes}
-                          </Badge>
-                        )}
-                        <Text size="xs" c="dimmed">
-                          / {nodeStates.length}
-                        </Text>
-                      </Group>
-                    </Table.Td>
-                  </Table.Tr>
-                );
-              })}
+                    )}
+                  </Table.Td>
+                </Table.Tr>
+              ))}
               {runs.length === 0 && (
                 <Table.Tr>
                   <Table.Td colSpan={5}>
@@ -290,7 +277,7 @@ export function RunsPage() {
       )}
 
       <RunDetailsModal
-        run={selectedRun}
+        runId={selectedRunId}
         opened={detailsOpened}
         onClose={closeDetails}
       />

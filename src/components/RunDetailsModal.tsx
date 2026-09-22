@@ -28,6 +28,7 @@ import {
   IconPlayerPlay,
   IconCopy,
   IconRefresh,
+  IconSubtask,
 } from '@tabler/icons-react';
 import { runsApi } from '../api';
 import type { Run, RunDetailsModalProps } from '../types';
@@ -109,13 +110,34 @@ function guessMimeType(fieldName: string): string {
   return 'application/octet-stream';
 }
 
-export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetailsModalProps) {
-  const [run, setRun] = useState<Run | null>(initialRun);
+export function RunDetailsModal({ runId, opened, onClose }: RunDetailsModalProps) {
+  const [run, setRun] = useState<Run | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
+  // Fetch run data when opened or runId changes
   useEffect(() => {
-    setRun(initialRun);
-  }, [initialRun]);
+    if (!opened || !runId) {
+      setRun(null);
+      setError(null);
+      return;
+    }
+
+    const fetchRun = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await runsApi.getById(runId, true);
+        setRun(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load run details');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRun();
+  }, [opened, runId]);
 
   // Resolve nodeRef references in output
   const resolvedOutput = useMemo(() => {
@@ -124,10 +146,10 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
   }, [run]);
 
   const handleRefresh = async () => {
-    if (!run) return;
+    if (!runId) return;
     try {
       setLoading(true);
-      const data = await runsApi.getById(run.id);
+      const data = await runsApi.getById(runId, true);
       setRun(data);
     } catch {
       // Keep existing data on error
@@ -136,8 +158,6 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
     }
   };
 
-  if (!run) return null;
-
   return (
     <Modal
       opened={opened}
@@ -145,30 +165,38 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
       title={
         <Group gap="sm">
           <Text fw={600}>Run Details</Text>
-          <Badge color={statusColors[run.status]} variant="light">
-            {run.status}
-          </Badge>
-          {(run.status === 'pending' || run.status === 'running' || run.status === 'cancelling') && (
-            <Tooltip label="Refresh">
-              <ActionIcon variant="subtle" size="sm" onClick={handleRefresh} loading={loading}>
-                <IconRefresh size={16} />
-              </ActionIcon>
-            </Tooltip>
+          {run && (
+            <>
+              <Badge color={statusColors[run.status]} variant="light">
+                {run.status}
+              </Badge>
+              {(run.status === 'pending' || run.status === 'running' || run.status === 'cancelling') && (
+                <Tooltip label="Refresh">
+                  <ActionIcon variant="subtle" size="sm" onClick={handleRefresh} loading={loading}>
+                    <IconRefresh size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              )}
+              <CopyButton value={JSON.stringify(run, null, 2)}>
+                {({ copied, copy }) => (
+                  <Tooltip label={copied ? 'Copied' : 'Copy entire run'}>
+                    <ActionIcon variant="subtle" size="sm" onClick={copy}>
+                      {copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
+                    </ActionIcon>
+                  </Tooltip>
+                )}
+              </CopyButton>
+            </>
           )}
-          <CopyButton value={JSON.stringify(run, null, 2)}>
-            {({ copied, copy }) => (
-              <Tooltip label={copied ? 'Copied' : 'Copy entire run'}>
-                <ActionIcon variant="subtle" size="sm" onClick={copy}>
-                  {copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
-                </ActionIcon>
-              </Tooltip>
-            )}
-          </CopyButton>
         </Group>
       }
       fullScreen
     >
-      {loading ? (
+      {error ? (
+        <Alert icon={<IconAlertCircle size={16} />} color="red" variant="light">
+          {error}
+        </Alert>
+      ) : loading || !run ? (
         <Center py="xl">
           <Loader />
         </Center>
@@ -417,6 +445,98 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
               ))}
             </Accordion>
           </Card>
+
+          {/* Child Runs Section */}
+          {run.childRuns && run.childRuns.length > 0 && (
+            <Card withBorder padding="md">
+              <Title order={5} mb="md">
+                <Group gap="xs">
+                  <IconSubtask size={18} />
+                  Child Runs ({run.childRuns.length})
+                </Group>
+              </Title>
+              <Accordion variant="separated" multiple>
+                {run.childRuns.map((childRun) => (
+                  <Accordion.Item key={childRun.id} value={childRun.id}>
+                    <Accordion.Control>
+                      <Group gap="sm">
+                        <Badge
+                          size="sm"
+                          color={statusColors[childRun.status]}
+                          variant="light"
+                          leftSection={
+                            childRun.status === 'completed' ? <IconCheck size={10} /> :
+                            childRun.status === 'failed' ? <IconX size={10} /> :
+                            childRun.status === 'running' ? <IconPlayerPlay size={10} /> :
+                            <IconClock size={10} />
+                          }
+                        >
+                          {childRun.status}
+                        </Badge>
+                        <Text size="sm" fw={500} ff="monospace">{childRun.agentId}</Text>
+                        {childRun.triggeredBy && (
+                          <Badge size="xs" variant="outline" color="gray">
+                            {childRun.triggeredBy.triggerType === 'agent_node' ? 'Agent Node' : 'Tool Call'}
+                            {childRun.triggeredBy.nodeId && `: ${childRun.triggeredBy.nodeId}`}
+                          </Badge>
+                        )}
+                        <Badge size="xs" variant="outline" color="gray">
+                          {formatDuration(childRun.startedAt, childRun.completedAt)}
+                        </Badge>
+                      </Group>
+                    </Accordion.Control>
+                    <Accordion.Panel>
+                      <Stack gap="sm">
+                        {childRun.error && (
+                          <Alert icon={<IconAlertCircle size={14} />} color="red" variant="light" p="xs">
+                            <Text size="xs" style={{ wordBreak: 'break-word' }}>{childRun.error}</Text>
+                          </Alert>
+                        )}
+                        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+                          <Paper p="xs" radius="sm" withBorder>
+                            <Group justify="space-between" mb={4}>
+                              <Text size="xs" c="dimmed" fw={500}>INPUT</Text>
+                              <CopyButton value={JSON.stringify(childRun.input, null, 2)}>
+                                {({ copied, copy }) => (
+                                  <Tooltip label={copied ? 'Copied' : 'Copy'}>
+                                    <ActionIcon variant="subtle" size="xs" onClick={copy}>
+                                      {copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
+                                    </ActionIcon>
+                                  </Tooltip>
+                                )}
+                              </CopyButton>
+                            </Group>
+                            <ScrollArea.Autosize mah={150}>
+                              <DataWithFileRefs data={childRun.input} />
+                            </ScrollArea.Autosize>
+                          </Paper>
+                          {childRun.output && (
+                            <Paper p="xs" radius="sm" withBorder>
+                              <Group justify="space-between" mb={4}>
+                                <Text size="xs" c="dimmed" fw={500}>OUTPUT</Text>
+                                <CopyButton value={JSON.stringify(childRun.output, null, 2)}>
+                                  {({ copied, copy }) => (
+                                    <Tooltip label={copied ? 'Copied' : 'Copy'}>
+                                      <ActionIcon variant="subtle" size="xs" onClick={copy}>
+                                        {copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
+                                      </ActionIcon>
+                                    </Tooltip>
+                                  )}
+                                </CopyButton>
+                              </Group>
+                              <ScrollArea.Autosize mah={150}>
+                                <DataWithFileRefs data={childRun.output} />
+                              </ScrollArea.Autosize>
+                            </Paper>
+                          )}
+                        </SimpleGrid>
+                      </Stack>
+                    </Accordion.Panel>
+                  </Accordion.Item>
+                ))}
+              </Accordion>
+            </Card>
+          )}
         </Stack>
       )}
     </Modal>

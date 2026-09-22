@@ -3,8 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Loader, Alert, Center, Modal, Text, Group, Button } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { IconAlertCircle } from '@tabler/icons-react';
-import { agentsApi, sessionsApi, runsApi, ApiError } from '../../api';
-import type { Agent, Session, Run } from '../../types';
+import { agentsApi, sessionsApi, ApiError } from '../../api';
+import type { Agent, Session } from '../../types';
 import { ChatHeader } from './ChatHeader';
 import { ChatInput } from './ChatInput';
 import { ChatMessages } from './ChatMessages';
@@ -422,7 +422,7 @@ export function ChatPage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
 
   // Run details modal
-  const [selectedRun, setSelectedRun] = useState<Run | null>(null);
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
 
   // Chat input height for dynamic spacing
   const [inputHeight, setInputHeight] = useState(100);
@@ -748,13 +748,8 @@ export function ChatPage() {
     }
   };
 
-  const handleViewRun = async (runId: string) => {
-    try {
-      const run = await runsApi.getById(runId);
-      setSelectedRun(run);
-    } catch (err) {
-      console.error('Failed to load run:', err);
-    }
+  const handleViewRun = (runId: string) => {
+    setSelectedRunId(runId);
   };
 
   if (loadingAgent) {
@@ -804,9 +799,9 @@ export function ChatPage() {
       />
 
       <RunDetailsModal
-        run={selectedRun}
-        opened={!!selectedRun}
-        onClose={() => setSelectedRun(null)}
+        runId={selectedRunId}
+        opened={!!selectedRunId}
+        onClose={() => setSelectedRunId(null)}
       />
 
       <ChatSidebar
