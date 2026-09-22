@@ -55,9 +55,9 @@ const navItems: NavItem[] = [
     path: '/settings',
     icon: <IconTool size={20} />,
     children: [
-      { label: 'System', path: '/settings/system', icon: <IconSettings size={18} />, adminOnly: true },
       { label: 'Users', path: '/settings/users', icon: <IconUsers size={18} />, adminOnly: true },
       { label: 'API Keys', path: '/settings/api-keys', icon: <IconKey size={18} /> },
+      { label: 'System', path: '/settings/system', icon: <IconSettings size={18} />, adminOnly: true },
     ],
   },
 ];
