@@ -11,6 +11,7 @@ import {
   Badge,
   Code,
   CopyButton,
+  Textarea,
 } from '@mantine/core';
 import { IconAlertCircle, IconBulb, IconCopy, IconCheck } from '@tabler/icons-react';
 import { JsonEditor } from '../JsonEditor';
@@ -51,24 +52,38 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
       opened={opened}
       onClose={handleClose}
       title={
-        <Group gap="sm">
-          <Text fw={600}>{isEditMode ? 'Edit Agent' : 'New Agent'}</Text>
-          <Tooltip label={tipsOpen ? 'Hide tips' : 'Show tips'}>
-            <ActionIcon
-              variant={tipsOpen ? 'filled' : 'subtle'}
-              color="cyan"
-              size="sm"
-              onClick={() => setTipsOpen((o) => !o)}
-            >
-              <IconBulb size={16} />
-            </ActionIcon>
-          </Tooltip>
+        <Group gap="sm" justify="space-between" style={{ width: '100%' }}>
+          <Group gap="sm">
+            <Text fw={600}>{isEditMode ? 'Edit Agent' : 'New Agent'}</Text>
+            <Tooltip label={tipsOpen ? 'Hide tips' : 'Show tips'}>
+              <ActionIcon
+                variant={tipsOpen ? 'filled' : 'subtle'}
+                color="cyan"
+                size="sm"
+                onClick={() => setTipsOpen((o) => !o)}
+              >
+                <IconBulb size={16} />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
+          <Group gap="sm">
+            <Button variant="subtle" onClick={handleClose} disabled={saving}>
+              Cancel
+            </Button>
+            <Button type="submit" form="agent-form" loading={saving} disabled={!nodesValid}>
+              {isEditMode ? 'Save' : 'Create Agent'}
+            </Button>
+          </Group>
         </Group>
       }
       fullScreen
       trapFocus={false}
+      withCloseButton={false}
+      styles={{
+        title: { flex: 1 },
+      }}
     >
-      <form onSubmit={handleSubmit(onSubmit)} style={{ height: '100%' }}>
+      <form id="agent-form" onSubmit={handleSubmit(onSubmit)} style={{ height: '100%' }}>
         <Box style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)' }}>
           {error && (
             <Alert
@@ -101,6 +116,8 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
                 marginRight: 8,
               }}
             >
+
+
               <Group gap="md" mb="md" align="flex-end">
                 <TextInput
                   label="Name"
@@ -109,12 +126,6 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
                   disabled={agent?.isSystem}
                   style={{ flex: 1 }}
                   {...register('name', { required: 'Name is required' })}
-                />
-                <TextInput
-                  label="Description"
-                  placeholder="Enter description (optional)"
-                  style={{ flex: 2 }}
-                  {...register('description')}
                 />
                 {isEditMode && agent && (
                   <Group gap="xs" pb={4}>
@@ -131,6 +142,15 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
                     </CopyButton>
                   </Group>
                 )}
+              </Group>
+
+              <Group gap="md" mb="md" align="flex-end">
+                <Textarea
+                  label="Description"
+                  placeholder="Enter description (optional)"
+                  style={{ flex: 2 }}
+                  {...register('description')}
+                />
               </Group>
 
               <Box style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -185,14 +205,6 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
             />
           </Box>
 
-          <Group justify="flex-end" mt="md">
-            <Button variant="subtle" onClick={handleClose} disabled={saving}>
-              Cancel
-            </Button>
-            <Button type="submit" loading={saving} disabled={!nodesValid}>
-              {isEditMode ? 'Save' : 'Create Agent'}
-            </Button>
-          </Group>
         </Box>
       </form>
     </Modal>
