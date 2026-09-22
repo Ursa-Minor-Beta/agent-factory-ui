@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   AppShell,
@@ -72,6 +72,25 @@ export function Layout() {
     defaultValue: true,
   });
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
+
+  // Update browser tab title based on current page
+  useEffect(() => {
+    const findLabel = (items: NavItem[], path: string): string | null => {
+      for (const item of items) {
+        if (item.children) {
+          const childLabel = findLabel(item.children, path);
+          if (childLabel) return childLabel;
+        }
+        if (path === item.path || path.startsWith(item.path + '/')) {
+          return item.label;
+        }
+      }
+      return null;
+    };
+
+    const pageLabel = findLabel(navItems, location.pathname);
+    document.title = pageLabel ? `Agent Factory | ${pageLabel}` : 'Agent Factory';
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     await logout();
