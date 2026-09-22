@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Paper, Text, Alert, Center, Loader } from '@mantine/core';
+import { Paper, Text, Alert, Center, Loader, Box } from '@mantine/core';
 import { IconAlertCircle } from '@tabler/icons-react';
 import type { NodeType } from '../../api';
 import { NodeTypeList } from './NodeTypeList';
@@ -9,7 +9,7 @@ interface NodeTypesPanelProps {
   nodeTypes: NodeType[];
   loading: boolean;
   error: string;
-  width: number;
+  width: number | string;
   onAddNode: (nodeType: NodeType) => void;
 }
 
@@ -23,17 +23,7 @@ export function NodeTypesPanel({
   const [viewingNodeType, setViewingNodeType] = useState<NodeType | null>(null);
 
   return (
-    <Paper
-      withBorder
-      p="md"
-      style={{
-        width,
-        flexShrink: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        minHeight: 0,
-      }}
-    >
+    <Box>
       {viewingNodeType ? (
         <NodeTypeDetail
           nodeType={viewingNodeType}
@@ -63,6 +53,6 @@ export function NodeTypesPanel({
           )}
         </>
       )}
-    </Paper>
+    </Box>
   );
 }

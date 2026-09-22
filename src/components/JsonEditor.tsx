@@ -14,35 +14,47 @@ export interface JsonEditorProps {
   readOnly?: boolean;
   height?: string | number;
   label?: string;
+  // External text control (for split view sync)
+  text?: string;
+  onTextChange?: (text: string) => void;
 }
 
-export function JsonEditor({ value, onChange, readOnly = false, height = '100%', label }: JsonEditorProps) {
+export function JsonEditor({ value, onChange, readOnly = false, height = '100%', label, text, onTextChange }: JsonEditorProps) {
   const { colorScheme } = useMantineColorScheme();
+  const isControlled = text !== undefined && onTextChange !== undefined;
+
   // Keep internal string state so edits persist even when JSON is invalid
   const [internalValue, setInternalValue] = useState(() => JSON.stringify(value, null, 2));
   const lastExternalValue = useRef<string>(JSON.stringify(value, null, 2));
 
-  // Sync from prop only when external value actually changes
+  // Sync from prop only when external value actually changes (uncontrolled mode)
   useEffect(() => {
+    if (isControlled) return; // Skip if using external text control
     const newExternalValue = JSON.stringify(value, null, 2);
     if (newExternalValue !== lastExternalValue.current) {
       lastExternalValue.current = newExternalValue;
       setInternalValue(newExternalValue);
     }
-  }, [value]);
+  }, [value, isControlled]);
 
   const handleChange = useCallback((newValue: string) => {
-    setInternalValue(newValue);
-
-    if (!onChange) return;
-
-    try {
-      const parsed = JSON.parse(newValue);
-      onChange(parsed, true);
-    } catch {
-      onChange(newValue, false);
+    if (isControlled) {
+      // Controlled mode: use external text state
+      onTextChange?.(newValue);
+    } else {
+      // Uncontrolled mode: use internal state
+      setInternalValue(newValue);
+      if (!onChange) return;
+      try {
+        const parsed = JSON.parse(newValue);
+        onChange(parsed, true);
+      } catch {
+        onChange(newValue, false);
+      }
     }
-  }, [onChange]);
+  }, [isControlled, onTextChange, onChange]);
+
+  const displayValue = isControlled ? text : internalValue;
 
   return (
     <Box style={{ display: 'flex', flexDirection: 'column', height: typeof height === 'number' ? `${height}px` : height }}>
@@ -59,7 +71,7 @@ export function JsonEditor({ value, onChange, readOnly = false, height = '100%',
         <AceEditor
           mode="json"
           theme={colorScheme === 'dark' ? 'one_dark' : 'chrome'}
-          value={internalValue}
+          value={displayValue}
           onChange={handleChange}
           readOnly={readOnly}
           width="100%"

@@ -10,8 +10,12 @@ import {
   type AgentCreateForm,
 } from './agentCreate.types';
 
-const RIGHT_PANEL_MIN_WIDTH = 180;
+const RIGHT_PANEL_MIN_WIDTH = 200;
 const RIGHT_PANEL_MAX_WIDTH_RATIO = 0.6; // 60% of container width
+
+// Split editor constants
+const SPLIT_MIN_RATIO = 0.2; // 20% minimum for each pane
+const SPLIT_MAX_RATIO = 0.8; // 80% maximum for each pane
 
 interface UseAgentCreateOptions {
   opened: boolean;
@@ -42,6 +46,15 @@ export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreat
   const resizingRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Split editor state
+  const [splitEnabled, setSplitEnabled] = useState(false);
+  const [splitRatio, setSplitRatio] = useState(0.5); // 50% each by default
+  const splitResizingRef = useRef(false);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
+
+  // Shared editor text state (for split view sync)
+  const [nodesText, setNodesText] = useState(() => JSON.stringify(nodes, null, 2));
+
   const {
     register,
     handleSubmit,
@@ -68,10 +81,13 @@ export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreat
     if (opened) {
       if (agent) {
         reset({ name: agent.name, description: agent.description || '' });
-        setNodes(agent.nodes || DEFAULT_NODES);
+        const agentNodes = agent.nodes || DEFAULT_NODES;
+        setNodes(agentNodes);
+        setNodesText(JSON.stringify(agentNodes, null, 2));
       } else {
         reset({ name: '', description: '' });
         setNodes(DEFAULT_NODES);
+        setNodesText(JSON.stringify(DEFAULT_NODES, null, 2));
       }
       setNodesValid(true);
       setError('');
@@ -82,6 +98,7 @@ export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreat
   const handleClose = useCallback(() => {
     reset({ name: '', description: '' });
     setNodes(DEFAULT_NODES);
+    setNodesText(JSON.stringify(DEFAULT_NODES, null, 2));
     setNodesValid(true);
     setError('');
     onClose();
@@ -91,6 +108,18 @@ export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreat
     setNodesValid(isValid);
     if (isValid) {
       setNodes(value as AgentNode[]);
+    }
+  }, []);
+
+  // Handler for shared text state (used when split view is enabled)
+  const handleNodesTextChange = useCallback((text: string) => {
+    setNodesText(text);
+    try {
+      const parsed = JSON.parse(text);
+      setNodes(parsed as AgentNode[]);
+      setNodesValid(true);
+    } catch {
+      setNodesValid(false);
     }
   }, []);
 
@@ -199,6 +228,32 @@ export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreat
     document.addEventListener('mouseup', handleMouseUp);
   }, []);
 
+  // Split editor resize handler
+  const handleSplitResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    splitResizingRef.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!splitResizingRef.current || !editorContainerRef.current) return;
+      const containerRect = editorContainerRef.current.getBoundingClientRect();
+      const newRatio = (e.clientX - containerRect.left) / containerRect.width;
+      setSplitRatio(Math.max(SPLIT_MIN_RATIO, Math.min(SPLIT_MAX_RATIO, newRatio)));
+    };
+
+    const handleMouseUp = () => {
+      splitResizingRef.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, []);
+
   return {
     // Mode
     isEditMode,
@@ -218,6 +273,8 @@ export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreat
     nodesValid,
     handleNodesChange,
     handleAddNode,
+    nodesText,
+    handleNodesTextChange,
 
     // Node types
     nodeTypes,
@@ -234,6 +291,13 @@ export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreat
     rightPanelWidth,
     containerRef,
     handleResizeStart,
+
+    // Split editor
+    splitEnabled,
+    setSplitEnabled,
+    splitRatio,
+    editorContainerRef,
+    handleSplitResizeStart,
 
     // Actions
     handleClose,

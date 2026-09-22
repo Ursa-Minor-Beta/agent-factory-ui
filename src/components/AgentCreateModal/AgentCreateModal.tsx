@@ -12,8 +12,10 @@ import {
   Code,
   CopyButton,
   Textarea,
+  Tabs,
+  Stack,
 } from '@mantine/core';
-import { IconAlertCircle, IconBulb, IconCopy, IconCheck } from '@tabler/icons-react';
+import { IconAlertCircle, IconBulb, IconCopy, IconCheck, IconLayoutColumns } from '@tabler/icons-react';
 import { JsonEditor } from '../JsonEditor';
 import { TipsPanel } from './TipsPanel';
 import { NodeTypesPanel } from './NodeTypesPanel';
@@ -34,6 +36,8 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
     nodesValid,
     handleNodesChange,
     handleAddNode,
+    nodesText,
+    handleNodesTextChange,
     nodeTypes,
     nodeTypesLoading,
     nodeTypesError,
@@ -44,6 +48,11 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
     rightPanelWidth,
     containerRef,
     handleResizeStart,
+    splitEnabled,
+    setSplitEnabled,
+    splitRatio,
+    editorContainerRef,
+    handleSplitResizeStart,
     handleClose,
   } = useAgentCreate({ opened, onClose, onSave, agent });
 
@@ -106,7 +115,7 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
           )}
 
           <Box ref={containerRef} style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-            {/* Left panel - Form fields and JSON editor */}
+            {/* Left panel - JSON editor */}
             <Box
               style={{
                 flex: 1,
@@ -116,60 +125,71 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
                 marginRight: 8,
               }}
             >
-
-
-              <Group gap="md" mb="md" align="flex-end">
-                <TextInput
-                  label="Name"
-                  placeholder="Enter agent name"
-                  error={errors.name?.message}
-                  disabled={agent?.isSystem}
-                  style={{ flex: 1 }}
-                  {...register('name', { required: 'Name is required' })}
-                />
-                {isEditMode && agent && (
-                  <Group gap="xs" pb={4}>
-                    <Text size="sm" c="dimmed">ID:</Text>
-                    <Code>{agent.id}</Code>
-                    <CopyButton value={agent.id}>
-                      {({ copied, copy }) => (
-                        <Tooltip label={copied ? 'Copied' : 'Copy'}>
-                          <ActionIcon variant="subtle" size="sm" onClick={copy}>
-                            {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
-                          </ActionIcon>
-                        </Tooltip>
-                      )}
-                    </CopyButton>
-                  </Group>
+              <Group justify="space-between" mb="xs">
+                <Group gap="xs">
+                  <Text>Nodes</Text>
+                  <Badge size="sm" variant="light">
+                    {nodes.length}
+                  </Badge>
+                  <Tooltip label={splitEnabled ? 'Disable split view' : 'Enable split view'}>
+                    <ActionIcon
+                      variant={splitEnabled ? 'filled' : 'subtle'}
+                      color="cyan"
+                      size="sm"
+                      onClick={() => setSplitEnabled((v) => !v)}
+                    >
+                      <IconLayoutColumns size={16} />
+                    </ActionIcon>
+                  </Tooltip>
+                </Group>
+                {!nodesValid && (
+                  <Text size="xs" c="red">
+                    Invalid JSON
+                  </Text>
                 )}
               </Group>
-
-              <Group gap="md" mb="md" align="flex-end">
-                <Textarea
-                  label="Description"
-                  placeholder="Enter description (optional)"
-                  style={{ flex: 2 }}
-                  {...register('description')}
-                />
-              </Group>
-
-              <Box style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                <Group justify="space-between" mb="xs">
-                  <Group gap="xs">
-                    <Text fw={600}>Nodes</Text>
-                    <Badge size="sm" variant="light">
-                      {nodes.length}
-                    </Badge>
-                  </Group>
-                  {!nodesValid && (
-                    <Text size="xs" c="red">
-                      Invalid JSON
-                    </Text>
-                  )}
-                </Group>
-                <Box style={{ flex: 1, minHeight: 0 }} onKeyDown={(e) => e.stopPropagation()}>
-                  <JsonEditor value={nodes} onChange={handleNodesChange} />
-                </Box>
+              <Box
+                ref={editorContainerRef}
+                style={{ flex: 1, minHeight: 0, display: 'flex' }}
+                onKeyDown={(e) => e.stopPropagation()}
+              >
+                {splitEnabled ? (
+                  <>
+                    {/* Left editor pane */}
+                    <Box style={{ width: `${splitRatio * 100}%`, minWidth: 0 }}>
+                      <JsonEditor value={nodes} text={nodesText} onTextChange={handleNodesTextChange} />
+                    </Box>
+                    {/* Split resize divider */}
+                    <Box
+                      onMouseDown={handleSplitResizeStart}
+                      style={{
+                        width: 8,
+                        cursor: 'col-resize',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Box
+                        style={{
+                          width: 4,
+                          height: 40,
+                          borderRadius: 2,
+                          backgroundColor: 'var(--mantine-color-default-border)',
+                        }}
+                      />
+                    </Box>
+                    {/* Right editor pane */}
+                    <Box style={{ flex: 1, minWidth: 0 }}>
+                      <JsonEditor value={nodes} text={nodesText} onTextChange={handleNodesTextChange} />
+                    </Box>
+                  </>
+                ) : (
+                  <Box style={{ flex: 1, minWidth: 0 }}>
+                    <JsonEditor value={nodes} onChange={handleNodesChange} />
+                  </Box>
+                )}
               </Box>
             </Box>
 
@@ -195,14 +215,68 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
               />
             </Box>
 
-            {/* Right panel - Node types */}
-            <NodeTypesPanel
-              nodeTypes={nodeTypes}
-              loading={nodeTypesLoading}
-              error={nodeTypesError}
-              width={rightPanelWidth}
-              onAddNode={handleAddNode}
-            />
+            {/* Right panel - Tabs */}
+            <Box
+              style={{
+                width: rightPanelWidth,
+                flexShrink: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                minHeight: 0,
+                paddingLeft: 8
+              }}
+            >
+              <Tabs defaultValue="info" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <Tabs.List>
+                  <Tabs.Tab value="info">Info</Tabs.Tab>
+                  <Tabs.Tab value="nodes">Available Nodes</Tabs.Tab>
+                </Tabs.List>
+
+                <Tabs.Panel value="info" style={{ flex: 1, overflow: 'auto', paddingTop: 'var(--mantine-spacing-md)' }}>
+                  <Stack gap="md">
+                    <TextInput
+                      label="Name"
+                      placeholder="Enter agent name"
+                      error={errors.name?.message}
+                      disabled={agent?.isSystem}
+                      {...register('name', { required: 'Name is required' })}
+                    />
+                    {isEditMode && agent && (
+                      <Group gap="xs">
+                        <Code>ID: {agent.id}</Code>
+                        <CopyButton value={agent.id}>
+                          {({ copied, copy }) => (
+                            <Tooltip label={copied ? 'Copied' : 'Copy'}>
+                              <ActionIcon variant="subtle" size="sm" onClick={copy}>
+                                {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
+                              </ActionIcon>
+                            </Tooltip>
+                          )}
+                        </CopyButton>
+                      </Group>
+                    )}
+                    <Textarea
+                      label="Description"
+                      placeholder="Enter description (optional)"
+                      autosize
+                      minRows={3}
+                      maxRows={8}
+                      {...register('description')}
+                    />
+                  </Stack>
+                </Tabs.Panel>
+
+                <Tabs.Panel value="nodes" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', paddingTop: 8 }}>
+                  <NodeTypesPanel
+                    nodeTypes={nodeTypes}
+                    loading={nodeTypesLoading}
+                    error={nodeTypesError}
+                    width="100%"
+                    onAddNode={handleAddNode}
+                  />
+                </Tabs.Panel>
+              </Tabs>
+            </Box>
           </Box>
 
         </Box>
