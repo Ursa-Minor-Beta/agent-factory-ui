@@ -75,7 +75,7 @@ function DataWithFileRefs({ data }: { data: unknown }) {
 
   return (
     <>
-      <Code block style={{ backgroundColor: 'transparent' }}>
+      <Code block style={{ backgroundColor: 'transparent', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
         {JSON.stringify(cleanedData, null, 2)}
       </Code>
       {fileRefs.length > 0 && (
@@ -244,7 +244,7 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
           )}
 
           {/* Input / Output Section */}
-          <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+          <Stack gap="md">
             <Card withBorder padding="md">
               <Group justify="space-between" mb="sm">
                 <Title order={5}>Input</Title>
@@ -260,7 +260,7 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
               </Group>
               <Paper p="xs" radius="sm" style={{ backgroundColor: 'var(--mantine-color-default)' }}>
                 <ScrollArea.Autosize mah={200}>
-                  <Code block style={{ backgroundColor: 'transparent' }}>
+                  <Code block style={{ backgroundColor: 'transparent', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                     {JSON.stringify(run.input, null, 2)}
                   </Code>
                 </ScrollArea.Autosize>
@@ -294,7 +294,7 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
                 </ScrollArea.Autosize>
               </Paper>
             </Card>
-          </SimpleGrid>
+          </Stack>
 
           {/* Node States Section */}
           <Card withBorder padding="md">
@@ -352,7 +352,7 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
                           </Group>
                         </Alert>
                       )}
-                      <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+                      <Stack gap="sm">
                         {state.input !== undefined && (
                           <Paper p="xs" radius="sm" withBorder>
                             <Group justify="space-between" mb={4}>
@@ -391,11 +391,11 @@ export function RunDetailsModal({ run: initialRun, opened, onClose }: RunDetails
                             </ScrollArea.Autosize>
                           </Paper>
                         )}
-                      </SimpleGrid>
+                      </Stack>
                       {state.state !== undefined && (
                         <Paper p="xs" radius="sm" withBorder mt="sm">
                           <Group justify="space-between" mb={4}>
-                            <Text size="xs" c="dimmed" fw={500}>STATE</Text>
+                            <Text size="xs" c="dimmed" fw={500}>PERSISTED FIELDS</Text>
                             <CopyButton value={JSON.stringify(state.state, null, 2)}>
                               {({ copied, copy }) => (
                                 <Tooltip label={copied ? 'Copied' : 'Copy'}>
