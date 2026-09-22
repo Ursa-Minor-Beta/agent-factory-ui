@@ -10,13 +10,13 @@ const LoginPage = lazy(() => import('./pages/Login').then(m => ({ default: m.Log
 const AgentsPage = lazy(() => import('./pages/Agents').then(m => ({ default: m.AgentsPage })));
 const ChatPage = lazy(() => import('./pages/Chat/Chat').then(m => ({ default: m.ChatPage })));
 const ProvidersPage = lazy(() => import('./pages/Providers').then(m => ({ default: m.ProvidersPage })));
-const ApiKeysPage = lazy(() => import('./pages/ApiKeys').then(m => ({ default: m.ApiKeysPage })));
 const SecretsPage = lazy(() => import('./pages/Secrets').then(m => ({ default: m.SecretsPage })));
 const FilesPage = lazy(() => import('./pages/Files').then(m => ({ default: m.FilesPage })));
 const RunsPage = lazy(() => import('./pages/Runs/index').then(m => ({ default: m.RunsPage })));
 const SessionsPage = lazy(() => import('./pages/Sessions/index').then(m => ({ default: m.SessionsPage })));
-const UsersPage = lazy(() => import('./pages/Users').then(m => ({ default: m.UsersPage })));
-const SettingsPage = lazy(() => import('./pages/Settings').then(m => ({ default: m.SettingsPage })));
+const SystemSettings = lazy(() => import('./pages/Settings').then(m => ({ default: m.SystemSettings })));
+const UsersSettings = lazy(() => import('./pages/Settings').then(m => ({ default: m.UsersSettings })));
+const ApiKeysSettings = lazy(() => import('./pages/Settings').then(m => ({ default: m.ApiKeysSettings })));
 
 const PageLoader = () => (
   <Center style={{ height: '100%', minHeight: 400 }}>
@@ -64,10 +64,6 @@ export const router = createBrowserRouter([
         element: <ProvidersPage />,
       },
       {
-        path: 'api-keys',
-        element: <ApiKeysPage />,
-      },
-      {
         path: 'secrets',
         element: <SecretsPage />,
       },
@@ -84,20 +80,41 @@ export const router = createBrowserRouter([
         element: <SessionsPage />,
       },
       {
-        path: 'users',
-        element: (
-          <ProtectedRoute adminOnly>
-            <UsersPage />
-          </ProtectedRoute>
-        ),
-      },
-      {
         path: 'settings',
-        element: (
-          <ProtectedRoute adminOnly>
-            <SettingsPage />
-          </ProtectedRoute>
-        ),
+        children: [
+          {
+            index: true,
+            element: <Navigate to="/settings/api-keys" replace />,
+          },
+          {
+            path: 'system',
+            element: (
+              <ProtectedRoute adminOnly>
+                <Suspense fallback={<PageLoader />}>
+                  <SystemSettings />
+                </Suspense>
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'users',
+            element: (
+              <ProtectedRoute adminOnly>
+                <Suspense fallback={<PageLoader />}>
+                  <UsersSettings />
+                </Suspense>
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: 'api-keys',
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <ApiKeysSettings />
+              </Suspense>
+            ),
+          },
+        ],
       },
     ],
   },

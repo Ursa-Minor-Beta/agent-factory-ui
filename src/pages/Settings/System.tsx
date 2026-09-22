@@ -11,6 +11,7 @@ import {
   Badge,
   Loader,
   Modal,
+  Anchor,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
@@ -19,10 +20,12 @@ import {
   IconRefresh,
   IconAlertCircle,
   IconCheck,
+  IconExternalLink,
 } from '@tabler/icons-react';
-import { systemApi, type ApiInfo, type HealthCheck, type ReseedResult } from '../api';
+import { systemApi, type ApiInfo, type HealthCheck, type ReseedResult } from '../../api';
+import { config } from '../../config';
 
-export function SettingsPage() {
+export function SystemSettings() {
   const [apiInfo, setApiInfo] = useState<ApiInfo | null>(null);
   const [healthCheck, setHealthCheck] = useState<HealthCheck | null>(null);
   const [reseedResult, setReseedResult] = useState<ReseedResult | null>(null);
@@ -79,6 +82,7 @@ export function SettingsPage() {
 
   return (
     <Box>
+      <Text fw={500} size="lg" mb="xs">System</Text>
       <Text c="dimmed" size="sm" mb="md">
         System settings and diagnostics
       </Text>
@@ -121,6 +125,16 @@ export function SettingsPage() {
               <Group gap="xs">
                 <Text size="sm" c="dimmed">Version:</Text>
                 <Code>{apiInfo.version}</Code>
+              </Group>
+              <Group gap="xs">
+                <Text size="sm" c="dimmed">Swagger:</Text>
+                <Anchor
+                  href={`${config.apiBaseUrl}/docs`}
+                  target="_blank"
+                  size="sm"
+                >
+                  API Documentation <IconExternalLink size={14} style={{ verticalAlign: 'middle' }} />
+                </Anchor>
               </Group>
             </Stack>
           )}

@@ -25,8 +25,8 @@ import {
   IconSearch,
   IconKey,
 } from '@tabler/icons-react';
-import { usersApi } from '../api';
-import type { User } from '../types';
+import { usersApi } from '../../api';
+import type { User } from '../../types';
 
 type UserRole = 'admin' | 'user';
 
@@ -41,7 +41,7 @@ interface PasswordForm {
   password: string;
 }
 
-export function UsersPage() {
+export function UsersSettings() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -148,8 +148,9 @@ export function UsersPage() {
 
   return (
     <Box>
+      <Text fw={500} size="lg" mb="xs">Users</Text>
       <Text c="dimmed" size="sm" mb="md">
-        Manage user accounts and permissions for the Agent Factory platform
+        Manage user accounts and permissions
       </Text>
       <Group mb="md" gap="sm">
         <TextInput

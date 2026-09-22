@@ -40,6 +40,7 @@ interface NavItem {
   path: string;
   icon: React.ReactNode;
   adminOnly?: boolean;
+  children?: NavItem[];
 }
 
 const navItems: NavItem[] = [
@@ -49,9 +50,16 @@ const navItems: NavItem[] = [
   { label: 'Sessions', path: '/sessions', icon: <IconMessages size={20} /> },
   { label: 'Runs', path: '/runs', icon: <IconHistory size={20} /> },
   { label: 'Files', path: '/files', icon: <IconFiles size={20} /> },
-  { label: 'Users', path: '/users', icon: <IconUsers size={20} />, adminOnly: true },
-  { label: 'API Keys', path: '/api-keys', icon: <IconKey size={20} /> },
-  { label: 'Settings', path: '/settings', icon: <IconTool size={20} />, adminOnly: true },
+  {
+    label: 'Settings',
+    path: '/settings',
+    icon: <IconTool size={20} />,
+    children: [
+      { label: 'System', path: '/settings/system', icon: <IconSettings size={18} />, adminOnly: true },
+      { label: 'Users', path: '/settings/users', icon: <IconUsers size={18} />, adminOnly: true },
+      { label: 'API Keys', path: '/settings/api-keys', icon: <IconKey size={18} /> },
+    ],
+  },
 ];
 
 export function Layout() {
@@ -70,9 +78,21 @@ export function Layout() {
     navigate('/login');
   };
 
-  const filteredNavItems = navItems.filter(
-    (item) => !item.adminOnly || user?.role === 'admin'
-  );
+  const filterNavItems = (items: NavItem[]): NavItem[] => {
+    return items
+      .map((item) => {
+        if (item.children) {
+          const filteredChildren = filterNavItems(item.children);
+          if (filteredChildren.length === 0) return null;
+          return { ...item, children: filteredChildren };
+        }
+        if (item.adminOnly && user?.role !== 'admin') return null;
+        return item;
+      })
+      .filter((item): item is NavItem => item !== null);
+  };
+
+  const filteredNavItems = filterNavItems(navItems);
 
   const navbarWidth = collapsed ? 64 : 240;
 
@@ -121,20 +141,13 @@ export function Layout() {
         <Divider mb="xs" />
 
         <AppShell.Section grow>
-          {filteredNavItems.map((item) => (
-            <Tooltip
-              key={item.path}
-              label={item.label}
-              position="right"
-              disabled={!collapsed}
-            >
+          {filteredNavItems.map((item) =>
+            item.children ? (
               <NavLink
-                component={Link}
-                to={item.path}
-                active={location.pathname === item.path}
+                key={item.path}
                 label={collapsed ? '' : item.label}
                 leftSection={item.icon}
-                onClick={closeMobile}
+                defaultOpened={location.pathname.startsWith(item.path)}
                 style={{
                   borderRadius: 'var(--mantine-radius-md)',
                   marginBottom: 4,
@@ -150,9 +163,57 @@ export function Layout() {
                     marginRight: collapsed ? 0 : undefined,
                   },
                 }}
-              />
-            </Tooltip>
-          ))}
+              >
+                {!collapsed &&
+                  item.children.map((child) => (
+                    <NavLink
+                      key={child.path}
+                      component={Link}
+                      to={child.path}
+                      active={location.pathname === child.path}
+                      label={child.label}
+                      leftSection={child.icon}
+                      onClick={closeMobile}
+                      style={{
+                        borderRadius: 'var(--mantine-radius-md)',
+                        marginBottom: 2,
+                      }}
+                    />
+                  ))}
+              </NavLink>
+            ) : (
+              <Tooltip
+                key={item.path}
+                label={item.label}
+                position="right"
+                disabled={!collapsed}
+              >
+                <NavLink
+                  component={Link}
+                  to={item.path}
+                  active={location.pathname === item.path}
+                  label={collapsed ? '' : item.label}
+                  leftSection={item.icon}
+                  onClick={closeMobile}
+                  style={{
+                    borderRadius: 'var(--mantine-radius-md)',
+                    marginBottom: 4,
+                  }}
+                  styles={{
+                    root: {
+                      justifyContent: collapsed ? 'center' : 'flex-start',
+                    },
+                    body: {
+                      display: collapsed ? 'none' : undefined,
+                    },
+                    section: {
+                      marginRight: collapsed ? 0 : undefined,
+                    },
+                  }}
+                />
+              </Tooltip>
+            )
+          )}
         </AppShell.Section>
 
         <Divider my="xs" />

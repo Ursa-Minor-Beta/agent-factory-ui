@@ -30,8 +30,8 @@ import {
   IconAlertCircle,
   IconAlertTriangle,
 } from '@tabler/icons-react';
-import { authApi } from '../api';
-import type { ApiKey } from '../types';
+import { authApi } from '../../api';
+import type { ApiKey } from '../../types';
 
 const PERMISSIONS = [
   { value: 'agents:read', label: 'Read Agents' },
@@ -44,7 +44,7 @@ interface ApiKeyForm {
   name: string;
 }
 
-export function ApiKeysPage() {
+export function ApiKeysSettings() {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -146,8 +146,9 @@ export function ApiKeysPage() {
 
   return (
     <Box>
+      <Text fw={500} size="lg" mb="xs">API Keys</Text>
       <Text c="dimmed" size="sm" mb="md">
-        Create API keys for programmatic access to the Agent Factory backend
+        Create API keys for programmatic access
       </Text>
       <Group mb="md" gap="sm">
         <TextInput
