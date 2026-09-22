@@ -147,6 +147,19 @@ export function AgentsPage() {
     closeCreateModal();
   };
 
+  const handleClone = async (agent: Agent) => {
+    try {
+      await agentsApi.create({
+        name: `${agent.name} (clone)`,
+        description: agent.description,
+        nodes: agent.nodes,
+      });
+      loadAgents();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to clone agent');
+    }
+  };
+
   const clearFilters = () => {
     setSearch('');
     setSearchDebounced('');
@@ -254,6 +267,7 @@ export function AgentsPage() {
                 isAdmin={isAdmin}
                 onEdit={handleOpenEditModal}
                 onDelete={setAgentToDelete}
+                onClone={handleClone}
               />
             ))}
           </SimpleGrid>

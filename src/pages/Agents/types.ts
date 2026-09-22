@@ -8,6 +8,7 @@ export interface AgentCardProps {
   isAdmin: boolean;
   onEdit: (agent: Agent) => void;
   onDelete: (agent: Agent) => void;
+  onClone: (agent: Agent) => void;
 }
 
 export interface AgentFiltersProps {

@@ -5,10 +5,11 @@ import {
   IconEdit,
   IconMessageCircle,
   IconChevronRight,
+  IconCopy,
 } from '@tabler/icons-react';
 import type { AgentCardProps } from './types';
 
-export function AgentCard({ agent, isAdmin, onEdit, onDelete }: AgentCardProps) {
+export function AgentCard({ agent, isAdmin, onEdit, onDelete, onClone }: AgentCardProps) {
   return (
     <Card
       withBorder
@@ -71,6 +72,13 @@ export function AgentCard({ agent, isAdmin, onEdit, onDelete }: AgentCardProps) 
             onClick={() => onEdit(agent)}
           >
             <IconEdit size={18} />
+          </ActionIcon>
+          <ActionIcon
+            variant="subtle"
+            onClick={() => onClone(agent)}
+            title="Clone agent"
+          >
+            <IconCopy size={18} />
           </ActionIcon>
           {!agent.isSystem && (
             <ActionIcon
