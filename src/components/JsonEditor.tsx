@@ -67,6 +67,7 @@ export function JsonEditor({ value, onChange, readOnly = false, height = '100%',
           showPrintMargin={false}
           showGutter={true}
           highlightActiveLine={true}
+          wrapEnabled={true}
           setOptions={{
             useWorker: false,
             showLineNumbers: true,
@@ -74,6 +75,7 @@ export function JsonEditor({ value, onChange, readOnly = false, height = '100%',
             enableBasicAutocompletion: false,
             enableLiveAutocompletion: false,
             foldStyle: 'markbegin',
+            wrap: true,
           }}
           editorProps={{ $blockScrolling: true }}
         />
