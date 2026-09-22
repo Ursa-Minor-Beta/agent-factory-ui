@@ -10,6 +10,9 @@ import {
   type AgentCreateForm,
 } from './agentCreate.types';
 
+const RIGHT_PANEL_MIN_WIDTH = 180;
+const RIGHT_PANEL_MAX_WIDTH_RATIO = 0.6; // 60% of container width
+
 interface UseAgentCreateOptions {
   opened: boolean;
   onClose: () => void;
@@ -35,7 +38,7 @@ export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreat
   const [nodeTypesError, setNodeTypesError] = useState('');
 
   // Resizable panel
-  const [rightPanelWidth, setRightPanelWidth] = useState(280);
+  const [rightPanelWidth, setRightPanelWidth] = useState(RIGHT_PANEL_MIN_WIDTH);
   const resizingRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -178,7 +181,10 @@ export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreat
       if (!resizingRef.current || !containerRef.current) return;
       const containerRect = containerRef.current.getBoundingClientRect();
       const newWidth = containerRect.right - e.clientX;
-      setRightPanelWidth(Math.max(180, Math.min(500, newWidth)));
+      const maxWidth = containerRect.width * RIGHT_PANEL_MAX_WIDTH_RATIO;
+      setRightPanelWidth(
+        Math.max(RIGHT_PANEL_MIN_WIDTH, Math.min(maxWidth, newWidth))
+      );
     };
 
     const handleMouseUp = () => {
