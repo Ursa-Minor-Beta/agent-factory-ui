@@ -76,7 +76,7 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
             </Tooltip>
           </Group>
           <Group gap="sm">
-            <Button variant="subtle" onClick={handleClose} disabled={saving}>
+            <Button variant="outline" onClick={handleClose} disabled={saving}>
               Cancel
             </Button>
             <Button type="submit" form="agent-form" loading={saving} disabled={!nodesValid}>
