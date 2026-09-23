@@ -23,7 +23,7 @@ export function NodeTypesPanel({
   const [viewingNodeType, setViewingNodeType] = useState<NodeType | null>(null);
 
   return (
-    <Box>
+    <Box style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
       {viewingNodeType ? (
         <NodeTypeDetail
           nodeType={viewingNodeType}

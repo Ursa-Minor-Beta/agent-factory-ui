@@ -266,7 +266,7 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
                   </Stack>
                 </Tabs.Panel>
 
-                <Tabs.Panel value="nodes" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', paddingTop: 8 }}>
+                <Tabs.Panel value="nodes" style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', paddingTop: 8 }}>
                   <NodeTypesPanel
                     nodeTypes={nodeTypes}
                     loading={nodeTypesLoading}

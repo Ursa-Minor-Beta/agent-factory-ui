@@ -10,7 +10,7 @@ import {
   type AgentCreateForm,
 } from './agentCreate.types';
 
-const RIGHT_PANEL_MIN_WIDTH = 200;
+const RIGHT_PANEL_MIN_WIDTH = 220;
 const RIGHT_PANEL_MAX_WIDTH_RATIO = 0.6; // 60% of container width
 
 // Split editor constants
