@@ -241,6 +241,14 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
                       disabled={agent?.isSystem}
                       {...register('name', { required: 'Name is required' })}
                     />
+                    <Textarea
+                      label="Description"
+                      placeholder="Enter description (optional)"
+                      autosize
+                      minRows={3}
+                      maxRows={8}
+                      {...register('description')}
+                    />
                     {isEditMode && agent && (
                       <Group gap="xs">
                         <Code>ID: {agent.id}</Code>
@@ -255,14 +263,6 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
                         </CopyButton>
                       </Group>
                     )}
-                    <Textarea
-                      label="Description"
-                      placeholder="Enter description (optional)"
-                      autosize
-                      minRows={3}
-                      maxRows={8}
-                      {...register('description')}
-                    />
                   </Stack>
                 </Tabs.Panel>
 
