@@ -15,6 +15,7 @@ import {
   ActionIcon,
   Tooltip,
   TextInput,
+  Switch,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { useDisclosure } from '@mantine/hooks';
@@ -63,6 +64,10 @@ export function RunsPage() {
   const [sortBy, setSortBy] = useState<'startedAt' | 'completedAt'>('startedAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(1);
+  const [includeChildren, setIncludeChildren] = useState(() => {
+    const saved = localStorage.getItem('runs-includeChildren');
+    return saved !== null ? saved === 'true' : true;
+  });
 
   const loadRuns = useCallback(async () => {
     try {
@@ -72,7 +77,7 @@ export function RunsPage() {
         sortOrder,
         skip: (page - 1) * PAGE_SIZE,
         limit: PAGE_SIZE,
-        includeChildren: true,
+        includeChildren,
       };
       if (statusFilter) params.status = statusFilter as RunStatus;
       if (agentFilter.trim()) params.agentId = agentFilter.trim();
@@ -88,11 +93,15 @@ export function RunsPage() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, agentFilter, startedAfter, startedBefore, sortBy, sortOrder, page]);
+  }, [statusFilter, agentFilter, startedAfter, startedBefore, sortBy, sortOrder, page, includeChildren]);
 
   useEffect(() => {
     loadRuns();
-  }, [statusFilter, startedAfter, startedBefore, sortBy, sortOrder, page]);
+  }, [statusFilter, startedAfter, startedBefore, sortBy, sortOrder, page, includeChildren]);
+
+  useEffect(() => {
+    localStorage.setItem('runs-includeChildren', String(includeChildren));
+  }, [includeChildren]);
 
   const handleViewDetails = (runId: string) => {
     setSelectedRunId(runId);
@@ -174,6 +183,12 @@ export function RunsPage() {
             {sortOrder === 'desc' ? <IconSortDescending size={18} /> : <IconSortAscending size={18} />}
           </ActionIcon>
         </Tooltip>
+        <Switch
+          label="Collect by parent"
+          checked={includeChildren}
+          onChange={(e) => setIncludeChildren(e.currentTarget.checked)}
+          size="sm"
+        />
         <Tooltip label="Refresh">
           <ActionIcon variant="light" onClick={loadRuns} loading={loading}>
             <IconRefresh size={18} />
@@ -211,7 +226,8 @@ export function RunsPage() {
                 <Table.Th>Agent ID</Table.Th>
                 <Table.Th>Started</Table.Th>
                 <Table.Th>Duration</Table.Th>
-                <Table.Th>Child Runs</Table.Th>
+                {includeChildren && <Table.Th>Child Runs</Table.Th>}
+                {!includeChildren && <Table.Th>Triggered by</Table.Th>}
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -243,13 +259,24 @@ export function RunsPage() {
                       {formatDuration(run.startedAt, run.completedAt)}
                     </Text>
                   </Table.Td>
-                  <Table.Td>
-                    {run.childRunIds && run.childRunIds.length > 0 && (
-                      <Badge size="sm" variant="light" color="cyan">
-                        {run.childRunIds.length}
-                      </Badge>
-                    )}
-                  </Table.Td>
+                  {includeChildren && (
+                    <Table.Td>
+                      {run.childRunIds && run.childRunIds.length > 0 && (
+                        <Badge size="sm" variant="light" color="cyan">
+                          {run.childRunIds.length}
+                        </Badge>
+                      )}
+                    </Table.Td>
+                  )}
+                  {!includeChildren && (
+                    <Table.Td>
+                      {run.triggeredBy && (
+                        <Text size="sm" c="dimmed">
+                          {run.triggeredBy.triggerType}
+                        </Text>
+                      )}
+                    </Table.Td>
+                  )}
                 </Table.Tr>
               ))}
               {runs.length === 0 && (

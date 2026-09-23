@@ -251,6 +251,19 @@ export function RunDetailsModal({ runId, opened, onClose }: RunDetailsModalProps
                   </CopyButton>
                 </Group>
               </Box>
+              {run.triggeredBy && (
+                <Box>
+                  <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
+                    Triggered by
+                  </Text>
+                  <Stack gap={0} mt={4}>
+                    <Code fz="xs">Parent Run Id: {run.parentRunId}</Code>
+                    <Code fz="xs">Node Id: {run.triggeredBy.nodeId}</Code>
+                    <Code fz="xs">Trigger Type: {run.triggeredBy.triggerType}</Code>
+                    {run.triggeredBy.toolName && <Code fz="xs">Tool Name: {run.triggeredBy.toolName}</Code>}
+                  </Stack>
+                </Box>
+              )}
             </SimpleGrid>
           </Card>
 
