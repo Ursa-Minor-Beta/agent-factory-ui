@@ -18,18 +18,9 @@ export interface UpdateMemorySchemaInput {
   embeddingField?: string;
 }
 
-// Record DTOs
-export interface CreateMemoryRecordInput {
-  data: Record<string, unknown>;
-  importance?: number;
-  tags?: string[];
-}
-
-export interface UpdateMemoryRecordInput {
-  data?: Record<string, unknown>;
-  importance?: number;
-  tags?: string[];
-}
+// Record DTOs - user fields are sent flat at root level (not nested under data)
+export type CreateMemoryRecordInput = Record<string, unknown>;
+export type UpdateMemoryRecordInput = Record<string, unknown>;
 
 // Search options
 export interface MemorySearchOptions {

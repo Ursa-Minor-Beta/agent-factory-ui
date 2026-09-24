@@ -301,15 +301,29 @@ export interface MemorySchema {
   updatedAt: string;
 }
 
-export interface MemoryRecord {
+// System fields that are read-only and should not be edited
+export const MEMORY_RESERVED_FIELDS = ['id', 'schemaId', 'createdAt', 'updatedAt'] as const;
+
+// Base system fields for a memory record
+export interface MemoryRecordBase {
   id: string;
   schemaId: string;
-  data: Record<string, unknown>;
-  embedding?: number[];
-  importance?: number;
-  tags?: string[];
   createdAt: string;
   updatedAt: string;
+}
+
+// Full memory record with user fields at root level (not nested under data)
+export type MemoryRecord = MemoryRecordBase & Record<string, unknown>;
+
+// Helper to extract user fields from a record (excluding system fields)
+export function getRecordUserFields(record: MemoryRecord): Record<string, unknown> {
+  const userFields: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(record)) {
+    if (!MEMORY_RESERVED_FIELDS.includes(key as typeof MEMORY_RESERVED_FIELDS[number])) {
+      userFields[key] = value;
+    }
+  }
+  return userFields;
 }
 
 export interface MemorySearchResult {

@@ -12,11 +12,12 @@ import {
   Alert,
   Table,
   Center,
-  Badge,
   Tooltip,
   Breadcrumbs,
   Anchor,
   Code,
+  Pagination,
+  Select,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
@@ -25,18 +26,15 @@ import {
   IconPencil,
   IconSearch,
   IconAlertCircle,
-  IconEye,
 } from '@tabler/icons-react';
 import { memoryApi } from '../../api';
 import type { MemorySchema, MemoryRecord } from '../../types';
+import { getRecordUserFields } from '../../types';
 import { RecordModal } from './RecordModal';
-import { RecordViewModal } from './RecordViewModal';
 import { RecordDeleteModal } from './RecordDeleteModal';
 
 interface RecordForm {
-  data: string;
-  importance: number;
-  tags: string[];
+  data: string; // JSON string of user fields
 }
 
 export function CollectionRecordsPage() {
@@ -46,56 +44,69 @@ export function CollectionRecordsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
-  const [viewModalOpened, { open: openViewModal, close: closeViewModal }] = useDisclosure(false);
   const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
   const [editingRecord, setEditingRecord] = useState<MemoryRecord | null>(null);
-  const [viewingRecord, setViewingRecord] = useState<MemoryRecord | null>(null);
   const [deletingRecord, setDeletingRecord] = useState<MemoryRecord | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [search, setSearch] = useState('');
   const [searchDebounced, setSearchDebounced] = useState('');
 
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [total, setTotal] = useState(0);
+
   // Form state
   const [formData, setFormData] = useState<RecordForm>({
     data: '{}',
-    importance: 0.5,
-    tags: [],
   });
   const [dataError, setDataError] = useState('');
 
-  const loadData = useCallback(async (searchQuery?: string) => {
+  const loadData = useCallback(async (searchQuery?: string, currentPage?: number, currentLimit?: number) => {
     if (!collection) return;
+    const pageNum = currentPage ?? page;
+    const limitNum = currentLimit ?? limit;
+    const offset = (pageNum - 1) * limitNum;
+
     try {
       setLoading(true);
       // Load schema and records in parallel
       const [schemasData, recordsData] = await Promise.all([
         memoryApi.listSchemas(),
-        memoryApi.listRecords(collection, { search: searchQuery || undefined }),
+        memoryApi.listRecords(collection, {
+          search: searchQuery || undefined,
+          limit: limitNum,
+          offset,
+          sortDirection: 'desc',
+        }),
       ]);
       const foundSchema = schemasData.find((s) => s.name === collection);
       setSchema(foundSchema || null);
       setRecords(recordsData);
+      // Use schema recordCount for total, fallback to records length if not available
+      setTotal(foundSchema?.recordCount ?? recordsData.length);
       setError('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {
       setLoading(false);
     }
-  }, [collection]);
+  }, [collection, page, limit]);
 
-  // Debounce search
+  // Debounce search and reset page
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearchDebounced(search);
+      setPage(1); // Reset to first page on search change
     }, 300);
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Load data when collection or debounced search changes
+  // Load data when collection, page, limit, or debounced search changes
   useEffect(() => {
-    loadData(searchDebounced);
-  }, [searchDebounced, loadData]);
+    loadData(searchDebounced, page, limit);
+  }, [searchDebounced, page, limit, loadData]);
 
   const getDefaultDataFromSchema = (): Record<string, unknown> => {
     if (!schema) return {};
@@ -133,8 +144,6 @@ export function CollectionRecordsPage() {
     setEditingRecord(null);
     setFormData({
       data: JSON.stringify(getDefaultDataFromSchema(), null, 2),
-      importance: 0.5,
-      tags: [],
     });
     setDataError('');
     openModal();
@@ -143,25 +152,16 @@ export function CollectionRecordsPage() {
   const handleOpenEditModal = (record: MemoryRecord) => {
     setEditingRecord(record);
     setFormData({
-      data: JSON.stringify(record.data, null, 2),
-      importance: record.importance ?? 0.5,
-      tags: record.tags || [],
+      data: JSON.stringify(getRecordUserFields(record), null, 2),
     });
     setDataError('');
     openModal();
-  };
-
-  const handleOpenViewModal = (record: MemoryRecord) => {
-    setViewingRecord(record);
-    openViewModal();
   };
 
   const handleCloseModal = () => {
     setEditingRecord(null);
     setFormData({
       data: '{}',
-      importance: 0.5,
-      tags: [],
     });
     setDataError('');
     closeModal();
@@ -184,19 +184,17 @@ export function CollectionRecordsPage() {
 
     setSaving(true);
     try {
-      const payload = {
-        data: JSON.parse(formData.data),
-        importance: formData.importance,
-        tags: formData.tags.length > 0 ? formData.tags : undefined,
-      };
+      // Send flat user fields directly (not wrapped in data)
+      const payload = JSON.parse(formData.data);
 
       if (editingRecord) {
         await memoryApi.updateRecord(collection, editingRecord.id, payload);
       } else {
         await memoryApi.createRecord(collection, payload);
+        setPage(1); // Go to first page after creating new record
       }
       handleCloseModal();
-      loadData(searchDebounced);
+      loadData(searchDebounced, editingRecord ? page : 1, limit);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save record');
     } finally {
@@ -216,7 +214,10 @@ export function CollectionRecordsPage() {
       await memoryApi.deleteRecord(collection, deletingRecord.id);
       closeDeleteModal();
       setDeletingRecord(null);
-      loadData(searchDebounced);
+      // If last item on page, go to previous page
+      const newPage = records.length === 1 && page > 1 ? page - 1 : page;
+      if (newPage !== page) setPage(newPage);
+      loadData(searchDebounced, newPage, limit);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete record');
     } finally {
@@ -224,7 +225,8 @@ export function CollectionRecordsPage() {
     }
   };
 
-  const formatDataPreview = (data: Record<string, unknown>): string => {
+  const formatDataPreview = (data: Record<string, unknown> | null | undefined): string => {
+    if (!data) return '{}';
     const entries = Object.entries(data);
     if (entries.length === 0) return '{}';
     const preview = entries.slice(0, 2).map(([k, v]) => {
@@ -267,7 +269,7 @@ export function CollectionRecordsPage() {
           )}
         </Box>
         <Group gap="xs">
-          <Text c="dimmed" size="sm">{records.length} record{records.length !== 1 ? 's' : ''}</Text>
+          <Text c="dimmed" size="sm">{total} record{total !== 1 ? 's' : ''}</Text>
         </Group>
       </Group>
 
@@ -302,10 +304,9 @@ export function CollectionRecordsPage() {
           <Table.Thead>
             <Table.Tr>
               <Table.Th style={{ width: 100 }}>ID</Table.Th>
-              <Table.Th>Data</Table.Th>
-              <Table.Th style={{ width: 100 }}>Importance</Table.Th>
-              <Table.Th style={{ width: 150 }}>Tags</Table.Th>
+              <Table.Th>Fields</Table.Th>
               <Table.Th style={{ width: 120 }}>Created</Table.Th>
+              <Table.Th style={{ width: 120 }}>Updated</Table.Th>
               <Table.Th style={{ width: 120, textAlign: 'right' }}>Actions</Table.Th>
             </Table.Tr>
           </Table.Thead>
@@ -317,45 +318,21 @@ export function CollectionRecordsPage() {
                 </Table.Td>
                 <Table.Td>
                   <Text size="sm" c="dimmed" lineClamp={1}>
-                    {formatDataPreview(record.data)}
+                    {formatDataPreview(getRecordUserFields(record))}
                   </Text>
-                </Table.Td>
-                <Table.Td>
-                  {record.importance !== undefined && (
-                    <Badge size="sm" variant="light" color={record.importance > 0.7 ? 'green' : record.importance > 0.3 ? 'yellow' : 'gray'}>
-                      {record.importance.toFixed(2)}
-                    </Badge>
-                  )}
-                </Table.Td>
-                <Table.Td>
-                  <Group gap={4}>
-                    {record.tags?.slice(0, 2).map((tag) => (
-                      <Badge key={tag} size="xs" variant="outline">
-                        {tag}
-                      </Badge>
-                    ))}
-                    {(record.tags?.length ?? 0) > 2 && (
-                      <Badge size="xs" variant="outline" c="dimmed">
-                        +{(record.tags?.length ?? 0) - 2}
-                      </Badge>
-                    )}
-                  </Group>
                 </Table.Td>
                 <Table.Td>
                   <Text size="sm" c="dimmed">
                     {new Date(record.createdAt).toLocaleDateString()}
                   </Text>
                 </Table.Td>
+                <Table.Td>
+                  <Text size="sm" c="dimmed">
+                    {new Date(record.updatedAt).toLocaleDateString()}
+                  </Text>
+                </Table.Td>
                 <Table.Td style={{ textAlign: 'right' }}>
                   <Group gap="xs" justify="flex-end">
-                    <Tooltip label="View">
-                      <ActionIcon
-                        variant="subtle"
-                        onClick={() => handleOpenViewModal(record)}
-                      >
-                        <IconEye size={18} />
-                      </ActionIcon>
-                    </Tooltip>
                     <Tooltip label="Edit">
                       <ActionIcon
                         variant="subtle"
@@ -379,7 +356,7 @@ export function CollectionRecordsPage() {
             ))}
             {records.length === 0 && (
               <Table.Tr>
-                <Table.Td colSpan={6}>
+                <Table.Td colSpan={5}>
                   <Text ta="center" c="dimmed" py="md">
                     {search ? 'No records match your search' : 'No records in this collection'}
                   </Text>
@@ -388,6 +365,39 @@ export function CollectionRecordsPage() {
             )}
           </Table.Tbody>
         </Table>
+
+        {/* Pagination */}
+        {total > 0 && (
+          <Group justify="space-between" mt="md">
+            <Group gap="xs">
+              <Text size="sm" c="dimmed">Rows per page:</Text>
+              <Select
+                size="xs"
+                w={80}
+                value={String(limit)}
+                onChange={(value) => {
+                  setLimit(Number(value));
+                  setPage(1);
+                }}
+                data={[
+                  { value: '10', label: '10' },
+                  { value: '20', label: '20' },
+                  { value: '50', label: '50' },
+                  { value: '100', label: '100' },
+                ]}
+              />
+              <Text size="sm" c="dimmed">
+                {((page - 1) * limit) + 1}–{Math.min(page * limit, total)} of {total}
+              </Text>
+            </Group>
+            <Pagination
+              size="sm"
+              total={Math.ceil(total / limit)}
+              value={page}
+              onChange={setPage}
+            />
+          </Group>
+        )}
       </Card>
 
       <RecordModal
@@ -401,13 +411,6 @@ export function CollectionRecordsPage() {
         onValidateJson={validateJson}
         onSave={handleSubmit}
         saving={saving}
-      />
-
-      <RecordViewModal
-        opened={viewModalOpened}
-        onClose={closeViewModal}
-        record={viewingRecord}
-        onEdit={handleOpenEditModal}
       />
 
       <RecordDeleteModal
