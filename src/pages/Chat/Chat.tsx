@@ -21,9 +21,6 @@ function formatLabel(key: string): string {
     .trim();
 }
 
-// Regex for new {{inner:<fileId>}} format
-const INNER_REF_REGEX = /\{\{inner:([a-f0-9]+)\}\}/g;
-
 // Check if string is an inner file reference
 // Supports both old format (inner:<fileId>) and new format ({{inner:<fileId>}})
 function isInnerFileRef(str: string): boolean {

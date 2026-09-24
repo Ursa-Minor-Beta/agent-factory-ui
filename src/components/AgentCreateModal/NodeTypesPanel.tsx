@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Paper, Text, Alert, Center, Loader, Box } from '@mantine/core';
+import { Alert, Center, Loader, Box } from '@mantine/core';
 import { IconAlertCircle } from '@tabler/icons-react';
 import type { NodeType } from '../../api';
 import type { AgentNode } from '../../types';
@@ -11,7 +11,6 @@ interface NodeTypesPanelProps {
   currentNodes: AgentNode[];
   loading: boolean;
   error: string;
-  width: number | string;
   onAddNode: (nodeType: NodeType) => void;
 }
 
@@ -20,7 +19,6 @@ export function NodeTypesPanel({
   currentNodes,
   loading,
   error,
-  width,
   onAddNode,
 }: NodeTypesPanelProps) {
   const [viewingNodeType, setViewingNodeType] = useState<NodeType | null>(null);

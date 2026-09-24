@@ -278,7 +278,6 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
                     currentNodes={nodes}
                     loading={nodeTypesLoading}
                     error={nodeTypesError}
-                    width="100%"
                     onAddNode={handleAddNode}
                   />
                 </Tabs.Panel>
