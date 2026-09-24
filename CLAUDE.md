@@ -65,6 +65,106 @@ src/
 
 ## Patterns to Follow
 
+### Data Filtering
+- **Server-side filtering only** - Never use client-side filtering with `useMemo`
+- Pass search/filter parameters to API calls and let the backend handle filtering
+- Use debounced search state (300ms) before triggering API calls
+
+### Modal Components
+- **Extract modals into separate files** - Never inline modals in page components
+- Create dedicated modal components (e.g., `CollectionModal.tsx`, `CollectionDeleteModal.tsx`)
+- Modal components should receive `opened`, `onClose`, and relevant data/handlers as props
+
+### Global Modals with URL State
+For resource detail modals that should be accessible from multiple pages, use the global modal pattern:
+
+**Architecture:**
+- Modal is placed once in `Layout.tsx` with lazy loading (inside router context)
+- Modal reads state directly from URL query parameters
+- Components only use the hook to set URL parameters
+- No need to pass props or render modal in each page
+
+**Benefits:**
+- Single source of truth - only one modal instance
+- Automatic deep linking - works from any page
+- Better code splitting with lazy loading
+- Cleaner page components - no modal markup
+- Child navigation works automatically (just URL updates)
+
+**Implementation:**
+
+1. **Create modal that reads from URL:**
+```typescript
+// src/components/RunDetailsModal/RunDetailsModal.tsx
+export function RunDetailsModal() {
+  const { runId, isOpen, closeRunDetails, openRunDetails } = useRunDetailsModal();
+  // Modal reads runId from URL, no props needed
+
+  return (
+    <Modal opened={isOpen} onClose={closeRunDetails}>
+      {/* Modal content, can navigate to child resources via openRunDetails */}
+    </Modal>
+  );
+}
+```
+
+2. **Add to Layout.tsx with lazy loading:**
+```typescript
+import { lazy, Suspense } from 'react';
+
+const RunDetailsModal = lazy(() =>
+  import('../components/RunDetailsModal').then((module) => ({
+    default: module.RunDetailsModal,
+  }))
+);
+
+export function Layout() {
+  return (
+    <AppShell>
+      {/* ... navbar ... */}
+      <AppShell.Main>
+        <Suspense fallback={<Loader />}>
+          <Outlet />
+        </Suspense>
+      </AppShell.Main>
+
+      {/* Global modals - read state from URL */}
+      <Suspense fallback={null}>
+        <RunDetailsModal />
+      </Suspense>
+    </AppShell>
+  );
+}
+```
+
+3. **Use hook in any component:**
+```typescript
+import { useRunDetailsModal } from '../../components/RunDetailsModal';
+
+const { openRunDetails } = useRunDetailsModal();
+
+// That's it! No modal markup needed
+<Button onClick={() => openRunDetails('run-123')}>View Run</Button>
+```
+
+**Creating a new global modal:**
+1. Create modal component that reads from URL (no props)
+2. Create custom hook (e.g., `useRecordDetailsModal.ts`) that:
+   - Uses `useSearchParams` from React Router
+   - Returns `{ id, isOpen, openModal, closeModal }`
+3. Add to `Layout.tsx` with lazy loading (must be inside router context)
+4. Export hook from index file
+
+**Use for:**
+- Resource detail views (RunDetailsModal, AgentDetailsModal, RecordDetailsModal)
+- Any modal needed across multiple pages
+- Modals where deep linking is important
+
+**Don't use for:**
+- Page-specific modals (create/edit forms, delete confirmations)
+- Modals that need different behavior per page
+- Simple confirmation dialogs
+
 ### Adding a New Page
 1. Create page component in `src/pages/`
 2. Add route in `src/router.tsx`

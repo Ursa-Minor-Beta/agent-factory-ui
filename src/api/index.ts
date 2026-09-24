@@ -12,3 +12,13 @@ export { systemApi } from './system';
 export type { ApiInfo, HealthCheck, ReseedResult } from './system';
 export { nodesApi } from './nodes';
 export type { NodeType, NodeTypeSchema, NodeTypeField } from './nodes';
+export { memoryApi } from './memory';
+export type {
+  CreateMemorySchemaInput,
+  UpdateMemorySchemaInput,
+  CreateMemoryRecordInput,
+  UpdateMemoryRecordInput,
+  MemorySearchOptions,
+  ListSchemasOptions,
+  ListRecordsOptions,
+} from './memory';

@@ -9,8 +9,8 @@ import { ChatHeader } from './ChatHeader';
 import { ChatInput } from './ChatInput';
 import { ChatMessages } from './ChatMessages';
 import { ChatSidebar } from './ChatSidebar';
-import { AgentCreateModal } from '../../components/AgentCreateModal';
-import { RunDetailsModal } from '../../components/RunDetailsModal';
+import { useAgentModal } from '../../components/AgentCreateModal';
+import { useRunDetailsModal, guessMimeType } from '../../components/RunDetailsModal';
 import { getInputSchema, type ChatMessage, type FileRef } from './types';
 
 // Helper to format field name as readable label
@@ -29,19 +29,6 @@ const INNER_REF_REGEX = /\{\{inner:([a-f0-9]+)\}\}/g;
 function isInnerFileRef(str: string): boolean {
   if (typeof str !== 'string') return false;
   return str.startsWith('inner:') || /\{\{inner:[a-f0-9]+\}\}/.test(str);
-}
-
-// Guess mime type from field name
-function guessMimeType(fieldName: string): string {
-  const lower = fieldName.toLowerCase();
-  if (lower.includes('screenshot') || lower.includes('image') || lower.includes('png')) {
-    return 'image/png';
-  } else if (lower.includes('jpg') || lower.includes('jpeg') || lower.includes('photo')) {
-    return 'image/jpeg';
-  } else if (lower.includes('pdf')) {
-    return 'application/pdf';
-  }
-  return 'application/octet-stream';
 }
 
 // Parse inner file reference to FileRef
@@ -418,11 +405,9 @@ export function ChatPage() {
   // Delete confirmation modal
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
 
-  // Edit agent modal
-  const [editModalOpen, setEditModalOpen] = useState(false);
-
-  // Run details modal
-  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+  // Modals
+  const { openEditAgent } = useAgentModal();
+  const { openRunDetails } = useRunDetailsModal();
 
   // Chat input height for dynamic spacing
   const [inputHeight, setInputHeight] = useState(100);
@@ -738,18 +723,23 @@ export function ChatPage() {
     }));
   };
 
-  const handleAgentSave = async () => {
-    if (!agentId) return;
-    try {
-      const data = await agentsApi.getById(agentId);
-      setAgent(data);
-    } catch (err) {
-      console.error('Failed to reload agent:', err);
-    }
-  };
+  // Listen for agent-saved event from global modal
+  useEffect(() => {
+    const handleAgentSaved = async () => {
+      if (!agentId) return;
+      try {
+        const data = await agentsApi.getById(agentId);
+        setAgent(data);
+      } catch (err) {
+        console.error('Failed to reload agent:', err);
+      }
+    };
+    window.addEventListener('agent-saved', handleAgentSaved);
+    return () => window.removeEventListener('agent-saved', handleAgentSaved);
+  }, [agentId]);
 
-  const handleViewRun = (runId: string) => {
-    setSelectedRunId(runId);
+  const handleViewRun = (id: string) => {
+    openRunDetails(id);
   };
 
   if (loadingAgent) {
@@ -790,20 +780,6 @@ export function ChatPage() {
         </Group>
       </Modal>
 
-      <AgentCreateModal
-        opened={editModalOpen}
-        onClose={() => setEditModalOpen(false)}
-        agent={agent}
-        onSave={handleAgentSave}
-        isMobile={isMobile}
-      />
-
-      <RunDetailsModal
-        runId={selectedRunId}
-        opened={!!selectedRunId}
-        onClose={() => setSelectedRunId(null)}
-      />
-
       <ChatSidebar
         sessions={sessions}
         currentSessionId={currentSessionId}
@@ -823,7 +799,7 @@ export function ChatPage() {
           isIncognito={isIncognitoSession || (isNewChat && startIncognito)}
           isMobile={isMobile}
           onOpenSidebar={() => setSidebarOpen(true)}
-          onEditAgent={() => setEditModalOpen(true)}
+          onEditAgent={() => agent && openEditAgent(agent.id)}
         />
 
         <ChatMessages

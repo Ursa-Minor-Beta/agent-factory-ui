@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { Paper, Text, Alert, Center, Loader, Box } from '@mantine/core';
 import { IconAlertCircle } from '@tabler/icons-react';
 import type { NodeType } from '../../api';
+import type { AgentNode } from '../../types';
 import { NodeTypeList } from './NodeTypeList';
 import { NodeTypeDetail } from './NodeTypeDetail';
 
 interface NodeTypesPanelProps {
   nodeTypes: NodeType[];
+  currentNodes: AgentNode[];
   loading: boolean;
   error: string;
   width: number | string;
@@ -15,6 +17,7 @@ interface NodeTypesPanelProps {
 
 export function NodeTypesPanel({
   nodeTypes,
+  currentNodes,
   loading,
   error,
   width,
@@ -27,6 +30,7 @@ export function NodeTypesPanel({
       {viewingNodeType ? (
         <NodeTypeDetail
           nodeType={viewingNodeType}
+          currentNodes={currentNodes}
           onBack={() => setViewingNodeType(null)}
           onAdd={onAddNode}
         />
@@ -43,6 +47,7 @@ export function NodeTypesPanel({
           ) : (
             <NodeTypeList
               nodeTypes={nodeTypes}
+              currentNodes={currentNodes}
               onAdd={onAddNode}
               onViewDetails={setViewingNodeType}
             />

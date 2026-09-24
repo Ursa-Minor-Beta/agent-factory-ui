@@ -123,36 +123,44 @@ export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreat
     }
   }, []);
 
-  const handleAddNode = useCallback((nodeType: NodeType) => {
-    const data: Record<string, unknown> = {};
+  const handleAddNode = useCallback((nodeType: NodeType, exampleIndex?: number) => {
+    let data: Record<string, unknown> = {};
 
-    const processSchema = (schema: unknown) => {
-      if (Array.isArray(schema)) {
-        for (const field of schema) {
-          if (field && typeof field === 'object' && 'name' in field) {
-            const f = field as { name: string; default?: unknown; values?: unknown[] };
-            data[f.name] = f.default ?? (f.values?.[0] ?? '');
+    // First, try to use the specified example or the first one if available
+    if (nodeType.examples && nodeType.examples.length > 0) {
+      const index = exampleIndex ?? 0;
+      data = { ...nodeType.examples[index].data };
+    } 
+    else {
+      // Fall back to schema processing
+      const processSchema = (schema: unknown) => {
+        if (Array.isArray(schema)) {
+          for (const field of schema) {
+            if (field && typeof field === 'object' && 'name' in field) {
+              const f = field as { name: string; default?: unknown; values?: unknown[] };
+              data[f.name] = f.default ?? (f.values?.[0] ?? '');
+            }
+          }
+        } else if (schema && typeof schema === 'object') {
+          for (const [key, val] of Object.entries(schema)) {
+            if (val && typeof val === 'object' && ('default' in val || 'values' in val)) {
+              const v = val as { default?: unknown; values?: unknown[] };
+              data[key] = v.default ?? (v.values?.[0] ?? '');
+            } else if (val && typeof val === 'object' && 'name' in val) {
+              // Skip - this is metadata
+            } else {
+              data[key] = val;
+            }
           }
         }
-      } else if (schema && typeof schema === 'object') {
-        for (const [key, val] of Object.entries(schema)) {
-          if (val && typeof val === 'object' && ('default' in val || 'values' in val)) {
-            const v = val as { default?: unknown; values?: unknown[] };
-            data[key] = v.default ?? (v.values?.[0] ?? '');
-          } else if (val && typeof val === 'object' && 'name' in val) {
-            // Skip - this is metadata
-          } else {
-            data[key] = val;
-          }
-        }
+      };
+
+      if (nodeType.options) {
+        processSchema(nodeType.options);
       }
-    };
-
-    if (nodeType.options) {
-      processSchema(nodeType.options);
-    }
-    if (nodeType.inputSchema && Object.keys(data).length === 0) {
-      processSchema(nodeType.inputSchema);
+      if (nodeType.inputSchema && Object.keys(data).length === 0) {
+        processSchema(nodeType.inputSchema);
+      }
     }
 
     setNodes((prev) => {
@@ -165,8 +173,8 @@ export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreat
     });
   }, []);
 
-  const onSubmit = useCallback(
-    async (data: AgentCreateForm) => {
+  const saveAgent = useCallback(
+    async (data: AgentCreateForm, closeAfterSave: boolean) => {
       if (!nodesValid) {
         setError('Invalid JSON in nodes');
         return;
@@ -188,7 +196,9 @@ export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreat
             nodes,
           });
         }
-        handleClose();
+        if (closeAfterSave) {
+          handleClose();
+        }
         onSave();
       } catch (err) {
         setError(err instanceof Error ? err.message : agent ? 'Failed to update agent' : 'Failed to create agent');
@@ -197,6 +207,20 @@ export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreat
       }
     },
     [agent, nodesValid, nodes, handleClose, onSave]
+  );
+
+  const onSubmit = useCallback(
+    async (data: AgentCreateForm) => {
+      await saveAgent(data, true);
+    },
+    [saveAgent]
+  );
+
+  const onSaveOnly = useCallback(
+    async (data: AgentCreateForm) => {
+      await saveAgent(data, false);
+    },
+    [saveAgent]
   );
 
   // Resize handlers
@@ -267,6 +291,7 @@ export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreat
     error,
     setError,
     onSubmit,
+    onSaveOnly,
 
     // Nodes
     nodes,

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Modal,
   Text,
@@ -29,95 +30,24 @@ import {
   IconCopy,
   IconRefresh,
   IconSubtask,
+  IconExternalLink,
+  IconArrowLeft,
 } from '@tabler/icons-react';
-import { runsApi } from '../api';
-import type { Run, RunDetailsModalProps } from '../types';
-import { statusColors, nodeStatusColors, formatDuration, resolveRunOutput, extractInnerFileRefs } from '../types';
-import { FileRefPreview } from '../pages/Chat/ChatMessages/FileContent';
+import { runsApi } from '../../api';
+import type { Run } from '../../types';
+import { statusColors, nodeStatusColors, formatDuration, resolveRunOutput } from '../../types';
+import { DataWithFileRefs } from './utils';
+import { RUN_PARAM, BACK_BUTTON_PARAM, useRunDetailsModal } from './useRunDetailsModal';
 
-// Helper to render JSON data, extracting file refs for separate display
-function DataWithFileRefs({ data }: { data: unknown }) {
-  const fileRefs = useMemo(() => {
-    if (!data) return [];
-    return extractInnerFileRefs(data);
-  }, [data]);
-
-  // Create a cleaned version of data with file refs replaced by placeholders
-  const cleanedData = useMemo(() => {
-    if (!data || fileRefs.length === 0) return data;
-
-    const replaceRefs = (obj: unknown): unknown => {
-      if (typeof obj === 'string' && obj.startsWith('inner:')) {
-        return '[File Reference]';
-      }
-      if (Array.isArray(obj)) {
-        return obj.map(replaceRefs);
-      }
-      if (typeof obj === 'object' && obj !== null) {
-        const result: Record<string, unknown> = {};
-        for (const [key, value] of Object.entries(obj)) {
-          result[key] = replaceRefs(value);
-        }
-        return result;
-      }
-      return obj;
-    };
-
-    return replaceRefs(data);
-  }, [data, fileRefs.length]);
-
-  if (!data) {
-    return (
-      <Text size="sm" c="dimmed" ta="center" py="md">
-        No data
-      </Text>
-    );
-  }
-
-  return (
-    <>
-      <Code block style={{ backgroundColor: 'transparent', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-        {JSON.stringify(cleanedData, null, 2)}
-      </Code>
-      {fileRefs.length > 0 && (
-        <Box mt="sm">
-          <Text size="xs" c="dimmed" mb="xs">Files ({fileRefs.length})</Text>
-          <FileRefPreview
-            fileRefs={fileRefs.map((ref) => ({
-              fileId: ref.fileId,
-              mimeType: guessMimeType(ref.fieldName),
-              fieldName: ref.path || ref.fieldName,
-            }))}
-          />
-        </Box>
-      )}
-    </>
-  );
-}
-
-// Guess mime type from field name
-function guessMimeType(fieldName: string): string {
-  const lower = fieldName.toLowerCase();
-  if (lower.includes('screenshot') || lower.includes('image') || lower.includes('png')) {
-    return 'image/png';
-  }
-  if (lower.includes('jpg') || lower.includes('jpeg') || lower.includes('photo')) {
-    return 'image/jpeg';
-  }
-  if (lower.includes('pdf')) {
-    return 'application/pdf';
-  }
-  return 'application/octet-stream';
-}
-
-export function RunDetailsModal({ runId, opened, onClose }: RunDetailsModalProps) {
+export function RunDetailsModal() {
+  const { runId, isOpen, closeRunDetails, showBackButton, goBack } = useRunDetailsModal();
   const [run, setRun] = useState<Run | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch run data when opened or runId changes
   useEffect(() => {
-    if (!opened || !runId) {
+    if (!isOpen || !runId) {
       setRun(null);
       setError(null);
       return;
@@ -137,7 +67,7 @@ export function RunDetailsModal({ runId, opened, onClose }: RunDetailsModalProps
     };
 
     fetchRun();
-  }, [opened, runId]);
+  }, [isOpen, runId]);
 
   // Resolve nodeRef references in output
   const resolvedOutput = useMemo(() => {
@@ -160,10 +90,15 @@ export function RunDetailsModal({ runId, opened, onClose }: RunDetailsModalProps
 
   return (
     <Modal
-      opened={opened}
-      onClose={onClose}
+      opened={isOpen}
+      onClose={closeRunDetails}
       title={
         <Group gap="sm">
+          {showBackButton && (
+            <ActionIcon variant="subtle" size="sm" onClick={goBack}>
+              <IconArrowLeft size={16} />
+            </ActionIcon>
+          )}
           <Text fw={600}>Run Details</Text>
           {run && (
             <>
@@ -473,6 +408,19 @@ export function RunDetailsModal({ runId, opened, onClose }: RunDetailsModalProps
                   <Accordion.Item key={childRun.id} value={childRun.id}>
                     <Accordion.Control>
                       <Group gap="sm">
+                        <Tooltip label="View full details">
+                          <ActionIcon
+                            component={Link}
+                            to={`?${RUN_PARAM}=${childRun.id}&${BACK_BUTTON_PARAM}=true`}
+                            variant="subtle"
+                            size="sm"
+                            onClick={(e: React.MouseEvent) => {
+                              e.stopPropagation();
+                            }}
+                          >
+                            <IconExternalLink size={14} />
+                          </ActionIcon>
+                        </Tooltip>
                         <Badge
                           size="sm"
                           color={statusColors[childRun.status]}

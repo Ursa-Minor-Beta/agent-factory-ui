@@ -1,4 +1,4 @@
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, lazy } from 'react';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   AppShell,
@@ -32,8 +32,22 @@ import {
   IconSun,
   IconMoon,
   IconTool,
+  IconDatabase,
 } from '@tabler/icons-react';
 import { useAuth } from '../contexts/AuthContext';
+
+// Lazy load global modals
+const RunDetailsModal = lazy(() =>
+  import('../components/RunDetailsModal').then((module) => ({
+    default: module.RunDetailsModal,
+  }))
+);
+
+const AgentModalWrapper = lazy(() =>
+  import('../components/AgentCreateModal').then((module) => ({
+    default: module.AgentModalWrapper,
+  }))
+);
 
 interface NavItem {
   label: string;
@@ -47,6 +61,7 @@ const navItems: NavItem[] = [
   { label: 'Agents', path: '/agents', icon: <IconRobot size={20} /> },
   { label: 'Providers', path: '/providers', icon: <IconSettings size={20} /> },
   { label: 'Secrets', path: '/secrets', icon: <IconLock size={20} /> },
+  { label: 'Collections', path: '/collections', icon: <IconDatabase size={20} /> },
   { label: 'Sessions', path: '/sessions', icon: <IconMessages size={20} /> },
   { label: 'Runs', path: '/runs', icon: <IconHistory size={20} /> },
   { label: 'Files', path: '/files', icon: <IconFiles size={20} /> },
@@ -299,6 +314,12 @@ export function Layout() {
           <Outlet />
         </Suspense>
       </AppShell.Main>
+
+      {/* Global modals - read state from URL */}
+      <Suspense fallback={null}>
+        <RunDetailsModal />
+        <AgentModalWrapper />
+      </Suspense>
     </AppShell>
   );
 }

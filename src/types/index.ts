@@ -275,6 +275,48 @@ export function resolveRunOutput(run: Run): Record<string, unknown> {
   return resolved;
 }
 
+// Memory Schema types
+export type MemoryFieldType = 'string' | 'number' | 'boolean' | 'date' | 'array' | 'object';
+
+export interface MemorySchemaField {
+  name: string;
+  type: MemoryFieldType;
+  required?: boolean;
+  index?: boolean;
+  description?: string;
+  default?: unknown;
+  items?: MemoryFieldType; // For array type
+}
+
+export interface MemorySchema {
+  id: string;
+  userId: string;
+  name: string;
+  description?: string | null;
+  fields: MemorySchemaField[];
+  enableEmbeddings: boolean;
+  embeddingField?: string | null;
+  recordCount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MemoryRecord {
+  id: string;
+  schemaId: string;
+  data: Record<string, unknown>;
+  embedding?: number[];
+  importance?: number;
+  tags?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MemorySearchResult {
+  record: MemoryRecord;
+  score: number;
+}
+
 // File reference format: "inner:<fileId>:<fieldName>"
 export interface InnerFileRef {
   fileId: string;

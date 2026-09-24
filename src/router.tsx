@@ -17,6 +17,8 @@ const SessionsPage = lazy(() => import('./pages/Sessions/index').then(m => ({ de
 const SystemSettings = lazy(() => import('./pages/Settings').then(m => ({ default: m.SystemSettings })));
 const UsersSettings = lazy(() => import('./pages/Settings').then(m => ({ default: m.UsersSettings })));
 const ApiKeysSettings = lazy(() => import('./pages/Settings').then(m => ({ default: m.ApiKeysSettings })));
+const CollectionsPage = lazy(() => import('./pages/Collections').then(m => ({ default: m.CollectionsPage })));
+const CollectionRecordsPage = lazy(() => import('./pages/Collections').then(m => ({ default: m.CollectionRecordsPage })));
 
 const PageLoader = () => (
   <Center style={{ height: '100%', minHeight: 400 }}>
@@ -70,6 +72,14 @@ export const router = createBrowserRouter([
       {
         path: 'files',
         element: <FilesPage />,
+      },
+      {
+        path: 'collections',
+        element: <CollectionsPage />,
+      },
+      {
+        path: 'collections/:collection/records',
+        element: <CollectionRecordsPage />,
       },
       {
         path: 'runs',

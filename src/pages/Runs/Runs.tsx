@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
   Text,
@@ -18,7 +18,6 @@ import {
   Switch,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
-import { useDisclosure } from '@mantine/hooks';
 import {
   IconAlertCircle,
   IconClock,
@@ -34,7 +33,7 @@ import {
 import { runsApi } from '../../api';
 import type { ListRunsParams } from '../../api/runs';
 import type { RunSummary, RunStatus } from '../../types';
-import { RunDetailsModal } from '../../components/RunDetailsModal';
+import { useRunDetailsModal } from '../../components/RunDetailsModal';
 import { statusColors, formatDuration } from '../../types';
 
 const statusIcons: Record<RunStatus, React.ReactNode> = {
@@ -49,12 +48,13 @@ const statusIcons: Record<RunStatus, React.ReactNode> = {
 const PAGE_SIZE = 20;
 
 export function RunsPage() {
+  const { runId, openRunDetails } = useRunDetailsModal();
   const [runs, setRuns] = useState<RunSummary[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
-  const [detailsOpened, { open: openDetails, close: closeDetails }] = useDisclosure(false);
+  const [lastViewedRunId, setLastViewedRunId] = useState<string | null>(null);
+  const prevRunIdRef = useRef<string | null>(null);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
@@ -103,10 +103,22 @@ export function RunsPage() {
     localStorage.setItem('runs-includeChildren', String(includeChildren));
   }, [includeChildren]);
 
-  const handleViewDetails = (runId: string) => {
-    setSelectedRunId(runId);
-    openDetails();
-  };
+  // Track last viewed run when modal closes
+  useEffect(() => {
+    if (runId) {
+      console.log('runId - 0', runId)
+      // Modal is open, store the runId and clear the highlight
+      prevRunIdRef.current = runId;
+      setLastViewedRunId(null);
+    }
+     else if (!runId && prevRunIdRef.current) {
+      // Modal just closed, highlight the last viewed run
+      setLastViewedRunId(prevRunIdRef.current);
+      // Clear after a few seconds
+      const timeout = setTimeout(() => setLastViewedRunId(null), 3000);
+      return () => clearTimeout(timeout);
+    }
+  }, [runId]);
 
   const toggleSortOrder = () => {
     setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
@@ -231,12 +243,18 @@ export function RunsPage() {
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {runs.map((run) => (
-                <Table.Tr
-                  key={run.id}
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => handleViewDetails(run.id)}
-                >
+              {runs.map((run) => {
+                const isLastViewed = run.id === lastViewedRunId;
+                return (
+                  <Table.Tr
+                    key={run.id}
+                    style={{
+                      cursor: 'pointer',
+                      backgroundColor: isLastViewed ? 'var(--mantine-color-cyan-light)' : undefined,
+                      transition: 'background-color 0.3s ease',
+                    }}
+                    onClick={() => openRunDetails(run.id)}
+                  >
                   <Table.Td>
                     <Badge
                       color={statusColors[run.status]}
@@ -278,7 +296,8 @@ export function RunsPage() {
                     </Table.Td>
                   )}
                 </Table.Tr>
-              ))}
+                );
+              })}
               {runs.length === 0 && (
                 <Table.Tr>
                   <Table.Td colSpan={5}>
@@ -302,12 +321,6 @@ export function RunsPage() {
           <Pagination value={page} onChange={setPage} total={totalPages} />
         </Group>
       )}
-
-      <RunDetailsModal
-        runId={selectedRunId}
-        opened={detailsOpened}
-        onClose={closeDetails}
-      />
     </Box>
   );
 }

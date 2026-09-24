@@ -32,6 +32,7 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
     error,
     setError,
     onSubmit,
+    onSaveOnly,
     nodes,
     nodesValid,
     handleNodesChange,
@@ -79,8 +80,13 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
             <Button variant="outline" onClick={handleClose} disabled={saving}>
               Cancel
             </Button>
+            {isEditMode &&
+              <Button onClick={handleSubmit(onSaveOnly)} loading={saving} disabled={!nodesValid}>
+                Save
+              </Button>
+            }
             <Button type="submit" form="agent-form" loading={saving} disabled={!nodesValid}>
-              {isEditMode ? 'Save' : 'Create Agent'}
+              {isEditMode ? 'Save & Close' : 'Create Agent'}
             </Button>
           </Group>
         </Group>
@@ -269,6 +275,7 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
                 <Tabs.Panel value="nodes" style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', paddingTop: 8 }}>
                   <NodeTypesPanel
                     nodeTypes={nodeTypes}
+                    currentNodes={nodes}
                     loading={nodeTypesLoading}
                     error={nodeTypesError}
                     width="100%"

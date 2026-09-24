@@ -11,6 +11,13 @@ export interface NodeTypeSchema {
   [fieldName: string]: NodeTypeField;
 }
 
+export interface NodeTypeExample {
+  name?: string;
+  title?: string;
+  description?: string;
+  data: Record<string, unknown>;
+}
+
 export interface NodeType {
   type: string;
   name: string;
@@ -19,6 +26,7 @@ export interface NodeType {
   inputSchema?: NodeTypeSchema;
   outputSchema?: NodeTypeSchema;
   options?: Record<string, unknown>;
+  examples?: Array<NodeTypeExample>;
 }
 
 export const nodesApi = {

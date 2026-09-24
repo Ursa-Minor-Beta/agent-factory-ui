@@ -25,7 +25,7 @@ import type { Agent, AgentQueryParams } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { AgentCard } from './AgentCard';
 import { AgentFilters } from './AgentFilters';
-import { AgentCreateModal } from '../../components/AgentCreateModal';
+import { useAgentModal } from '../../components/AgentCreateModal';
 import { AgentDeleteModal } from './AgentDeleteModal';
 
 const ITEMS_PER_PAGE = 12;
@@ -42,8 +42,7 @@ export function AgentsPage() {
   const [error, setError] = useState('');
 
   // Modals
-  const [createModalOpened, { open: openCreateModal, close: closeCreateModal }] = useDisclosure(false);
-  const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
+  const { openCreateAgent, openEditAgent } = useAgentModal();
   const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
 
   // Filter panel
@@ -137,14 +136,19 @@ export function AgentsPage() {
     loadAgents();
   }, [loadAgents]);
 
-  const handleOpenEditModal = (agent?: Agent) => {
-    setEditingAgent(agent || null);
-    openCreateModal();
-  };
+  // Listen for agent-saved event from global modal
+  useEffect(() => {
+    const handleAgentSaved = () => loadAgents();
+    window.addEventListener('agent-saved', handleAgentSaved);
+    return () => window.removeEventListener('agent-saved', handleAgentSaved);
+  }, [loadAgents]);
 
-  const handleCloseCreateModal = () => {
-    setEditingAgent(null);
-    closeCreateModal();
+  const handleOpenEditModal = (agent?: Agent) => {
+    if (agent) {
+      openEditAgent(agent.id);
+    } else {
+      openCreateAgent();
+    }
   };
 
   const handleClone = async (agent: Agent) => {
@@ -211,7 +215,7 @@ export function AgentsPage() {
         <Box style={{ flex: 1 }} />
         <Button
           leftSection={<IconPlus size={16} />}
-          onClick={openCreateModal}
+          onClick={openCreateAgent}
         >
           New Agent
         </Button>
@@ -292,14 +296,6 @@ export function AgentsPage() {
           )}
         </>
       )}
-
-      <AgentCreateModal
-        opened={createModalOpened}
-        onClose={handleCloseCreateModal}
-        onSave={loadAgents}
-        isMobile={isMobile}
-        agent={editingAgent}
-      />
 
       <AgentDeleteModal
         agent={agentToDelete}
