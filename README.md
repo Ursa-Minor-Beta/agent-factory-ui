@@ -4,6 +4,8 @@ React frontend for the Agent Factory platform.
 
 > **⚠️ Note:** The current version is actively being built. There could be breaking changes.
 
+> **🐳 One shot Docker Deployment:** For a complete deployment with both API and UI, see [agent-factory-docker-api-ui](https://github.com/Ursa-Minor-Beta/agent-factory-docker-api-ui).
+
 ## Features
 
 - **Authentication** - Cookie-based auth with automatic token refresh
