@@ -22,7 +22,6 @@ import {
 } from '@tabler/icons-react';
 import { agentsApi } from '../../api';
 import type { Agent, AgentQueryParams } from '../../types';
-import { useAuth } from '../../contexts/AuthContext';
 import { AgentCard } from './AgentCard';
 import { AgentFilters } from './AgentFilters';
 import { useAgentModal } from '../../components/AgentCreateModal';
@@ -33,8 +32,6 @@ const SORT_STORAGE_KEY = 'agents-sort';
 
 export function AgentsPage() {
   const isMobile = useMediaQuery('(max-width: 768px)') ?? false;
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
 
   const [agents, setAgents] = useState<Agent[]>([]);
   const [total, setTotal] = useState(0);
@@ -53,7 +50,6 @@ export function AgentsPage() {
   const [searchDebounced, setSearchDebounced] = useState('');
   const [descriptionFilter, setDescriptionFilter] = useState('');
   const [descriptionDebounced, setDescriptionDebounced] = useState('');
-  const [isSystemFilter, setIsSystemFilter] = useState<string | null>('all');
   const [createdAfter, setCreatedAfter] = useState('');
   const [createdBefore, setCreatedBefore] = useState('');
   const [sortValue, setSortValue] = useState<string | null>(() => {
@@ -75,7 +71,6 @@ export function AgentsPage() {
   const activeFilterCount = [
     searchDebounced,
     descriptionDebounced,
-    isSystemFilter !== 'all',
     createdAfter,
     createdBefore,
   ].filter(Boolean).length;
@@ -112,9 +107,6 @@ export function AgentsPage() {
       if (descriptionDebounced.trim()) {
         params.description = descriptionDebounced;
       }
-      if (isAdmin && isSystemFilter && isSystemFilter !== 'all') {
-        params.isSystem = isSystemFilter === 'system';
-      }
       if (createdAfter) {
         params.createdAfter = new Date(createdAfter).toISOString();
       }
@@ -130,7 +122,7 @@ export function AgentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [searchDebounced, descriptionDebounced, isSystemFilter, createdAfter, createdBefore, sortBy, sortOrder, page, isAdmin]);
+  }, [searchDebounced, descriptionDebounced, createdAfter, createdBefore, sortBy, sortOrder, page]);
 
   useEffect(() => {
     loadAgents();
@@ -169,7 +161,6 @@ export function AgentsPage() {
     setSearchDebounced('');
     setDescriptionFilter('');
     setDescriptionDebounced('');
-    setIsSystemFilter('all');
     setCreatedAfter('');
     setCreatedBefore('');
     setPage(1);
@@ -230,9 +221,6 @@ export function AgentsPage() {
           onCreatedAfterChange={(val) => { setCreatedAfter(val); setPage(1); }}
           createdBefore={createdBefore}
           onCreatedBeforeChange={(val) => { setCreatedBefore(val); setPage(1); }}
-          isSystemFilter={isSystemFilter}
-          onIsSystemChange={(val) => { setIsSystemFilter(val); setPage(1); }}
-          isAdmin={isAdmin}
           activeFilterCount={activeFilterCount}
           onClearFilters={clearFilters}
         />
@@ -268,7 +256,6 @@ export function AgentsPage() {
               <AgentCard
                 key={agent.id}
                 agent={agent}
-                isAdmin={isAdmin}
                 onEdit={handleOpenEditModal}
                 onDelete={setAgentToDelete}
                 onClone={handleClone}

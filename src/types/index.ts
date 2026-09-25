@@ -64,7 +64,8 @@ export interface Agent {
   description?: string;
   nodes: AgentNode[];
   status: 'draft' | 'published';
-  isSystem?: boolean;
+  defaultName?: string;
+  systemName?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -73,7 +74,6 @@ export interface AgentQueryParams {
   id?: string;
   name?: string;
   description?: string;
-  isSystem?: boolean;
   createdAfter?: string;
   createdBefore?: string;
   sortBy?: 'name' | 'createdAt' | 'updatedAt';

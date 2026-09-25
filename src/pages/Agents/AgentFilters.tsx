@@ -1,4 +1,4 @@
-import { Card, Group, TextInput, Select, Button, Box } from '@mantine/core';
+import { Card, Group, TextInput, Button, Box } from '@mantine/core';
 import { IconX } from '@tabler/icons-react';
 import type { AgentFiltersProps } from './types';
 
@@ -9,9 +9,6 @@ export function AgentFilters({
   onCreatedAfterChange,
   createdBefore,
   onCreatedBeforeChange,
-  isSystemFilter,
-  onIsSystemChange,
-  isAdmin,
   activeFilterCount,
   onClearFilters,
 }: AgentFiltersProps) {
@@ -39,19 +36,6 @@ export function AgentFilters({
           onChange={(e) => onCreatedBeforeChange(e.currentTarget.value)}
           style={{ minWidth: 150 }}
         />
-        {isAdmin && (
-          <Select
-            label="Agent type"
-            value={isSystemFilter}
-            onChange={onIsSystemChange}
-            data={[
-              { value: 'all', label: 'All agents' },
-              { value: 'system', label: 'System only' },
-              { value: 'user', label: 'User only' },
-            ]}
-            style={{ minWidth: 140 }}
-          />
-        )}
         <Box style={{ flex: 1 }} />
         {activeFilterCount > 0 && (
           <Button

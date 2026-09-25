@@ -244,7 +244,6 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
                       label="Name"
                       placeholder="Enter agent name"
                       error={errors.name?.message}
-                      disabled={agent?.isSystem}
                       {...register('name', { required: 'Name is required' })}
                     />
                     <Textarea

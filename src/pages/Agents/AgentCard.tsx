@@ -9,7 +9,7 @@ import {
 } from '@tabler/icons-react';
 import type { AgentCardProps } from './types';
 
-export function AgentCard({ agent, isAdmin, onEdit, onDelete, onClone }: AgentCardProps) {
+export function AgentCard({ agent, onEdit, onDelete, onClone }: AgentCardProps) {
   return (
     <Card
       withBorder
@@ -29,9 +29,14 @@ export function AgentCard({ agent, isAdmin, onEdit, onDelete, onClone }: AgentCa
           >
             {agent.name}
           </Text>
-          {isAdmin && agent.isSystem && (
-            <Badge color="gray" size="xs">System</Badge>
-          )}
+          <Group gap={4}>
+            {agent.defaultName && (
+              <Badge color="cyan" size="xs">Default</Badge>
+            )}
+            {agent.systemName && (
+              <Badge color="gray" size="xs">System</Badge>
+            )}
+          </Group>
         </Group>
         <Text
           size="sm"
@@ -80,15 +85,13 @@ export function AgentCard({ agent, isAdmin, onEdit, onDelete, onClone }: AgentCa
           >
             <IconCopy size={18} />
           </ActionIcon>
-          {!agent.isSystem && (
-            <ActionIcon
-              variant="subtle"
-              color="red"
-              onClick={() => onDelete(agent)}
-            >
-              <IconTrash size={18} />
-            </ActionIcon>
-          )}
+          <ActionIcon
+            variant="subtle"
+            color="red"
+            onClick={() => onDelete(agent)}
+          >
+            <IconTrash size={18} />
+          </ActionIcon>
         </Group>
       </Group>
     </Card>

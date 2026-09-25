@@ -106,7 +106,6 @@ export function RunsPage() {
   // Track last viewed run when modal closes
   useEffect(() => {
     if (runId) {
-      console.log('runId - 0', runId)
       // Modal is open, store the runId and clear the highlight
       prevRunIdRef.current = runId;
       setLastViewedRunId(null);
