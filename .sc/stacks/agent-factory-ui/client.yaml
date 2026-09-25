@@ -1,17 +1,14 @@
 schemaVersion: 1.0
 
-# Client stack of the everworker parent (Integrail/devops, stack integrail/integrail).
+# Client stack of the Ursa parent (Ursa-Minor-Beta/infra, stack ursa/ursa).
 # Static SPA behind nginx. No app secrets; the API URL is a build arg in
 # docker-compose.sc.yaml, not runtime env.
 
 stacks:
   test:
     type: cloud-compose
-    parent: integrail/integrail
+    parent: ursa/ursa
     parentEnv: test
-    # Static-key variant of the test env's default -oidc template: the Integrail
-    # ci-oidc role does not trust Ursa-Minor-Beta. See agent-factory's client.yaml.
-    template: stack-per-app-eu
     config:
       dockerComposeFile: ${git:root}/docker-compose.sc.yaml
       domain: test-agent-factory-ui.everworker.ai

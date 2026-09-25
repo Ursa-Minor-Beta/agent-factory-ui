@@ -1,8 +1,9 @@
 name: Deploy agent-factory-ui to test
 
 # Deploys the `agent-factory-ui` Simple Container client stack into the
-# everworker `test` environment. Deploy the API (Ursa-Minor-Beta/agent-factory)
-# first: this bundle is built against its live URL.
+# Ursa `test` environment (parent ursa/ursa in Ursa-Minor-Beta/infra).
+# Deploy the API (Ursa-Minor-Beta/agent-factory) first: this bundle is built
+# against its live URL.
 # Deliberately not triggered by pushes to master.
 on:
   workflow_dispatch:
