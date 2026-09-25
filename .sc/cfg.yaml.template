@@ -1,0 +1,4 @@
+projectName: agent-factory-ui
+privateKeyPath: ~/.ssh/id_rsa
+publicKeyPath: ~/.ssh/id_rsa.pub
+parentRepository: git@github.com:Integrail/devops.git

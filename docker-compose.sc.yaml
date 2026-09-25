@@ -1,0 +1,28 @@
+# Deploy-only compose for Simple Container (see .sc/stacks/agent-factory-ui).
+# Local development keeps using docker-compose.yml.
+#
+# VITE_API_URL is compiled into the static bundle at build time; nginx reads no
+# env at runtime. It is a LITERAL here on purpose: a ${VITE_API_URL:-...}
+# default would silently bake http://localhost:3000 into the bundle whenever the
+# CI env lacks the var, and the deploy would still go green.
+
+services:
+  agent-factory-ui:
+    build:
+      context: .
+      args:
+        VITE_API_URL: https://test-agent-factory.everworker.ai
+        VITE_APP_NAME: Agent Factory
+    ports:
+      - "80:80"
+    labels:
+      "simple-container.com/ingress": "true"
+      "simple-container.com/ingress/port": "80"
+      "simple-container.com/healthcheck/path": "/health"
+      "simple-container.com/healthcheck/success-codes": "200"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
