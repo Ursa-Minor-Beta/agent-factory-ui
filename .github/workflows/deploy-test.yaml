@@ -36,6 +36,23 @@ jobs:
 
       - uses: pulumi/setup-pulumi@b374ceb6168550de27c6eba92e01c1a774040e11  # v2.0.0
 
+      # `sc deploy` does not clone the parent (parentRepository in SC_CONFIG is
+      # only read by the upstream SC action). Clone Ursa-Minor-Beta/infra with
+      # the SC key (a read-only deploy key there), reveal its secrets, and copy
+      # its stacks next to ours. The key only ever lives in a 0600 temp file.
+      - name: Fetch parent stack
+        env:
+          SIMPLE_CONTAINER_CONFIG: ${{ secrets.SC_CONFIG }}
+        run: |
+          keyfile=$(mktemp)
+          trap 'rm -f "$keyfile"' EXIT
+          chmod 600 "$keyfile"
+          printf '%s\n' "$SIMPLE_CONTAINER_CONFIG" | python3 -c 'import sys, yaml; sys.stdout.write(yaml.safe_load(sys.stdin)["privateKey"])' > "$keyfile"
+          GIT_SSH_COMMAND="ssh -i $keyfile -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
+            git clone --quiet --depth 1 git@github.com:Ursa-Minor-Beta/infra.git .infra
+          (cd .infra && sc secrets reveal --force)
+          cp -fR .infra/.sc/stacks/* .sc/stacks/
+
       # SC_CONFIG is raw YAML (never base64): the CI RSA key + parentRepository.
       - name: sc deploy
         env:
