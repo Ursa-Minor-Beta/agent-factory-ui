@@ -6,6 +6,7 @@ import {
   IconMessageCircle,
   IconChevronRight,
   IconCopy,
+  IconSchema,
 } from '@tabler/icons-react';
 import type { AgentCardProps } from './types';
 
@@ -57,20 +58,35 @@ export function AgentCard({ agent, onEdit, onDelete, onClone }: AgentCardProps) 
         </Text>
       </Stack>
       <Group mt="sm" gap="xs" justify="space-between">
-        <Link
-          to={`/agents/${agent.id}/chat`}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            color: 'var(--mantine-color-cyan-5)',
-            textDecoration: 'none',
-          }}
-        >
-          <IconMessageCircle size={16} />
-          <Text size="sm" fw={500} c="cyan">Chat</Text>
-          <IconChevronRight size={14} />
-        </Link>
+        <Group gap="md">
+          <Link
+            to={`/agents/${agent.id}/chat`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              color: 'var(--mantine-color-cyan-5)',
+              textDecoration: 'none',
+            }}
+          >
+            <IconMessageCircle size={16} />
+            <Text size="sm" fw={500} c="cyan">Chat</Text>
+            <IconChevronRight size={14} />
+          </Link>
+          <Link
+            to={`/agents/${agent.id}/editor`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              color: 'var(--mantine-color-violet-5)',
+              textDecoration: 'none',
+            }}
+          >
+            <IconSchema size={16} />
+            <Text size="sm" fw={500} c="violet">Editor</Text>
+          </Link>
+        </Group>
         <Group gap="xs">
           <ActionIcon
             variant="subtle"

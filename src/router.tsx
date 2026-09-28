@@ -19,6 +19,7 @@ const UsersSettings = lazy(() => import('./pages/Settings').then(m => ({ default
 const ApiKeysSettings = lazy(() => import('./pages/Settings').then(m => ({ default: m.ApiKeysSettings })));
 const CollectionsPage = lazy(() => import('./pages/Collections').then(m => ({ default: m.CollectionsPage })));
 const CollectionRecordsPage = lazy(() => import('./pages/Collections').then(m => ({ default: m.CollectionRecordsPage })));
+const AgentEditorPage = lazy(() => import('./pages/AgentEditor').then(m => ({ default: m.AgentEditorPage })));
 
 const PageLoader = () => (
   <Center style={{ height: '100%', minHeight: 400 }}>
@@ -60,6 +61,14 @@ export const router = createBrowserRouter([
       {
         path: 'agents/:agentId/chat/:sessionId',
         element: <ChatPage />,
+      },
+      {
+        path: 'agents/:agentId/editor',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <AgentEditorPage />
+          </Suspense>
+        ),
       },
       {
         path: 'providers',
