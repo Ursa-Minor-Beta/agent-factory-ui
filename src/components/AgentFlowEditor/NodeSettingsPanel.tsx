@@ -83,7 +83,14 @@ export function NodeSettingsPanel({ node, onUpdate, onClose }: NodeSettingsPanel
   const dataKeys = Object.keys(nodeData).filter((k) => k !== 'label');
 
   return (
-    <Box style={{ display: 'flex', height: '100%' }}>
+    <Box style={{
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
+      display: 'flex',
+      zIndex: 5,
+    }}>
       {/* Resize handle */}
       <Box
         onMouseDown={handleResizeStart}
