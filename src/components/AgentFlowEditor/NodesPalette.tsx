@@ -1,13 +1,14 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Box, Text, Stack, ScrollArea, Center, Loader, Group, ActionIcon, Tooltip, Menu, Divider } from '@mantine/core';
 import { IconPlus, IconChevronDown, IconArrowLeft, IconLayoutSidebar } from '@tabler/icons-react';
-import { nodesApi, type NodeType } from '../../api';
+import type { NodeType } from '../../api';
 
 const MIN_WIDTH = 120;
 const MAX_WIDTH_RATIO = 0.4; // 40% of viewport
 const STORAGE_KEY = 'agent-editor-palette-width';
 
 interface NodesPaletteProps {
+  nodeTypes: NodeType[];
   onAddNode: (nodeType: NodeType, exampleIndex?: number) => void;
   onClose: () => void;
 }
@@ -25,7 +26,7 @@ function NodeTypeDetail({
 
   return (
     <Box style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-      <Group justify="space-between" px="xs" pl={52} align="center" style={{ height: 52, paddingTop: 12 }}>
+      <Group justify="space-between" align="center" style={{ paddingLeft: 16, paddingRight: 10, paddingTop: 16, paddingBottom: 16 }}>
         <Group gap="xs">
           <ActionIcon variant="subtle" size="xs" onClick={onBack}>
             <IconArrowLeft size={14} />
@@ -104,9 +105,7 @@ function NodeTypeDetail({
   );
 }
 
-export function NodesPalette({ onAddNode, onClose }: NodesPaletteProps) {
-  const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
-  const [loading, setLoading] = useState(true);
+export function NodesPalette({ nodeTypes, onAddNode, onClose }: NodesPaletteProps) {
   const [viewingNodeType, setViewingNodeType] = useState<NodeType | null>(null);
   const [width, setWidth] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -114,20 +113,6 @@ export function NodesPalette({ onAddNode, onClose }: NodesPaletteProps) {
   });
   const resizingRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    async function fetchNodeTypes() {
-      try {
-        const data = await nodesApi.list();
-        setNodeTypes(data);
-      } catch (err) {
-        console.error('Failed to fetch node types:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchNodeTypes();
-  }, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, String(width));
@@ -205,7 +190,7 @@ export function NodesPalette({ onAddNode, onClose }: NodesPaletteProps) {
           />
         ) : (
           <>
-            <Group px="xs" gap="xs" align="center" style={{ height: 52, paddingTop: 12 }}>
+            <Group gap="xs" align="center" style={{ paddingLeft: 16, paddingTop: 16, paddingBottom: 8 }}>
               <ActionIcon
                 size="md"
                 variant="subtle"
@@ -222,7 +207,7 @@ export function NodesPalette({ onAddNode, onClose }: NodesPaletteProps) {
             </Group>
             <Divider />
 
-            {loading ? (
+            {nodeTypes.length === 0 ? (
               <Center py="xl">
                 <Loader size="sm" />
               </Center>

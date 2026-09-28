@@ -1,9 +1,10 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { Box, Text, TextInput, Stack, Badge, Divider, ScrollArea, Group, ActionIcon } from '@mantine/core';
 import { IconX } from '@tabler/icons-react';
 import type { Node } from '@xyflow/react';
-import { StringInput, ObjectInput } from './inputs';
+import type { NodeType, NodeTypeOption } from '../../api';
+import { StringInput, NumberInput, EnumInput, MultiEnumInput, ObjectInput } from './inputs';
 
 const MIN_WIDTH = 200;
 const MAX_WIDTH_RATIO = 0.4; // 40% of viewport
@@ -11,6 +12,7 @@ const STORAGE_KEY = 'agent-editor-panel-width';
 
 interface NodeSettingsPanelProps {
   node: Node;
+  nodeTypes: NodeType[];
   onUpdate: (nodeId: string, data: Record<string, unknown>) => void;
   onClose: () => void;
 }
@@ -20,7 +22,7 @@ interface NodeFormData {
   [key: string]: unknown;
 }
 
-export function NodeSettingsPanel({ node, onUpdate, onClose }: NodeSettingsPanelProps) {
+export function NodeSettingsPanel({ node, nodeTypes, onUpdate, onClose }: NodeSettingsPanelProps) {
   const { register, reset, watch } = useForm<NodeFormData>();
   const [width, setWidth] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -80,7 +82,26 @@ export function NodeSettingsPanel({ node, onUpdate, onClose }: NodeSettingsPanel
   }, [width]);
 
   const nodeData = node.data as Record<string, unknown>;
-  const dataKeys = Object.keys(nodeData).filter((k) => k !== 'label');
+
+  // Get options for this node type as a map by name
+  const optionsMap = useMemo(() => {
+    const nodeType = nodeTypes.find((nt) => nt.type === node.type);
+    const map: Record<string, NodeTypeOption> = {};
+    if (nodeType?.options) {
+      for (const option of nodeType.options) {
+        map[option.name] = option;
+      }
+    }
+    return map;
+  }, [nodeTypes, node.type]);
+
+  // Merge option names with existing data keys (options first, then any extra data keys)
+  const dataKeys = useMemo(() => {
+    const optionNames = Object.keys(optionsMap);
+    const existingKeys = Object.keys(nodeData).filter((k) => k !== 'label');
+    const allKeys = new Set([...optionNames, ...existingKeys]);
+    return Array.from(allKeys);
+  }, [optionsMap, nodeData]);
 
   return (
     <Box style={{
@@ -155,37 +176,77 @@ export function NodeSettingsPanel({ node, onUpdate, onClose }: NodeSettingsPanel
 
             <Divider />
 
-            {dataKeys.length > 0 && (
-              <>
-                <Divider label="Data" labelPosition="left" />
-                {dataKeys.map((key) => {
-                  const value = nodeData[key];
-                  if (typeof value === 'string' || typeof value === 'number') {
-                    return (
-                      <StringInput
-                        key={key}
-                        name={key}
-                        nodeLabel={(nodeData.label as string) || node.id}
-                        value={String(value)}
-                        onChange={(newValue) => onUpdate(node.id, { [key]: newValue })}
-                      />
-                    );
-                  }
-                  if (typeof value === 'object' && value !== null) {
-                    return (
-                      <ObjectInput
-                        key={key}
-                        name={key}
-                        nodeLabel={(nodeData.label as string) || node.id}
-                        value={value}
-                        onChange={(newValue) => onUpdate(node.id, { [key]: newValue })}
-                      />
-                    );
-                  }
-                  return null;
-                })}
-              </>
-            )}
+            {dataKeys.map((key) => {
+              const value = nodeData[key];
+              const option = optionsMap[key];
+              const fieldType = option?.type;
+
+              // Multi-select enum type
+              if (fieldType === 'enum[]' && option?.values) {
+                const arrayValue = Array.isArray(value) ? value : (option?.default as string[] ?? []);
+                return (
+                  <MultiEnumInput
+                    key={key}
+                    name={key}
+                    value={arrayValue}
+                    values={option.values}
+                    onChange={(newValue) => onUpdate(node.id, { [key]: newValue })}
+                  />
+                );
+              }
+
+              // Enum type - use select dropdown
+              if (fieldType === 'enum' && option?.values) {
+                return (
+                  <EnumInput
+                    key={key}
+                    name={key}
+                    value={String(value ?? option?.default ?? '')}
+                    values={option.values}
+                    onChange={(newValue) => onUpdate(node.id, { [key]: newValue })}
+                  />
+                );
+              }
+
+              // Number type
+              if (fieldType === 'number') {
+                return (
+                  <NumberInput
+                    key={key}
+                    name={key}
+                    value={typeof value === 'number' ? value : (option?.default as number | undefined)}
+                    onChange={(newValue) => onUpdate(node.id, { [key]: newValue })}
+                  />
+                );
+              }
+
+              // Object or array type
+              const isObject = fieldType === 'object' || fieldType === 'array' ||
+                (typeof value === 'object' && value !== null);
+
+              if (isObject) {
+                return (
+                  <ObjectInput
+                    key={key}
+                    name={key}
+                    nodeLabel={(nodeData.label as string) || node.id}
+                    value={value ?? (fieldType === 'array' ? [] : {})}
+                    onChange={(newValue) => onUpdate(node.id, { [key]: newValue })}
+                  />
+                );
+              }
+
+              // String or fallback
+              return (
+                <StringInput
+                  key={key}
+                  name={key}
+                  nodeLabel={(nodeData.label as string) || node.id}
+                  value={String(value ?? option?.default ?? '')}
+                  onChange={(newValue) => onUpdate(node.id, { [key]: newValue })}
+                />
+              );
+            })}
           </Stack>
         </ScrollArea>
       </Box>

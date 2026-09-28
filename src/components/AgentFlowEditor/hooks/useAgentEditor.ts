@@ -8,7 +8,7 @@ import {
   type Edge,
   type Connection,
 } from '@xyflow/react';
-import { agentsApi } from '../../../api';
+import { agentsApi, nodesApi, type NodeType } from '../../../api';
 import type { Agent } from '../../../types/agent';
 import { toFlowNode, toAgentNode, extractEdges, generateNodeId, autoLayoutNodes } from '../utils/converters';
 
@@ -18,6 +18,7 @@ interface UseAgentEditorOptions {
 
 export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
   const [agent, setAgent] = useState<Agent | null>(null);
+  const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
@@ -25,6 +26,19 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+
+  // Fetch node types on mount
+  useEffect(() => {
+    async function fetchNodeTypes() {
+      try {
+        const data = await nodesApi.list();
+        setNodeTypes(data);
+      } catch (err) {
+        console.error('Failed to fetch node types:', err);
+      }
+    }
+    fetchNodeTypes();
+  }, []);
 
   // Fetch agent on mount
   useEffect(() => {
@@ -149,11 +163,19 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
     setSelectedNode(null);
   }, []);
 
+  // Clear selection if the selected node was deleted
+  useEffect(() => {
+    if (selectedNode && !nodes.find((n) => n.id === selectedNode.id)) {
+      setSelectedNode(null);
+    }
+  }, [nodes, selectedNode]);
+
   return {
     // State
     agent,
     nodes,
     edges,
+    nodeTypes,
     loading,
     saving,
     running,

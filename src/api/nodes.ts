@@ -1,14 +1,12 @@
 import { api } from './client';
 
-export interface NodeTypeField {
-  type: 'string' | 'number' | 'boolean' | 'object' | 'array';
+export interface NodeTypeOption {
+  name: string;
+  type: 'string' | 'number' | 'boolean' | 'object' | 'array' | 'enum' | 'enum[]';
   required?: boolean;
   default?: unknown;
   description?: string;
-}
-
-export interface NodeTypeSchema {
-  [fieldName: string]: NodeTypeField;
+  values?: string[]; // For enum type
 }
 
 export interface NodeTypeExample {
@@ -20,13 +18,14 @@ export interface NodeTypeExample {
 
 export interface NodeType {
   type: string;
-  name: string;
+  name?: string;
   description?: string;
   category?: string;
-  inputSchema?: NodeTypeSchema;
-  outputSchema?: NodeTypeSchema;
-  options?: Record<string, unknown>;
-  examples?: Array<NodeTypeExample>;
+  inputs?: string[];
+  outputs?: string[];
+  options?: NodeTypeOption[];
+  features?: string[];
+  examples?: NodeTypeExample[];
 }
 
 export const nodesApi = {

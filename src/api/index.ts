@@ -11,7 +11,7 @@ export type { FileData, FileListItem } from './files';
 export { systemApi } from './system';
 export type { ApiInfo, HealthCheck, ReseedResult } from './system';
 export { nodesApi } from './nodes';
-export type { NodeType, NodeTypeSchema, NodeTypeField } from './nodes';
+export type { NodeType, NodeTypeOption, NodeTypeExample } from './nodes';
 export { memoryApi } from './memory';
 export type {
   CreateMemorySchemaInput,

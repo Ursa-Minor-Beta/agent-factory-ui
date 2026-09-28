@@ -32,6 +32,7 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
     agent,
     nodes,
     edges,
+    nodeTypes: availableNodeTypes,
     loading,
     saving,
     running,
@@ -50,11 +51,23 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
 
   const handleAddNode = useCallback(
     (nodeType: NodeType, exampleIndex?: number) => {
-      // Get example data if provided
-      let data: Record<string, unknown> | undefined;
-      if (exampleIndex !== undefined && nodeType.examples?.[exampleIndex]) {
-        data = nodeType.examples[exampleIndex].data;
+      // Build initial data from option defaults
+      const optionDefaults: Record<string, unknown> = {};
+      if (nodeType.options) {
+        for (const option of nodeType.options) {
+          if (option.default !== undefined) {
+            optionDefaults[option.name] = option.default;
+          }
+        }
       }
+
+      // Get example data if provided (overrides defaults)
+      let exampleData: Record<string, unknown> = {};
+      if (exampleIndex !== undefined && nodeType.examples?.[exampleIndex]) {
+        exampleData = nodeType.examples[exampleIndex].data || {};
+      }
+
+      const data = { ...optionDefaults, ...exampleData };
 
       // Add at center of viewport
       if (reactFlowInstance.current) {
@@ -118,9 +131,9 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
         </ReactFlow>
       </div>
       {/* Overlay panels */}
-      {isPaletteOpen && <NodesPalette onAddNode={handleAddNode} onClose={togglePalette} />}
+      {isPaletteOpen && <NodesPalette nodeTypes={availableNodeTypes} onAddNode={handleAddNode} onClose={togglePalette} />}
       {selectedNode && (
-        <NodeSettingsPanel node={selectedNode} onUpdate={updateNodeData} onClose={onPaneClick} />
+        <NodeSettingsPanel node={selectedNode} nodeTypes={availableNodeTypes} onUpdate={updateNodeData} onClose={onPaneClick} />
       )}
     </div>
   );
