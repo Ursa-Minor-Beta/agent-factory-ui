@@ -1,19 +1,22 @@
 import { Group, Text, ActionIcon, Tooltip, Menu, Divider } from '@mantine/core';
 import { IconPlus, IconChevronDown, IconArrowLeft } from '@tabler/icons-react';
 import type { NodeType } from '../../../api';
-import { NodesList } from './NodesList';
+import { NodesList, SINGLETON_NODE_TYPES } from './NodesList';
 import { NodeTypeDetail } from './NodeTypeDetail';
 
 interface NodesTabProps {
   nodeTypes: NodeType[];
+  existingNodeTypes: Set<string>;
   viewingNodeType: NodeType | null;
   onAddNode: (nodeType: NodeType, exampleIndex?: number) => void;
   onNodeClick: (nodeType: NodeType) => void;
   onBack: () => void;
 }
 
-export function NodesTab({ nodeTypes, viewingNodeType, onAddNode, onNodeClick, onBack }: NodesTabProps) {
+export function NodesTab({ nodeTypes, existingNodeTypes, viewingNodeType, onAddNode, onNodeClick, onBack }: NodesTabProps) {
   if (viewingNodeType) {
+    const isDisabled = SINGLETON_NODE_TYPES.has(viewingNodeType.type) && existingNodeTypes.has(viewingNodeType.type);
+
     return (
       <>
         <Group justify="space-between" align="center" p="xs">
@@ -27,10 +30,11 @@ export function NodesTab({ nodeTypes, viewingNodeType, onAddNode, onNodeClick, o
           </Group>
           {viewingNodeType.examples && viewingNodeType.examples.length > 1 ? (
             <ActionIcon.Group>
-              <Tooltip label="Add">
+              <Tooltip label={isDisabled ? 'Already added' : 'Add'}>
                 <ActionIcon
                   variant="subtle"
                   size="xs"
+                  disabled={isDisabled}
                   onClick={() => {
                     onAddNode(viewingNodeType, 0);
                     onBack();
@@ -42,7 +46,7 @@ export function NodesTab({ nodeTypes, viewingNodeType, onAddNode, onNodeClick, o
               <Menu position="bottom-end" withinPortal>
                 <Menu.Target>
                   <Tooltip label="Select">
-                    <ActionIcon variant="subtle" size="xs">
+                    <ActionIcon variant="subtle" size="xs" disabled={isDisabled}>
                       <IconChevronDown size={12} />
                     </ActionIcon>
                   </Tooltip>
@@ -66,10 +70,11 @@ export function NodesTab({ nodeTypes, viewingNodeType, onAddNode, onNodeClick, o
               </Menu>
             </ActionIcon.Group>
           ) : (
-            <Tooltip label="Add">
+            <Tooltip label={isDisabled ? 'Already added' : 'Add'}>
               <ActionIcon
                 variant="subtle"
                 size="xs"
+                disabled={isDisabled}
                 onClick={() => {
                   onAddNode(viewingNodeType);
                   onBack();
@@ -86,5 +91,5 @@ export function NodesTab({ nodeTypes, viewingNodeType, onAddNode, onNodeClick, o
     );
   }
 
-  return <NodesList nodeTypes={nodeTypes} onAddNode={onAddNode} onNodeClick={onNodeClick} />;
+  return <NodesList nodeTypes={nodeTypes} existingNodeTypes={existingNodeTypes} onAddNode={onAddNode} onNodeClick={onNodeClick} />;
 }

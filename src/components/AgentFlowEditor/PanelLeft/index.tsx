@@ -11,11 +11,12 @@ const STORAGE_KEY = 'agent-editor-palette-width';
 
 interface PanelLeftProps {
   nodeTypes: NodeType[];
+  existingNodeTypes: Set<string>;
   onAddNode: (nodeType: NodeType, exampleIndex?: number) => void;
   onClose: () => void;
 }
 
-export function PanelLeft({ nodeTypes, onAddNode, onClose }: PanelLeftProps) {
+export function PanelLeft({ nodeTypes, existingNodeTypes, onAddNode, onClose }: PanelLeftProps) {
   const [viewingNodeType, setViewingNodeType] = useState<NodeType | null>(null);
   const [activeTab, setActiveTab] = useState<string | null>('nodes');
   const [width, setWidth] = useState(() => {
@@ -124,6 +125,7 @@ export function PanelLeft({ nodeTypes, onAddNode, onClose }: PanelLeftProps) {
             <Tabs.Panel value="nodes" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               <NodesTab
                 nodeTypes={nodeTypes}
+                existingNodeTypes={existingNodeTypes}
                 viewingNodeType={viewingNodeType}
                 onAddNode={onAddNode}
                 onNodeClick={setViewingNodeType}

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { ReactFlow, MiniMap, type ReactFlowInstance } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import './AgentFlowEditor.css';
@@ -48,6 +48,11 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
     updateNodeData,
     addNode,
   } = useAgentEditor({ agentId });
+
+  // Compute set of node types already on the canvas
+  const existingNodeTypes = useMemo(() => {
+    return new Set(nodes.map((node) => node.type).filter((type): type is string => !!type));
+  }, [nodes]);
 
   const handleAddNode = useCallback(
     (nodeType: NodeType, exampleIndex?: number) => {
@@ -131,11 +136,12 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
         </ReactFlow>
       </div>
 
-      {isPaletteOpen && 
+      {isPaletteOpen &&
         <PanelLeft
-          nodeTypes={availableNodeTypes} 
-          onAddNode={handleAddNode} 
-          onClose={togglePalette} 
+          nodeTypes={availableNodeTypes}
+          existingNodeTypes={existingNodeTypes}
+          onAddNode={handleAddNode}
+          onClose={togglePalette}
           />
       }
 
