@@ -56,7 +56,13 @@ export const TextInput = memo(function TextInput({ name, nodeLabel, value, onCha
         centered
         styles={{
           content: { height: '100vh', display: 'flex', flexDirection: 'column' },
-          body: { flex: 1, padding: 16, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
+          body: { 
+            flex: 1, 
+            padding: 0, 
+            display: 'flex', 
+            flexDirection: 'column', 
+            overflow: 'hidden' 
+          },
         }}
       >
         <TextEditorMarkdownRaw

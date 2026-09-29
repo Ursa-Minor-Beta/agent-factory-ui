@@ -128,6 +128,7 @@ export const TextEditorMarkdownRaw = ({
     const formatedTouched = useRef<boolean>(false);
 
     const [editorMode, setEditorMode] = useState<EditorMode>(defaultMode);
+    const [rawContent, setRawContent] = useState(() => getValues(formFieldName));
 
     const isModeFormatted = editorMode === 'formatted';
     let setValueTimeOut: null | number = null;
@@ -139,7 +140,18 @@ export const TextEditorMarkdownRaw = ({
             textAreaRef.current?.style.height ||
             editor.view.dom.style.height ||
             `${heightInitPx}px`;
-        if (!isModeFormatted) {
+        if (isModeFormatted) {
+            // Switching from MD to Text - save editor content
+            const markdown = editor.getMarkdown();
+            setValue(formFieldName, markdown);
+            setRawContent(markdown);
+        } else {
+            // Switching from Text to MD - save textarea and update editor
+            const textValue = textAreaRef.current?.value ?? '';
+            setValue(formFieldName, textValue);
+            editor.commands.setContent(normalizeLaTeXDelimiters(textValue), {
+                contentType: 'markdown',
+            });
             formatedTouched.current = false;
             editor.setOptions(getEditorProps(heightRef.current));
         }
@@ -229,14 +241,15 @@ export const TextEditorMarkdownRaw = ({
             name: formFieldName,
             callback: (_d) => {
                 const val = getValues(formFieldName);
+                setRawContent(val);
                 if (isModeFormatted && editor?.isInitialized && !editor.isFocused) {
                     editor.commands.setContent(normalizeLaTeXDelimiters(val), {
                         contentType: 'markdown',
                     });
-                } else if (!!textAreaRef.current) {
+                } else if (textAreaRef.current) {
                     textAreaRef.current.value = val;
                 }
-                // Reset flag when content is programmatically updated in raw mode
+                // Reset flag when content is programmatically updated
                 formatedTouched.current = false;
             },
         });
@@ -254,7 +267,11 @@ export const TextEditorMarkdownRaw = ({
             <Box style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                 <Group 
                     gap="xs" 
-                    pb="xs" 
+                    p={12} 
+                    style={{
+                        borderTop: '1px solid var(--mantine-color-default-border)',
+                        borderBottom: '1px solid var(--mantine-color-default-border)',
+                    }}
                     >
                     <Button.Group>
                         <Button
@@ -307,9 +324,10 @@ export const TextEditorMarkdownRaw = ({
                     minHeight: 0,
                     display: 'flex',
                     flexDirection: 'column',
+                    // borderTop: '1px solid var(--mantine-color-default-border)',
                     padding: '4px',
-                    border: '1px solid var(--mantine-color-default-border)',
-                    borderRadius: '8px'
+                    // border: '1px solid var(--mantine-color-default-border)',
+                    // borderRadius: '8px'
                     }}
                   >
                     {isModeFormatted ? (
@@ -327,7 +345,7 @@ export const TextEditorMarkdownRaw = ({
                                 wrapper: { height: '100%' },
                                 input: { height: '100%', border: 'none', borderRadius: 0, backgroundColor: 'transparent' },
                             }}
-                            defaultValue={getValues(formFieldName)}
+                            defaultValue={rawContent}
                             onBlur={(e) => setFormValue(e.target.value)}
                         />
                     )}

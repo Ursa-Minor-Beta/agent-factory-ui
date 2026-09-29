@@ -11,6 +11,7 @@
     flex: 1;
     min-height: 0;
     overflow: auto;
+    padding: 12px;
 }
 
 /* Remove focus borders from editor */
@@ -236,4 +237,8 @@
 
 .tiptapContent :global(sup.footnote-ref) a::after {
     content: ']';
+}
+
+.tiptapContent p {
+    margin: .5rem 0;
 }
