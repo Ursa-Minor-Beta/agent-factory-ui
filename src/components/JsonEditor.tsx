@@ -26,19 +26,27 @@ export function JsonEditor({ value, onChange, readOnly = false, height = '100%',
   const { colorScheme } = useMantineColorScheme();
   const isControlled = text !== undefined && onTextChange !== undefined;
 
+  // For javascript mode, show strings directly without JSON quotes
+  const valueToString = useCallback((val: unknown): string => {
+    if (mode === 'javascript' && typeof val === 'string') {
+      return val;
+    }
+    return JSON.stringify(val, null, 2);
+  }, [mode]);
+
   // Keep internal string state so edits persist even when JSON is invalid
-  const [internalValue, setInternalValue] = useState(() => JSON.stringify(value, null, 2));
-  const lastExternalValue = useRef<string>(JSON.stringify(value, null, 2));
+  const [internalValue, setInternalValue] = useState(() => valueToString(value));
+  const lastExternalValue = useRef<string>(valueToString(value));
 
   // Sync from prop only when external value actually changes (uncontrolled mode)
   useEffect(() => {
     if (isControlled) return; // Skip if using external text control
-    const newExternalValue = JSON.stringify(value, null, 2);
+    const newExternalValue = valueToString(value);
     if (newExternalValue !== lastExternalValue.current) {
       lastExternalValue.current = newExternalValue;
       setInternalValue(newExternalValue);
     }
-  }, [value, isControlled]);
+  }, [value, isControlled, valueToString]);
 
   const handleChange = useCallback((newValue: string) => {
     if (isControlled) {
@@ -48,6 +56,13 @@ export function JsonEditor({ value, onChange, readOnly = false, height = '100%',
       // Uncontrolled mode: use internal state
       setInternalValue(newValue);
       if (!onChange) return;
+
+      // In javascript mode, treat content as raw string (always valid)
+      if (mode === 'javascript') {
+        onChange(newValue, true);
+        return;
+      }
+
       try {
         const parsed = JSON.parse(newValue);
         onChange(parsed, true);
@@ -55,7 +70,7 @@ export function JsonEditor({ value, onChange, readOnly = false, height = '100%',
         onChange(newValue, false);
       }
     }
-  }, [isControlled, onTextChange, onChange]);
+  }, [isControlled, onTextChange, onChange, mode]);
 
   const displayValue = isControlled ? text : internalValue;
 
