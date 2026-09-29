@@ -42,8 +42,8 @@ export const TextInput = memo(function TextInput({ name, nodeLabel, value, onCha
         size="xs"
         defaultValue={value}
         onChange={handleChange}
-        minRows={2}
-        maxRows={4}
+        minRows={3}
+        maxRows={8}
         autosize
       />
 

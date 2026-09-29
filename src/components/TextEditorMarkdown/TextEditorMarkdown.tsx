@@ -203,6 +203,14 @@ export const TextEditorMarkdownRaw = ({
             ],
             editable: !disabled,
             ...getEditorProps(heightRef.current),
+            onCreate: ({ editor }) => {
+                const initialValue = getValues(formFieldName);
+                if (initialValue) {
+                    editor.commands.setContent(normalizeLaTeXDelimiters(initialValue), {
+                        contentType: 'markdown',
+                    });
+                }
+            },
             onUpdate: (_p) => {
                 if (!formatedTouched.current) formatedTouched.current = true;
             },
@@ -213,20 +221,9 @@ export const TextEditorMarkdownRaw = ({
         [],
     );
 
-    // Set initial content and handle external updates
+    // Handle external updates via subscription
     useEffect(() => {
-        if (!editor) return;
-
-        // Set initial content
-        const initialValue = getValues(formFieldName);
-        if (editor.isInitialized && !editor.isFocused) {
-            editor.commands.setContent(normalizeLaTeXDelimiters(initialValue), {
-                contentType: 'markdown',
-            });
-        }
-
-        // Subscribe to external changes if subscribe function is provided
-        if (!subscribe) return;
+        if (!editor || !subscribe) return;
 
         const unsubscribe = subscribe({
             name: formFieldName,
@@ -250,7 +247,7 @@ export const TextEditorMarkdownRaw = ({
                 unsubscribe();
             }
         };
-    }, [isModeFormatted]);
+    }, [editor, isModeFormatted]);
 
     return (
         <Box className={classes.wrapper}>
@@ -258,10 +255,6 @@ export const TextEditorMarkdownRaw = ({
                 <Group 
                     gap="xs" 
                     pb="xs" 
-                    // style={{ 
-                    //     borderBottom: '1px solid var(--mantine-color-default-border)', 
-                    //     borderTop: '1px solid var(--mantine-color-default-border)'
-                    // }}
                     >
                     <Button.Group>
                         <Button
