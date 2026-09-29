@@ -74,6 +74,7 @@ export const EditorInput = memo(function EditorInput({ name, nodeLabel, value, o
           value={value}
           height={height}
           mode="javascript"
+          showLineNumbers={false}
           onChange={(newValue, isValid) => {
             if (isValid) {
               onChange(newValue);
