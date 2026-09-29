@@ -203,7 +203,7 @@ export const TextEditorMarkdownRaw = ({
             ],
             editable: !disabled,
             ...getEditorProps(heightRef.current),
-            onUpdate: (p) => {
+            onUpdate: (_p) => {
                 if (!formatedTouched.current) formatedTouched.current = true;
             },
             onBlur: (p) => {
@@ -230,7 +230,7 @@ export const TextEditorMarkdownRaw = ({
 
         const unsubscribe = subscribe({
             name: formFieldName,
-            callback: (d) => {
+            callback: (_d) => {
                 const val = getValues(formFieldName);
                 if (isModeFormatted && editor?.isInitialized && !editor.isFocused) {
                     editor.commands.setContent(normalizeLaTeXDelimiters(val), {

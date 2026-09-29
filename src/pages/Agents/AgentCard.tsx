@@ -2,11 +2,11 @@ import { Link } from 'react-router-dom';
 import { Card, Text, Group, Stack, ActionIcon, Badge } from '@mantine/core';
 import {
   IconTrash,
-  IconEdit,
   IconMessageCircle,
   IconChevronRight,
   IconCopy,
   IconSchema,
+  IconCode,
 } from '@tabler/icons-react';
 import type { AgentCardProps } from './types';
 
@@ -73,8 +73,11 @@ export function AgentCard({ agent, onEdit, onDelete, onClone }: AgentCardProps) 
             <Text size="sm" fw={500} c="cyan">Chat</Text>
             <IconChevronRight size={14} />
           </Link>
+        </Group>
+        <Group gap="xs">
           <Link
             to={`/agents/${agent.id}/editor`}
+            title='Visual editor'
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -84,15 +87,13 @@ export function AgentCard({ agent, onEdit, onDelete, onClone }: AgentCardProps) 
             }}
           >
             <IconSchema size={16} />
-            <Text size="sm" fw={500} c="violet">Editor</Text>
           </Link>
-        </Group>
-        <Group gap="xs">
           <ActionIcon
             variant="subtle"
+            title='JSON editor'
             onClick={() => onEdit(agent)}
           >
-            <IconEdit size={18} />
+            <IconCode size={18} />
           </ActionIcon>
           <ActionIcon
             variant="subtle"

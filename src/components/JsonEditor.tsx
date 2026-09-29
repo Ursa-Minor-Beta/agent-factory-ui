@@ -16,12 +16,13 @@ export interface JsonEditorProps {
   height?: string | number;
   label?: string;
   mode?: 'json' | 'javascript';
+  showLineNumbers?: boolean;
   // External text control (for split view sync)
   text?: string;
   onTextChange?: (text: string) => void;
 }
 
-export function JsonEditor({ value, onChange, readOnly = false, height = '100%', label, mode = 'json', text, onTextChange }: JsonEditorProps) {
+export function JsonEditor({ value, onChange, readOnly = false, height = '100%', label, mode = 'json', showLineNumbers = true, text, onTextChange }: JsonEditorProps) {
   const { colorScheme } = useMantineColorScheme();
   const isControlled = text !== undefined && onTextChange !== undefined;
 
@@ -80,12 +81,12 @@ export function JsonEditor({ value, onChange, readOnly = false, height = '100%',
           height="100%"
           fontSize={13}
           showPrintMargin={false}
-          showGutter={true}
-          highlightActiveLine={true}
+          showGutter={showLineNumbers}
+          highlightActiveLine={!readOnly}
           wrapEnabled={true}
           setOptions={{
             useWorker: false,
-            showLineNumbers: true,
+            showLineNumbers: showLineNumbers,
             tabSize: 2,
             enableBasicAutocompletion: false,
             enableLiveAutocompletion: false,

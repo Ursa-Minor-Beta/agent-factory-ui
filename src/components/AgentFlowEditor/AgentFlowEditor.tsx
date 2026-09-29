@@ -5,11 +5,11 @@ import './AgentFlowEditor.css';
 import { Center, Loader } from '@mantine/core';
 import { useAgentEditor } from './hooks/useAgentEditor';
 import { EditorToolbar } from './EditorToolbar';
-import { NodeSettingsPanel } from './NodeSettingsPanel';
-import { NodesPalette } from './NodesPalette';
 import { nodeTypes } from './nodes';
 import type { AgentFlowEditorProps } from './types';
 import type { NodeType } from '../../api';
+import { PanelLeft } from './PanelLeft';
+import { PanelRight } from './PanelRight';
 
 const PALETTE_STORAGE_KEY = 'agent-editor-palette-open';
 
@@ -130,11 +130,24 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
           }
         </ReactFlow>
       </div>
-      {/* Overlay panels */}
-      {isPaletteOpen && <NodesPalette nodeTypes={availableNodeTypes} onAddNode={handleAddNode} onClose={togglePalette} />}
+
+      {isPaletteOpen && 
+        <PanelLeft
+          nodeTypes={availableNodeTypes} 
+          onAddNode={handleAddNode} 
+          onClose={togglePalette} 
+          />
+      }
+
       {selectedNode && (
-        <NodeSettingsPanel node={selectedNode} nodeTypes={availableNodeTypes} onUpdate={updateNodeData} onClose={onPaneClick} />
+        <PanelRight 
+          node={selectedNode} 
+          nodeTypes={availableNodeTypes} 
+          onUpdate={updateNodeData} 
+          onClose={onPaneClick} 
+          />
       )}
+
     </div>
   );
 }
