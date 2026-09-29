@@ -56,9 +56,16 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
         // Extract edges from node data
         const flowEdges = extractEdges(flowNodes);
 
-        // Apply auto-layout for proper positioning
-        const layoutedNodes = autoLayoutNodes(flowNodes, flowEdges);
-        setNodes(layoutedNodes);
+        // Apply saved positions from editorData if available, otherwise use auto-layout
+        const nodePositions = data.editorData?.nodePositions;
+        const positionedNodes = nodePositions
+          ? flowNodes.map((node) => ({
+              ...node,
+              position: nodePositions[node.id] || node.position,
+            }))
+          : autoLayoutNodes(flowNodes, flowEdges);
+
+        setNodes(positionedNodes);
         setEdges(flowEdges);
       } catch (err) {
         console.error('Failed to fetch agent:', err);
@@ -85,7 +92,20 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
     setSaving(true);
     try {
       const agentNodes = nodes.map(toAgentNode);
-      await agentsApi.update(agent.id, { nodes: agentNodes });
+
+      // Build nodePositions from current node positions
+      const nodePositions: Record<string, { x: number; y: number }> = {};
+      for (const node of nodes) {
+        nodePositions[node.id] = { x: node.position.x, y: node.position.y };
+      }
+
+      // Merge with existing editorData to preserve other fields
+      const editorData = {
+        ...agent.editorData,
+        nodePositions,
+      };
+
+      await agentsApi.update(agent.id, { nodes: agentNodes, editorData });
     } catch (err) {
       console.error('Failed to save agent:', err);
     } finally {

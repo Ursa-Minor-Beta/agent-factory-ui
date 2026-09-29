@@ -1,16 +1,18 @@
 import { api } from './client';
-import type { Agent, AgentQueryParams, AgentListResponse } from '../types';
+import type { Agent, AgentQueryParams, AgentListResponse, EditorData } from '../types';
 
 export interface CreateAgentInput {
   name: string;
   description?: string;
   nodes?: Agent['nodes'];
+  editorData?: EditorData;
 }
 
 export interface UpdateAgentInput {
   name?: string;
   description?: string;
   nodes?: Agent['nodes'];
+  editorData?: EditorData;
   status?: 'draft' | 'published';
 }
 

@@ -20,12 +20,18 @@ export interface AgentNode {
   };
 }
 
+export interface EditorData {
+  nodePositions?: Record<string, { x: number; y: number }>;
+  [key: string]: unknown;
+}
+
 export interface Agent {
   id: string;
   userId: string;
   name: string;
   description?: string;
   nodes: AgentNode[];
+  editorData?: EditorData;
   status: 'draft' | 'published';
   defaultName?: string;
   systemName?: string;
