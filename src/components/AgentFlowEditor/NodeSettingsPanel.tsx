@@ -1,10 +1,10 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
-import { Box, Text, TextInput, Stack, Badge, Divider, ScrollArea, Group, ActionIcon } from '@mantine/core';
+import { Box, Text, TextInput as MantineTextInput, Stack, Badge, Divider, ScrollArea, Group, ActionIcon } from '@mantine/core';
 import { IconX } from '@tabler/icons-react';
 import type { Node } from '@xyflow/react';
 import type { NodeType, NodeTypeOption } from '../../api';
-import { StringInput, NumberInput, EnumInput, MultiEnumInput, ObjectInput } from './inputs';
+import { StringInput, TextInput, EditorInput, NumberInput, EnumInput, MultiEnumInput } from './inputs';
 
 const MIN_WIDTH = 200;
 const MAX_WIDTH_RATIO = 0.4; // 40% of viewport
@@ -20,6 +20,110 @@ interface NodeSettingsPanelProps {
 interface NodeFormData {
   label: string;
   [key: string]: unknown;
+}
+
+function renderFieldInput(
+  key: string,
+  nodeData: Record<string, unknown>,
+  optionsMap: Record<string, NodeTypeOption>,
+  nodeId: string,
+  onUpdate: (nodeId: string, data: Record<string, unknown>) => void
+) {
+  const value = nodeData[key];
+  const option = optionsMap[key];
+  const fieldType = option?.type;
+
+  // Multi-select enum type
+  if (fieldType === 'enum[]' && option?.values) {
+    const arrayValue = Array.isArray(value) ? value : (option?.default as string[] ?? []);
+    return (
+      <MultiEnumInput
+        key={key}
+        name={key}
+        value={arrayValue}
+        values={option.values}
+        onChange={(newValue) => onUpdate(nodeId, { [key]: newValue })}
+      />
+    );
+  }
+
+  // Enum type - use select dropdown
+  if (fieldType === 'enum' && option?.values) {
+    return (
+      <EnumInput
+        key={key}
+        name={key}
+        value={String(value ?? option?.default ?? '')}
+        values={option.values}
+        onChange={(newValue) => onUpdate(nodeId, { [key]: newValue })}
+      />
+    );
+  }
+
+  // Number type
+  if (fieldType === 'number') {
+    return (
+      <NumberInput
+        key={key}
+        name={key}
+        value={typeof value === 'number' ? value : (option?.default as number | undefined)}
+        onChange={(newValue) => onUpdate(nodeId, { [key]: newValue })}
+      />
+    );
+  }
+
+  // Text type (multiline with modal)
+  if (fieldType === 'text') {
+    return (
+      <TextInput
+        key={key}
+        name={key}
+        nodeLabel={(nodeData.label as string) || nodeId}
+        value={String(value ?? option?.default ?? '')}
+        onChange={(newValue) => onUpdate(nodeId, { [key]: newValue })}
+      />
+    );
+  }
+
+  // Code type (JSON editor with modal)
+  if (fieldType === 'code') {
+    return (
+      <EditorInput
+        key={key}
+        name={key}
+        nodeLabel={(nodeData.label as string) || nodeId}
+        value={String(value ?? option?.default ?? '')}
+        onChange={(newValue) => onUpdate(nodeId, { [key]: newValue })}
+      />
+    );
+  }
+
+  // Object or array type
+  const isObject = fieldType === 'object' || fieldType === 'array' ||
+    (typeof value === 'object' && value !== null);
+
+  if (isObject) {
+    return (
+      <EditorInput
+        key={key}
+        name={key}
+        nodeLabel={(nodeData.label as string) || nodeId}
+        value={value ?? (fieldType === 'array' ? [] : {})}
+        onChange={(newValue) => onUpdate(nodeId, { [key]: newValue })}
+      />
+    );
+  }
+
+  // String type (simple single-line) or fallback
+  return (
+    <StringInput
+      key={key}
+      name={key}
+      nodeLabel={(nodeData.label as string) || nodeId}
+      value={String(value ?? option?.default ?? '')}
+      onChange={(newValue) => onUpdate(nodeId, { [key]: newValue })}
+    />
+  );
 }
 
 export function NodeSettingsPanel({ node, nodeTypes, onUpdate, onClose }: NodeSettingsPanelProps) {
@@ -156,7 +260,7 @@ export function NodeSettingsPanel({ node, nodeTypes, onUpdate, onClose }: NodeSe
         <ScrollArea flex={1} p="md">
           <Stack gap="md" pb="xl">
 
-            <TextInput
+            <MantineTextInput
               label="Label"
               size="xs"
               {...register('label')}
@@ -176,77 +280,7 @@ export function NodeSettingsPanel({ node, nodeTypes, onUpdate, onClose }: NodeSe
 
             <Divider />
 
-            {dataKeys.map((key) => {
-              const value = nodeData[key];
-              const option = optionsMap[key];
-              const fieldType = option?.type;
-
-              // Multi-select enum type
-              if (fieldType === 'enum[]' && option?.values) {
-                const arrayValue = Array.isArray(value) ? value : (option?.default as string[] ?? []);
-                return (
-                  <MultiEnumInput
-                    key={key}
-                    name={key}
-                    value={arrayValue}
-                    values={option.values}
-                    onChange={(newValue) => onUpdate(node.id, { [key]: newValue })}
-                  />
-                );
-              }
-
-              // Enum type - use select dropdown
-              if (fieldType === 'enum' && option?.values) {
-                return (
-                  <EnumInput
-                    key={key}
-                    name={key}
-                    value={String(value ?? option?.default ?? '')}
-                    values={option.values}
-                    onChange={(newValue) => onUpdate(node.id, { [key]: newValue })}
-                  />
-                );
-              }
-
-              // Number type
-              if (fieldType === 'number') {
-                return (
-                  <NumberInput
-                    key={key}
-                    name={key}
-                    value={typeof value === 'number' ? value : (option?.default as number | undefined)}
-                    onChange={(newValue) => onUpdate(node.id, { [key]: newValue })}
-                  />
-                );
-              }
-
-              // Object or array type
-              const isObject = fieldType === 'object' || fieldType === 'array' ||
-                (typeof value === 'object' && value !== null);
-
-              if (isObject) {
-                return (
-                  <ObjectInput
-                    key={key}
-                    name={key}
-                    nodeLabel={(nodeData.label as string) || node.id}
-                    value={value ?? (fieldType === 'array' ? [] : {})}
-                    onChange={(newValue) => onUpdate(node.id, { [key]: newValue })}
-                  />
-                );
-              }
-
-              // String or fallback
-              return (
-                <StringInput
-                  key={key}
-                  name={key}
-                  nodeLabel={(nodeData.label as string) || node.id}
-                  value={String(value ?? option?.default ?? '')}
-                  onChange={(newValue) => onUpdate(node.id, { [key]: newValue })}
-                />
-              );
-            })}
+            {dataKeys.map((key) => renderFieldInput(key, nodeData, optionsMap, node.id, onUpdate))}
           </Stack>
         </ScrollArea>
       </Box>

@@ -3,6 +3,7 @@ import { Box, Text, useMantineColorScheme } from '@mantine/core';
 import AceEditor from 'react-ace';
 
 import 'ace-builds/src-noconflict/mode-json';
+import 'ace-builds/src-noconflict/mode-javascript';
 import 'ace-builds/src-noconflict/theme-one_dark';
 import 'ace-builds/src-noconflict/theme-chrome';
 import 'ace-builds/src-noconflict/ext-language_tools';
@@ -14,12 +15,13 @@ export interface JsonEditorProps {
   readOnly?: boolean;
   height?: string | number;
   label?: string;
+  mode?: 'json' | 'javascript';
   // External text control (for split view sync)
   text?: string;
   onTextChange?: (text: string) => void;
 }
 
-export function JsonEditor({ value, onChange, readOnly = false, height = '100%', label, text, onTextChange }: JsonEditorProps) {
+export function JsonEditor({ value, onChange, readOnly = false, height = '100%', label, mode = 'json', text, onTextChange }: JsonEditorProps) {
   const { colorScheme } = useMantineColorScheme();
   const isControlled = text !== undefined && onTextChange !== undefined;
 
@@ -69,7 +71,7 @@ export function JsonEditor({ value, onChange, readOnly = false, height = '100%',
         }}
       >
         <AceEditor
-          mode="json"
+          mode={mode}
           theme={colorScheme === 'dark' ? 'one_dark' : 'chrome'}
           value={displayValue}
           onChange={handleChange}
