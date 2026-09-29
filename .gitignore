@@ -23,3 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Simple Container — local profiles never committed
+.sc/cfg.default.yaml
+.sc/cfg.github.yaml
+.sc/profiles/
+.sc/artifacts/
+.sc/stacks/*/secrets.yaml
