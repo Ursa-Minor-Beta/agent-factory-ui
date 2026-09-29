@@ -6,18 +6,23 @@ import { Center, Loader } from '@mantine/core';
 import { useAgentEditor } from './hooks/useAgentEditor';
 import { EditorToolbar } from './EditorToolbar';
 import { nodeTypes } from './nodes';
+import { edgeTypes } from './edges';
 import type { AgentFlowEditorProps } from './types';
 import type { NodeType } from '../../api';
 import { PanelLeft } from './PanelLeft';
 import { PanelRight } from './PanelRight';
 
 const PALETTE_STORAGE_KEY = 'agent-editor-palette-open';
+const EDGE_TYPE_STORAGE_KEY = 'agent-editor-edge-type';
 
 export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
   const [isPaletteOpen, setIsPaletteOpen] = useState(() => {
     const saved = localStorage.getItem(PALETTE_STORAGE_KEY);
     return saved !== null ? saved === 'true' : true;
+  });
+  const [edgeType, setEdgeType] = useState(() => {
+    return localStorage.getItem(EDGE_TYPE_STORAGE_KEY) || 'smart';
   });
 
   const togglePalette = useCallback(() => {
@@ -26,6 +31,11 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
       localStorage.setItem(PALETTE_STORAGE_KEY, String(newValue));
       return newValue;
     });
+  }, []);
+
+  const handleEdgeTypeChange = useCallback((value: string) => {
+    setEdgeType(value);
+    localStorage.setItem(EDGE_TYPE_STORAGE_KEY, value);
   }, []);
 
   const {
@@ -113,6 +123,8 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          defaultEdgeOptions={{ type: edgeType }}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
@@ -140,7 +152,9 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
         <PanelLeft
           nodeTypes={availableNodeTypes}
           existingNodeTypes={existingNodeTypes}
+          edgeType={edgeType}
           onAddNode={handleAddNode}
+          onEdgeTypeChange={handleEdgeTypeChange}
           onClose={togglePalette}
           />
       }

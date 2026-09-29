@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Box, Text, Group, ActionIcon, Divider, Tabs } from '@mantine/core';
-import { IconLayoutSidebar, IconSettings, IconNote } from '@tabler/icons-react';
+import { IconLayoutSidebar, IconSettings, IconNote, IconBrush } from '@tabler/icons-react';
 import type { NodeType } from '../../../api';
 import { NodesTab } from './NodesTab';
 import { SettingsTab } from './SettingsTab';
+import { CanvasTab } from './CanvasTab';
 
 const MIN_WIDTH = 120;
 const MAX_WIDTH_RATIO = 0.4; // 40% of viewport
@@ -12,11 +13,13 @@ const STORAGE_KEY = 'agent-editor-palette-width';
 interface PanelLeftProps {
   nodeTypes: NodeType[];
   existingNodeTypes: Set<string>;
+  edgeType: string;
   onAddNode: (nodeType: NodeType, exampleIndex?: number) => void;
+  onEdgeTypeChange: (value: string) => void;
   onClose: () => void;
 }
 
-export function PanelLeft({ nodeTypes, existingNodeTypes, onAddNode, onClose }: PanelLeftProps) {
+export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, onAddNode, onEdgeTypeChange, onClose }: PanelLeftProps) {
   const [viewingNodeType, setViewingNodeType] = useState<NodeType | null>(null);
   const [activeTab, setActiveTab] = useState<string | null>('nodes');
   const [width, setWidth] = useState(() => {
@@ -120,6 +123,9 @@ export function PanelLeft({ nodeTypes, existingNodeTypes, onAddNode, onClose }: 
               <Tabs.Tab value="settings" leftSection={<IconSettings size={14} />}>
                 Settings
               </Tabs.Tab>
+              <Tabs.Tab value="canvas" leftSection={<IconBrush size={14} />}>
+                Canvas
+              </Tabs.Tab>
             </Tabs.List>
 
             <Tabs.Panel value="nodes" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
@@ -131,6 +137,10 @@ export function PanelLeft({ nodeTypes, existingNodeTypes, onAddNode, onClose }: 
                 onNodeClick={setViewingNodeType}
                 onBack={() => setViewingNodeType(null)}
               />
+            </Tabs.Panel>
+
+            <Tabs.Panel value="canvas" style={{ flex: 1, minHeight: 0 }} p="xs">
+              <CanvasTab edgeType={edgeType} onEdgeTypeChange={onEdgeTypeChange} />
             </Tabs.Panel>
 
             <Tabs.Panel value="settings" style={{ flex: 1, minHeight: 0 }} p="xs">
