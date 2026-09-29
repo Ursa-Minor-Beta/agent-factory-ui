@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { NumberInput as MantineNumberInput, Box, Text } from '@mantine/core';
 
 interface NumberInputProps {
@@ -6,7 +7,7 @@ interface NumberInputProps {
   onChange: (value: number | undefined) => void;
 }
 
-export function NumberInput({ name, value, onChange }: NumberInputProps) {
+export const NumberInput = memo(function NumberInput({ name, value, onChange }: NumberInputProps) {
   return (
     <Box>
       <Text size="xs" c="dimmed" mb={4}>{name}</Text>
@@ -18,4 +19,4 @@ export function NumberInput({ name, value, onChange }: NumberInputProps) {
       />
     </Box>
   );
-}
+});

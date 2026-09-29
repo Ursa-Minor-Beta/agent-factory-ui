@@ -1,0 +1,239 @@
+@import 'katex/dist/katex.min.css';
+
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.tiptapContent {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+}
+
+/* Remove focus borders from editor */
+.tiptapContent :global(.ProseMirror) {
+    outline: none;
+}
+
+.tiptapContent :global(.ProseMirror):focus {
+    outline: none;
+}
+
+.tiptapContent :global(.ProseMirror):focus-visible {
+    outline: none;
+}
+
+/* Code Block Highlighting */
+.tiptapContent :global(.code-block-highlighted) {
+    background-color: var(--mantine-color-dark-8);
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    color: var(--mantine-color-gray-5);
+    border-radius: 0.5rem;
+    overflow-x: auto;
+}
+
+.tiptapContent :global(.hljs-comment),
+.tiptapContent :global(.hljs-quote) {
+    color: var(--mantine-color-gray-5);
+    font-style: italic;
+}
+
+.tiptapContent :global(.hljs-doctag),
+.tiptapContent :global(.hljs-keyword),
+.tiptapContent :global(.hljs-formula) {
+    color: var(--mantine-color-violet-4);
+}
+
+.tiptapContent :global(.hljs-section),
+.tiptapContent :global(.hljs-name),
+.tiptapContent :global(.hljs-selector-tag),
+.tiptapContent :global(.hljs-deletion),
+.tiptapContent :global(.hljs-subst) {
+    color: var(--mantine-color-red-4);
+}
+
+.tiptapContent :global(.hljs-literal) {
+    color: var(--mantine-color-cyan-4);
+}
+
+.tiptapContent :global(.hljs-string),
+.tiptapContent :global(.hljs-regexp),
+.tiptapContent :global(.hljs-addition),
+.tiptapContent :global(.hljs-attribute),
+.tiptapContent :global(.hljs-meta) :global(.hljs-string) {
+    color: var(--mantine-color-green-4);
+}
+
+.tiptapContent :global(.hljs-attr),
+.tiptapContent :global(.hljs-variable),
+.tiptapContent :global(.hljs-template-variable),
+.tiptapContent :global(.hljs-type),
+.tiptapContent :global(.hljs-selector-class),
+.tiptapContent :global(.hljs-selector-attr),
+.tiptapContent :global(.hljs-selector-pseudo),
+.tiptapContent :global(.hljs-number) {
+    color: var(--mantine-color-orange-4);
+}
+
+.tiptapContent :global(.hljs-symbol),
+.tiptapContent :global(.hljs-bullet),
+.tiptapContent :global(.hljs-link),
+.tiptapContent :global(.hljs-meta),
+.tiptapContent :global(.hljs-selector-id),
+.tiptapContent :global(.hljs-title) {
+    color: var(--mantine-color-blue-4);
+}
+
+.tiptapContent :global(.hljs-built_in),
+.tiptapContent :global(.hljs-title.class_),
+.tiptapContent :global(.hljs-class) :global(.hljs-title) {
+    color: var(--mantine-color-yellow-4);
+}
+
+.tiptapContent :global(.hljs-emphasis) {
+    font-style: italic;
+}
+
+.tiptapContent :global(.hljs-strong) {
+    font-weight: bold;
+}
+
+.tiptapContent :global(.hljs-link) {
+    text-decoration: underline;
+}
+
+/* Blockquotes */
+.tiptapContent blockquote {
+    border-left: 4px solid var(--mantine-color-default-border);
+    padding-left: 1rem;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    color: var(--mantine-color-dimmed);
+    font-style: italic;
+}
+
+.tiptapContent blockquote p {
+    margin-bottom: 0.5rem;
+}
+
+.tiptapContent blockquote p:last-child {
+    margin-bottom: 0;
+}
+
+.tiptapContent blockquote blockquote {
+    margin-top: 0.5rem;
+}
+
+/* Math Nodes */
+.tiptapContent :global(.math-node) {
+    display: inline-block;
+    margin: 0 0.2em;
+}
+
+.tiptapContent :global(.math-node[data-type="math_inline"]) {
+    display: inline;
+}
+
+.tiptapContent :global(.math-node[data-type="math_display"]) {
+    display: block;
+    margin: 1rem 0;
+    text-align: center;
+    overflow-x: auto;
+    padding: 0.5rem 0;
+}
+
+.tiptapContent :global(.math-node) :global(.katex) {
+    font-size: 1em;
+}
+
+.tiptapContent :global(.math-node) :global(.katex-html) :global(.base) {
+    display: inline-block;
+}
+
+.tiptapContent :global(.katex-display) {
+    margin: 0.5em 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.tiptapContent :global(.katex-display) > :global(.katex) {
+    display: inline-block;
+    text-align: initial;
+}
+
+.tiptapContent :global(.math-node-error) {
+    background-color: var(--mantine-color-red-light);
+    color: var(--mantine-color-red-9);
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.875em;
+}
+
+/* Task Lists */
+.tiptapContent :global(.task-item) {
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+}
+
+/* Footnotes */
+.tiptapContent :global(.footnotes) {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--mantine-color-default-border);
+    font-size: 0.875em;
+    color: var(--mantine-color-dimmed);
+}
+
+.tiptapContent :global(.footnotes) ol {
+    padding-left: 1.5rem;
+    margin-bottom: 0;
+}
+
+.tiptapContent :global(.footnotes) ol li {
+    margin-bottom: 0.5rem;
+}
+
+.tiptapContent :global(.footnotes) ol li:last-child {
+    margin-bottom: 0;
+}
+
+.tiptapContent :global(.footnotes) ol li p {
+    margin-bottom: 0.25rem;
+    display: inline;
+}
+
+.tiptapContent :global(.footnote-backref) {
+    margin-left: 0.25rem;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.tiptapContent :global(.footnote-backref):hover {
+    text-decoration: underline;
+}
+
+.tiptapContent :global(sup.footnote-ref) a {
+    text-decoration: none;
+    color: var(--mantine-color-anchor);
+    font-weight: 600;
+}
+
+.tiptapContent :global(sup.footnote-ref) a:hover {
+    text-decoration: underline;
+}
+
+.tiptapContent :global(sup.footnote-ref) a::before {
+    content: '[';
+}
+
+.tiptapContent :global(sup.footnote-ref) a::after {
+    content: ']';
+}

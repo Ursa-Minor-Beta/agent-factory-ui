@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import { useEffect, useState, useCallback, useRef, useMemo, memo } from 'react';
+import { useForm, FormProvider, useFormContext } from 'react-hook-form';
 import { Box, Text, TextInput as MantineTextInput, Stack, Badge, Divider, ScrollArea, Group, ActionIcon } from '@mantine/core';
 import { IconX } from '@tabler/icons-react';
 import type { Node } from '@xyflow/react';
@@ -22,27 +22,61 @@ interface NodeFormData {
   [key: string]: unknown;
 }
 
-function renderFieldInput(
-  key: string,
-  nodeData: Record<string, unknown>,
-  optionsMap: Record<string, NodeTypeOption>,
-  nodeId: string,
-  onUpdate: (nodeId: string, data: Record<string, unknown>) => void
-) {
-  const value = nodeData[key];
-  const option = optionsMap[key];
+// Memoized field input component to prevent unnecessary re-renders
+const FieldInput = memo(function FieldInput({
+  fieldKey,
+  nodeData,
+  option,
+  nodeId,
+  nodeLabel,
+  onUpdate,
+}: {
+  fieldKey: string;
+  nodeData: Record<string, unknown>;
+  option: NodeTypeOption | undefined;
+  nodeId: string;
+  nodeLabel: string;
+  onUpdate: (nodeId: string, data: Record<string, unknown>) => void;
+}) {
+  const value = nodeData[fieldKey];
   const fieldType = option?.type;
+  const timeoutRef = useRef<number | undefined>(undefined);
+
+  const handleChange = (newValue: unknown) => {
+      onUpdate(nodeId, { [fieldKey]: newValue });
+  }
+
+  // Debounced onChange handler - prevents updates on every keystroke
+  const handleChangeDebounced = useCallback(
+    (newValue: unknown) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      timeoutRef.current = window.setTimeout(() => {
+        onUpdate(nodeId, { [fieldKey]: newValue });
+      }, 300);
+    },
+    [nodeId, fieldKey, onUpdate]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   // Multi-select enum type
   if (fieldType === 'enum[]' && option?.values) {
     const arrayValue = Array.isArray(value) ? value : (option?.default as string[] ?? []);
     return (
       <MultiEnumInput
-        key={key}
-        name={key}
+        name={fieldKey}
         value={arrayValue}
         values={option.values}
-        onChange={(newValue) => onUpdate(nodeId, { [key]: newValue })}
+        onChange={handleChange}
       />
     );
   }
@@ -51,11 +85,10 @@ function renderFieldInput(
   if (fieldType === 'enum' && option?.values) {
     return (
       <EnumInput
-        key={key}
-        name={key}
+        name={fieldKey}
         value={String(value ?? option?.default ?? '')}
         values={option.values}
-        onChange={(newValue) => onUpdate(nodeId, { [key]: newValue })}
+        onChange={handleChange}
       />
     );
   }
@@ -64,10 +97,9 @@ function renderFieldInput(
   if (fieldType === 'number') {
     return (
       <NumberInput
-        key={key}
-        name={key}
+        name={fieldKey}
         value={typeof value === 'number' ? value : (option?.default as number | undefined)}
-        onChange={(newValue) => onUpdate(nodeId, { [key]: newValue })}
+        onChange={handleChangeDebounced}
       />
     );
   }
@@ -76,11 +108,10 @@ function renderFieldInput(
   if (fieldType === 'text') {
     return (
       <TextInput
-        key={key}
-        name={key}
-        nodeLabel={(nodeData.label as string) || nodeId}
+        name={fieldKey}
+        nodeLabel={nodeLabel}
         value={String(value ?? option?.default ?? '')}
-        onChange={(newValue) => onUpdate(nodeId, { [key]: newValue })}
+        onChange={handleChangeDebounced}
       />
     );
   }
@@ -89,11 +120,10 @@ function renderFieldInput(
   if (fieldType === 'code') {
     return (
       <EditorInput
-        key={key}
-        name={key}
-        nodeLabel={(nodeData.label as string) || nodeId}
+        name={fieldKey}
+        nodeLabel={nodeLabel}
         value={String(value ?? option?.default ?? '')}
-        onChange={(newValue) => onUpdate(nodeId, { [key]: newValue })}
+        onChange={handleChangeDebounced}
       />
     );
   }
@@ -105,11 +135,10 @@ function renderFieldInput(
   if (isObject) {
     return (
       <EditorInput
-        key={key}
-        name={key}
-        nodeLabel={(nodeData.label as string) || nodeId}
+        name={fieldKey}
+        nodeLabel={nodeLabel}
         value={value ?? (fieldType === 'array' ? [] : {})}
-        onChange={(newValue) => onUpdate(nodeId, { [key]: newValue })}
+        onChange={handleChangeDebounced}
       />
     );
   }
@@ -117,14 +146,13 @@ function renderFieldInput(
   // String type (simple single-line) or fallback
   return (
     <StringInput
-      key={key}
-      name={key}
-      nodeLabel={(nodeData.label as string) || nodeId}
+      name={fieldKey}
+      nodeLabel={nodeLabel}
       value={String(value ?? option?.default ?? '')}
-      onChange={(newValue) => onUpdate(nodeId, { [key]: newValue })}
+      onChange={handleChangeDebounced}
     />
   );
-}
+});
 
 export function NodeSettingsPanel({ node, nodeTypes, onUpdate, onClose }: NodeSettingsPanelProps) {
   const { register, reset, watch } = useForm<NodeFormData>();
@@ -133,8 +161,8 @@ export function NodeSettingsPanel({ node, nodeTypes, onUpdate, onClose }: NodeSe
     return saved ? parseInt(saved, 10) : 280;
   });
   const resizingRef = useRef(false);
+  const updateTimeoutRef = useRef<number | undefined>(undefined);
 
-  // Reset form when node changes
   useEffect(() => {
     reset({
       label: (node.data?.label as string) || '',
@@ -142,19 +170,31 @@ export function NodeSettingsPanel({ node, nodeTypes, onUpdate, onClose }: NodeSe
     });
   }, [node.id, reset]);
 
-  // Watch for changes and update node
-  const formValues = watch();
+  // Watch only the label field with debouncing
+  const labelValue = watch('label');
+  const prevLabelRef = useRef(labelValue);
 
   useEffect(() => {
-    if (formValues.label !== undefined) {
-      const timeoutId = setTimeout(() => {
-        onUpdate(node.id, formValues);
-      }, 300);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [formValues, node.id, onUpdate]);
+    // Only trigger update if label actually changed
+    if (labelValue !== prevLabelRef.current && labelValue !== undefined) {
+      prevLabelRef.current = labelValue;
 
-  // Resize handler
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+
+      updateTimeoutRef.current = window.setTimeout(() => {
+        onUpdate(node.id, { label: labelValue });
+      }, 300);
+    }
+
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+    };
+  }, [labelValue, node.id, onUpdate]);
+
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     resizingRef.current = true;
@@ -180,12 +220,13 @@ export function NodeSettingsPanel({ node, nodeTypes, onUpdate, onClose }: NodeSe
     document.addEventListener('mouseup', handleMouseUp);
   }, []);
 
-  // Persist width to localStorage
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, String(width));
   }, [width]);
 
   const nodeData = node.data as Record<string, unknown>;
+
+  const nodeLabel = useMemo(() => (nodeData.label as string) || node.id, [nodeData.label, node.id]);
 
   // Get options for this node type as a map by name
   const optionsMap = useMemo(() => {
@@ -257,8 +298,8 @@ export function NodeSettingsPanel({ node, nodeTypes, onUpdate, onClose }: NodeSe
           </ActionIcon>
         </Group>
 
-        <ScrollArea flex={1} p="md">
-          <Stack gap="md" pb="xl">
+        <ScrollArea flex={1}>
+          <Stack gap="md" p="lg">
 
             <MantineTextInput
               label="Label"
@@ -280,7 +321,17 @@ export function NodeSettingsPanel({ node, nodeTypes, onUpdate, onClose }: NodeSe
 
             <Divider />
 
-            {dataKeys.map((key) => renderFieldInput(key, nodeData, optionsMap, node.id, onUpdate))}
+            {dataKeys.map((key) => (
+              <FieldInput
+                key={key}
+                fieldKey={key}
+                nodeData={nodeData}
+                option={optionsMap[key]}
+                nodeId={node.id}
+                nodeLabel={nodeLabel}
+                onUpdate={onUpdate}
+              />
+            ))}
           </Stack>
         </ScrollArea>
       </Box>

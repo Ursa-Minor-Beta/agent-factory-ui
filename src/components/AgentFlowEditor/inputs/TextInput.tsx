@@ -1,6 +1,8 @@
+import { memo, useRef, useEffect } from 'react';
 import { Box, Text, Group, ActionIcon, Modal, Textarea } from '@mantine/core';
-import { IconArrowsMaximize } from '@tabler/icons-react';
+import { IconArrowsMaximize, IconList, IconListNumbers } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
+import { TextEditorMarkdownRaw } from '../../TextEditorMarkdown/TextEditorMarkdown';
 
 interface TextInputProps {
   name: string;
@@ -9,8 +11,23 @@ interface TextInputProps {
   onChange: (value: string) => void;
 }
 
-export function TextInput({ name, nodeLabel, value, onChange }: TextInputProps) {
+export const TextInput = memo(function TextInput({ name, nodeLabel, value, onChange }: TextInputProps) {
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Sync native textarea when external value changes
+  useEffect(() => {
+    if (textareaRef.current && textareaRef.current.value !== value) {
+      textareaRef.current.value = value;
+    }
+  }, [value]);
+
+  // Call onChange on every keystroke, parent will debounce
+  const handleChange = () => {
+    if (textareaRef.current) {
+      onChange(textareaRef.current.value);
+    }
+  };
 
   return (
     <Box>
@@ -21,25 +38,55 @@ export function TextInput({ name, nodeLabel, value, onChange }: TextInputProps) 
         </ActionIcon>
       </Group>
       <Textarea
+        ref={textareaRef}
         size="xs"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
+        defaultValue={value}
+        onChange={handleChange}
         minRows={2}
         maxRows={4}
         autosize
       />
 
-      <Modal opened={modalOpened} onClose={closeModal} title={`${nodeLabel || 'Node'} / ${name}`} size="xl" fullScreen centered>
-        <Textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          styles={{
-            root: { height: 'calc(100vh - 100px)' },
-            wrapper: { height: '100%' },
-            input: { height: '100%', fontFamily: 'monospace' },
-          }}
+      <Modal
+        opened={modalOpened}
+        onClose={closeModal}
+        title={`${nodeLabel || 'Node'} / ${name}`}
+        size="xl"
+        fullScreen
+        centered
+        styles={{
+          content: { height: '100vh', display: 'flex', flexDirection: 'column' },
+          body: { flex: 1, padding: 16, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
+        }}
+      >
+        <TextEditorMarkdownRaw
+          formFieldName={name}
+          getValues={() => value}
+          setValue={(_, newValue) => onChange(newValue)}
+          toolbarFormatBtns={[
+            {
+              title: 'H1',
+              tip: 'Heading H1',
+              onClick: (editor) => editor.chain().focus().toggleHeading({ level: 1 }).run(),
+            },
+            {
+              title: 'B',
+              tip: 'Bold',
+              onClick: (editor) => editor.chain().focus().toggleBold().run(),
+            },
+            {
+              Icon: IconList,
+              tip: 'Unordered list',
+              onClick: (editor) => editor.chain().focus().toggleBulletList().run(),
+            },
+            {
+              Icon: IconListNumbers,
+              tip: 'Ordered list',
+              onClick: (editor) => editor.chain().focus().toggleOrderedList().run(),
+            },
+          ]}
         />
       </Modal>
     </Box>
   );
-}
+});

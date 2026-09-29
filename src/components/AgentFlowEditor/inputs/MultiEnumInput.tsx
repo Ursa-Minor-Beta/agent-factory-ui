@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { MultiSelect, Box, Text } from '@mantine/core';
 
 interface MultiEnumInputProps {
@@ -7,7 +8,7 @@ interface MultiEnumInputProps {
   onChange: (value: string[]) => void;
 }
 
-export function MultiEnumInput({ name, value, values, onChange }: MultiEnumInputProps) {
+export const MultiEnumInput = memo(function MultiEnumInput({ name, value, values, onChange }: MultiEnumInputProps) {
   return (
     <Box>
       <Text size="xs" c="dimmed" mb={4}>{name}</Text>
@@ -21,4 +22,4 @@ export function MultiEnumInput({ name, value, values, onChange }: MultiEnumInput
       />
     </Box>
   );
-}
+});

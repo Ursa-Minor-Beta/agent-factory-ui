@@ -60,9 +60,9 @@ export function generateNodeId(type: string, existingNodes: Node[]): string {
 export function autoLayoutNodes(nodes: Node[], edges: Edge[]): Node[] {
   if (nodes.length === 0) return nodes;
 
-  const NODE_WIDTH = 200;
+  const NODE_WIDTH = 100;
   const NODE_HEIGHT = 80;
-  const H_GAP = 80;
+  const H_GAP = 100;
   const V_GAP = 40;
 
   // Build adjacency: source -> targets

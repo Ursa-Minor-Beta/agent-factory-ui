@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Select, Box, Text } from '@mantine/core';
 
 interface EnumInputProps {
@@ -7,7 +8,7 @@ interface EnumInputProps {
   onChange: (value: string) => void;
 }
 
-export function EnumInput({ name, value, values, onChange }: EnumInputProps) {
+export const EnumInput = memo(function EnumInput({ name, value, values, onChange }: EnumInputProps) {
   return (
     <Box>
       <Text size="xs" c="dimmed" mb={4}>{name}</Text>
@@ -20,4 +21,4 @@ export function EnumInput({ name, value, values, onChange }: EnumInputProps) {
       />
     </Box>
   );
-}
+});

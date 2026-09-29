@@ -1,11 +1,11 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, memo } from 'react';
 import { Box, Text, Group, ActionIcon, Modal } from '@mantine/core';
 import { IconArrowsMaximize } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import { JsonEditor } from '../../JsonEditor';
 
 const MIN_HEIGHT = 100;
-const MAX_HEIGHT = 400;
+const MAX_HEIGHT = 600;
 const STORAGE_KEY_PREFIX = 'agent-editor-editor-height-';
 
 interface EditorInputProps {
@@ -15,7 +15,7 @@ interface EditorInputProps {
   onChange: (value: unknown) => void;
 }
 
-export function EditorInput({ name, nodeLabel, value, onChange }: EditorInputProps) {
+export const EditorInput = memo(function EditorInput({ name, nodeLabel, value, onChange }: EditorInputProps) {
   const storageKey = STORAGE_KEY_PREFIX + name;
   const [height, setHeight] = useState(() => {
     const saved = localStorage.getItem(storageKey);
@@ -25,16 +25,20 @@ export function EditorInput({ name, nodeLabel, value, onChange }: EditorInputPro
   const resizingRef = useRef(false);
   const startYRef = useRef(0);
   const startHeightRef = useRef(0);
+  const heightRef = useRef(height);
 
+  // Keep heightRef in sync with height state
   useEffect(() => {
+    heightRef.current = height;
     localStorage.setItem(storageKey, String(height));
   }, [height, storageKey]);
 
+  // No dependencies - capture current height via heightRef
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     resizingRef.current = true;
     startYRef.current = e.clientY;
-    startHeightRef.current = height;
+    startHeightRef.current = heightRef.current;
     document.body.style.cursor = 'row-resize';
     document.body.style.userSelect = 'none';
 
@@ -55,7 +59,7 @@ export function EditorInput({ name, nodeLabel, value, onChange }: EditorInputPro
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-  }, [height]);
+  }, []);
 
   return (
     <Box>
@@ -116,4 +120,4 @@ export function EditorInput({ name, nodeLabel, value, onChange }: EditorInputPro
       </Modal>
     </Box>
   );
-}
+});

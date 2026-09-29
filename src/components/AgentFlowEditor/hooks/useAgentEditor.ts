@@ -144,7 +144,6 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
     []
   );
 
-  // Update node data
   const updateNodeData = useCallback(
     (nodeId: string, data: Record<string, unknown>) => {
       setNodes((nds) =>
