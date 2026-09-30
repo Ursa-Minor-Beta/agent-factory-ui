@@ -7,6 +7,7 @@ import { JsonEditor } from '../../JsonEditor';
 const MIN_HEIGHT = 100;
 const MAX_HEIGHT = 600;
 const STORAGE_KEY_PREFIX = 'agent-editor-editor-height-';
+const DEBOUNCE_MS = 300;
 
 interface EditorInputProps {
   name: string;
@@ -26,12 +27,46 @@ export const EditorInput = memo(function EditorInput({ name, nodeLabel, value, o
   const startYRef = useRef(0);
   const startHeightRef = useRef(0);
   const heightRef = useRef(height);
+  const onChangeRef = useRef(onChange);
+  const debounceRef = useRef<number | null>(null);
+  const pendingValueRef = useRef<unknown>(null);
+
+  onChangeRef.current = onChange;
 
   // Keep heightRef in sync with height state
   useEffect(() => {
     heightRef.current = height;
     localStorage.setItem(storageKey, String(height));
   }, [height, storageKey]);
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current !== null) {
+        clearTimeout(debounceRef.current);
+        // Emit pending value on unmount
+        if (pendingValueRef.current !== null) {
+          onChangeRef.current(pendingValueRef.current);
+        }
+      }
+    };
+  }, []);
+
+  const handleEditorChange = useCallback((newValue: unknown, isValid: boolean) => {
+    if (!isValid) return;
+
+    pendingValueRef.current = newValue;
+
+    if (debounceRef.current !== null) {
+      clearTimeout(debounceRef.current);
+    }
+    debounceRef.current = window.setTimeout(() => {
+      if (pendingValueRef.current !== null) {
+        onChangeRef.current(pendingValueRef.current);
+        pendingValueRef.current = null;
+      }
+    }, DEBOUNCE_MS);
+  }, []);
 
   // No dependencies - capture current height via heightRef
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
@@ -75,11 +110,8 @@ export const EditorInput = memo(function EditorInput({ name, nodeLabel, value, o
           height={height}
           mode="javascript"
           showLineNumbers={false}
-          onChange={(newValue, isValid) => {
-            if (isValid) {
-              onChange(newValue);
-            }
-          }}
+          fontSize={12}
+          onChange={handleEditorChange}
         />
         {/* Resize handle */}
         <Box
@@ -112,11 +144,7 @@ export const EditorInput = memo(function EditorInput({ name, nodeLabel, value, o
           value={value}
           height="calc(100vh - 100px)"
           mode="javascript"
-          onChange={(newValue, isValid) => {
-            if (isValid) {
-              onChange(newValue);
-            }
-          }}
+          onChange={handleEditorChange}
         />
       </Modal>
     </Box>

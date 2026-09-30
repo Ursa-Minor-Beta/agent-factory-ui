@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import {
   useNodesState,
   useEdgesState,
@@ -10,7 +10,7 @@ import {
 } from '@xyflow/react';
 import { agentsApi, nodesApi, type NodeType } from '../../../api';
 import type { Agent } from '../../../types/agent';
-import { toFlowNode, toAgentNode, extractEdges, generateNodeId, autoLayoutNodes } from '../utils/converters';
+import { toFlowNode, toAgentNode, extractEdges, generateNodeId, autoLayoutNodes, extractReferencedNodeIds } from '../utils/converters';
 
 interface UseAgentEditorOptions {
   agentId?: string;
@@ -22,10 +22,16 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
-  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+
+  // Derive selectedNode from nodes array
+  const selectedNode = useMemo(
+    () => (selectedNodeId ? nodes.find((n) => n.id === selectedNodeId) ?? null : null),
+    [nodes, selectedNodeId]
+  );
 
   // Fetch node types on mount
   useEffect(() => {
@@ -177,35 +183,75 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
   // Handle node click
   const onNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
-      setSelectedNode(node);
+      setSelectedNodeId(node.id);
     },
     []
   );
 
   const updateNodeData = useCallback(
     (nodeId: string, data: Record<string, unknown>) => {
-      setNodes((nds) =>
-        nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, ...data } } : n))
-      );
-      // Update selected node reference
-      setSelectedNode((prev) =>
-        prev?.id === nodeId ? { ...prev, data: { ...prev.data, ...data } } : prev
-      );
+      // Handle ID change
+      const targetId = data.id && data.id !== nodeId ? (data.id as string) : nodeId;
+
+      if (data.id && data.id !== nodeId) {
+        const newId = data.id as string;
+        setNodes((nds) =>
+          nds.map((n) => (n.id === nodeId ? { ...n, id: newId, data: { ...n.data, ...data } } : n))
+        );
+        setSelectedNodeId((prev) => (prev === nodeId ? newId : prev));
+      } else {
+        setNodes((nds) =>
+          nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, ...data } } : n))
+        );
+      }
+
+      // Auto-manage edges based on template references
+      setEdges((eds) => {
+        // Get current node's full data (merge existing with new)
+        const currentNode = nodes.find((n) => n.id === nodeId);
+        const mergedData = { ...currentNode?.data, ...data };
+
+        // Extract referenced node IDs from merged data
+        const referencedIds = extractReferencedNodeIds(mergedData as Record<string, unknown>);
+
+        // Get existing node IDs for validation
+        const existingNodeIds = new Set(nodes.map((n) => (n.id === nodeId ? targetId : n.id)));
+
+        // Current edges targeting this node
+        const currentSourceIds = new Set(
+          eds.filter((e) => e.target === nodeId || e.target === targetId).map((e) => e.source)
+        );
+
+        // Remove edges for references that no longer exist
+        let updatedEdges = eds.filter((e) => {
+          if (e.target !== nodeId && e.target !== targetId) return true;
+          return referencedIds.has(e.source);
+        });
+
+        // Add new edges for new references (only if source node exists)
+        referencedIds.forEach((sourceId) => {
+          if (!currentSourceIds.has(sourceId) && existingNodeIds.has(sourceId)) {
+            const edgeId = `${sourceId}-${targetId}`;
+            if (!updatedEdges.some((e) => e.id === edgeId)) {
+              updatedEdges.push({
+                id: edgeId,
+                source: sourceId,
+                target: targetId,
+              });
+            }
+          }
+        });
+
+        return updatedEdges;
+      });
     },
-    [setNodes]
+    [setNodes, setEdges, nodes]
   );
 
   // Clear selection when clicking canvas
   const onPaneClick = useCallback(() => {
-    setSelectedNode(null);
+    setSelectedNodeId(null);
   }, []);
-
-  // Clear selection if the selected node was deleted
-  useEffect(() => {
-    if (selectedNode && !nodes.find((n) => n.id === selectedNode.id)) {
-      setSelectedNode(null);
-    }
-  }, [nodes, selectedNode]);
 
   return {
     // State

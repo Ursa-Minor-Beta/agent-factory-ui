@@ -4,6 +4,8 @@ import { IconArrowsMaximize, IconList, IconListNumbers } from '@tabler/icons-rea
 import { useDisclosure } from '@mantine/hooks';
 import { TextEditorMarkdownRaw } from '../../TextEditorMarkdown/TextEditorMarkdown';
 
+const DEBOUNCE_MS = 300;
+
 interface TextInputProps {
   name: string;
   nodeLabel?: string;
@@ -14,18 +16,52 @@ interface TextInputProps {
 export const TextInput = memo(function TextInput({ name, nodeLabel, value, onChange }: TextInputProps) {
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const onChangeRef = useRef(onChange);
+  const debounceRef = useRef<number | null>(null);
+  const lastEmittedRef = useRef<string | null>(null);
 
-  // Sync native textarea when external value changes
+  onChangeRef.current = onChange;
+
+  // Sync only on external value changes, not our own emitted changes
   useEffect(() => {
+    if (lastEmittedRef.current === value) {
+      return;
+    }
     if (textareaRef.current && textareaRef.current.value !== value) {
       textareaRef.current.value = value;
     }
   }, [value]);
 
-  // Call onChange on every keystroke, parent will debounce
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current !== null) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
+
+  // Debounced onChange
   const handleChange = () => {
+    if (debounceRef.current !== null) {
+      clearTimeout(debounceRef.current);
+    }
+    debounceRef.current = window.setTimeout(() => {
+      if (textareaRef.current) {
+        lastEmittedRef.current = textareaRef.current.value;
+        onChangeRef.current(textareaRef.current.value);
+      }
+    }, DEBOUNCE_MS);
+  };
+
+  // Emit final value immediately on blur
+  const handleBlur = () => {
+    if (debounceRef.current !== null) {
+      clearTimeout(debounceRef.current);
+    }
     if (textareaRef.current) {
-      onChange(textareaRef.current.value);
+      lastEmittedRef.current = textareaRef.current.value;
+      onChangeRef.current(textareaRef.current.value);
     }
   };
 
@@ -42,6 +78,7 @@ export const TextInput = memo(function TextInput({ name, nodeLabel, value, onCha
         size="xs"
         defaultValue={value}
         onChange={handleChange}
+        onBlur={handleBlur}
         minRows={3}
         maxRows={8}
         autosize

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, memo } from 'react';
 import { Box, Text, Group, ActionIcon, Modal } from '@mantine/core';
 import { IconArrowsMaximize } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
@@ -7,6 +7,7 @@ import { JsonEditor } from '../../JsonEditor';
 const MIN_HEIGHT = 100;
 const MAX_HEIGHT = 400;
 const STORAGE_KEY_PREFIX = 'agent-editor-object-height-';
+const DEBOUNCE_MS = 300;
 
 interface ObjectInputProps {
   name: string;
@@ -15,7 +16,7 @@ interface ObjectInputProps {
   onChange: (value: unknown) => void;
 }
 
-export function ObjectInput({ name, nodeLabel, value, onChange }: ObjectInputProps) {
+export const ObjectInput = memo(function ObjectInput({ name, nodeLabel, value, onChange }: ObjectInputProps) {
   const storageKey = STORAGE_KEY_PREFIX + name;
   const [height, setHeight] = useState(() => {
     const saved = localStorage.getItem(storageKey);
@@ -25,10 +26,44 @@ export function ObjectInput({ name, nodeLabel, value, onChange }: ObjectInputPro
   const resizingRef = useRef(false);
   const startYRef = useRef(0);
   const startHeightRef = useRef(0);
+  const onChangeRef = useRef(onChange);
+  const debounceRef = useRef<number | null>(null);
+  const pendingValueRef = useRef<unknown>(null);
+
+  onChangeRef.current = onChange;
 
   useEffect(() => {
     localStorage.setItem(storageKey, String(height));
   }, [height, storageKey]);
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current !== null) {
+        clearTimeout(debounceRef.current);
+        // Emit pending value on unmount
+        if (pendingValueRef.current !== null) {
+          onChangeRef.current(pendingValueRef.current);
+        }
+      }
+    };
+  }, []);
+
+  const handleEditorChange = useCallback((newValue: unknown, isValid: boolean) => {
+    if (!isValid) return;
+
+    pendingValueRef.current = newValue;
+
+    if (debounceRef.current !== null) {
+      clearTimeout(debounceRef.current);
+    }
+    debounceRef.current = window.setTimeout(() => {
+      if (pendingValueRef.current !== null) {
+        onChangeRef.current(pendingValueRef.current);
+        pendingValueRef.current = null;
+      }
+    }, DEBOUNCE_MS);
+  }, []);
 
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -69,11 +104,7 @@ export function ObjectInput({ name, nodeLabel, value, onChange }: ObjectInputPro
         <JsonEditor
           value={value}
           height={height}
-          onChange={(newValue, isValid) => {
-            if (isValid) {
-              onChange(newValue);
-            }
-          }}
+          onChange={handleEditorChange}
         />
         {/* Resize handle */}
         <Box
@@ -105,13 +136,9 @@ export function ObjectInput({ name, nodeLabel, value, onChange }: ObjectInputPro
         <JsonEditor
           value={value}
           height="calc(100vh - 100px)"
-          onChange={(newValue, isValid) => {
-            if (isValid) {
-              onChange(newValue);
-            }
-          }}
+          onChange={handleEditorChange}
         />
       </Modal>
     </Box>
   );
-}
+});

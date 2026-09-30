@@ -1,6 +1,7 @@
-import { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { TextInput as MantineTextInput, Stack, Badge, Divider, ScrollArea, Group, Text } from '@mantine/core';
+import { TextInput as MantineTextInput, Stack, Badge, Divider, ScrollArea, Group, Text, ActionIcon } from '@mantine/core';
+import { IconPencil } from '@tabler/icons-react';
 import type { Node } from '@xyflow/react';
 import type { NodeType, NodeTypeOption } from '../../../api';
 import { FieldInput } from './FieldInput';
@@ -8,6 +9,7 @@ import { FieldInput } from './FieldInput';
 interface NodeSettingsFormProps {
   node: Node;
   nodeTypes: NodeType[];
+  nodeIds?: string[];
   onUpdate: (nodeId: string, data: Record<string, unknown>) => void;
 }
 
@@ -16,9 +18,19 @@ interface NodeFormData {
   [key: string]: unknown;
 }
 
-export function NodeSettingsForm({ node, nodeTypes, onUpdate }: NodeSettingsFormProps) {
+const DEBOUNCE_MS = 300;
+
+export function NodeSettingsForm({ node, nodeTypes, nodeIds, onUpdate }: NodeSettingsFormProps) {
   const { register, reset, watch } = useForm<NodeFormData>();
   const updateTimeoutRef = useRef<number | undefined>(undefined);
+
+  // ID editing state
+  const idInputRef = useRef<HTMLInputElement>(null);
+  const idDebounceRef = useRef<number | null>(null);
+  const lastEmittedIdRef = useRef<string | null>(null);
+  const onUpdateRef = useRef(onUpdate);
+  const [idEditEnabled, setIdEditEnabled] = useState(false);
+  onUpdateRef.current = onUpdate;
 
   useEffect(() => {
     reset({
@@ -26,6 +38,16 @@ export function NodeSettingsForm({ node, nodeTypes, onUpdate }: NodeSettingsForm
       ...(node.data as Record<string, unknown>),
     });
   }, [node.id, reset, node.data]);
+
+  // Sync ID input when node changes (e.g., selecting different node)
+  useEffect(() => {
+    if (lastEmittedIdRef.current === node.id) {
+      return;
+    }
+    if (idInputRef.current && idInputRef.current.value !== node.id) {
+      idInputRef.current.value = node.id;
+    }
+  }, [node.id]);
 
   // Watch only the label field with debouncing
   const labelValue = watch('label');
@@ -42,7 +64,7 @@ export function NodeSettingsForm({ node, nodeTypes, onUpdate }: NodeSettingsForm
 
       updateTimeoutRef.current = window.setTimeout(() => {
         onUpdate(node.id, { label: labelValue });
-      }, 300);
+      }, DEBOUNCE_MS);
     }
 
     return () => {
@@ -51,6 +73,35 @@ export function NodeSettingsForm({ node, nodeTypes, onUpdate }: NodeSettingsForm
       }
     };
   }, [labelValue, node.id, onUpdate]);
+
+  // ID change handlers
+  const handleIdChange = () => {
+    if (idDebounceRef.current !== null) {
+      clearTimeout(idDebounceRef.current);
+    }
+    idDebounceRef.current = window.setTimeout(() => {
+      if (idInputRef.current) {
+        const newId = idInputRef.current.value.trim();
+        if (newId && newId !== node.id) {
+          lastEmittedIdRef.current = newId;
+          onUpdateRef.current(node.id, { id: newId });
+        }
+      }
+    }, DEBOUNCE_MS);
+  };
+
+  const handleIdBlur = () => {
+    if (idDebounceRef.current !== null) {
+      clearTimeout(idDebounceRef.current);
+    }
+    if (idInputRef.current) {
+      const newId = idInputRef.current.value.trim();
+      if (newId && newId !== node.id) {
+        lastEmittedIdRef.current = newId;
+        onUpdateRef.current(node.id, { id: newId });
+      }
+    }
+  };
 
   const nodeData = node.data as Record<string, unknown>;
   const nodeLabel = useMemo(() => (nodeData.label as string) || node.id, [nodeData.label, node.id]);
@@ -84,10 +135,28 @@ export function NodeSettingsForm({ node, nodeTypes, onUpdate }: NodeSettingsForm
           {...register('label')}
         />
 
-        <Group gap="xs">
-          <Text size="xs" c="dimmed">ID:</Text>
-          <Text size="xs" ff="monospace">{node.id}</Text>
-        </Group>
+        <MantineTextInput
+          ref={idInputRef}
+          label={
+            <Group gap={4}>
+              <Text size="xs" fw={500}>ID</Text>
+              <ActionIcon
+                size="xs"
+                variant="subtle"
+                onClick={() => setIdEditEnabled( prev => !prev )}
+                title="Edit ID"
+              >
+                <IconPencil size={12} />
+              </ActionIcon>
+            </Group>
+          }
+          size="xs"
+          defaultValue={node.id}
+          styles={{ input: { fontFamily: 'monospace' } }}
+          onChange={handleIdChange}
+          onBlur={handleIdBlur}
+          disabled={!idEditEnabled}
+        />
 
         <Group gap="xs">
           <Text size="xs" c="dimmed" mb={4}>Type</Text>
@@ -106,6 +175,7 @@ export function NodeSettingsForm({ node, nodeTypes, onUpdate }: NodeSettingsForm
             option={optionsMap[key]}
             nodeId={node.id}
             nodeLabel={nodeLabel}
+            nodeIds={nodeIds}
             onUpdate={onUpdate}
           />
         ))}

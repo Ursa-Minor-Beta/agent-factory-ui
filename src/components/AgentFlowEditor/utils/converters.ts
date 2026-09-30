@@ -24,16 +24,33 @@ export function toAgentNode(flowNode: Node): AgentNode {
   };
 }
 
+// Template variable regex patterns
+// Matches entire template variable for splitting: {{node: name.output.field}}
+export const TEMPLATE_VAR_REGEX = /(\{\{node:\s*[^}]+\}\})/g;
+// Extracts node ID from template variable: {{node: nodeId.output.field}} -> nodeId
+export const TEMPLATE_NODE_ID_REGEX = /\{\{node:\s*([^.}\s]+)/;
+// Global version for extracting all node IDs from a string
+const TEMPLATE_NODE_ID_REGEX_GLOBAL = /\{\{node:\s*([^.}\s]+)/g;
+
+// Extract referenced node IDs from node data
+export function extractReferencedNodeIds(data: Record<string, unknown>): Set<string> {
+  const refs = new Set<string>();
+  const dataStr = JSON.stringify(data);
+  let match: RegExpExecArray | null;
+  TEMPLATE_NODE_ID_REGEX_GLOBAL.lastIndex = 0;
+  while ((match = TEMPLATE_NODE_ID_REGEX_GLOBAL.exec(dataStr)) !== null) {
+    refs.add(match[1].trim());
+  }
+  return refs;
+}
+
 // Extract edges from node data (looking for references like {{node:id.path}})
 export function extractEdges(nodes: Node[]): Edge[] {
   const edges: Edge[] = [];
-  const regex = /\{\{node:([^.}]+)/g;
 
   nodes.forEach((node) => {
-    const dataStr = JSON.stringify(node.data);
-    let match;
-    while ((match = regex.exec(dataStr)) !== null) {
-      const sourceId = match[1];
+    const refs = extractReferencedNodeIds(node.data as Record<string, unknown>);
+    refs.forEach((sourceId) => {
       if (nodes.some((n) => n.id === sourceId)) {
         const edgeId = `${sourceId}-${node.id}`;
         if (!edges.some((e) => e.id === edgeId)) {
@@ -44,7 +61,7 @@ export function extractEdges(nodes: Node[]): Edge[] {
           });
         }
       }
-    }
+    });
   });
 
   return edges;

@@ -12,11 +12,12 @@ const STORAGE_KEY = 'agent-editor-panel-width';
 interface PanelRightProps {
   node: Node;
   nodeTypes: NodeType[];
+  nodeIds?: string[];
   onUpdate: (nodeId: string, data: Record<string, unknown>) => void;
   onClose: () => void;
 }
 
-export function PanelRight({ node, nodeTypes, onUpdate, onClose }: PanelRightProps) {
+export function PanelRight({ node, nodeTypes, nodeIds, onUpdate, onClose }: PanelRightProps) {
   const [width, setWidth] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     return saved ? parseInt(saved, 10) : 280;
@@ -104,7 +105,7 @@ export function PanelRight({ node, nodeTypes, onUpdate, onClose }: PanelRightPro
           </ActionIcon>
         </Group>
 
-        <NodeSettingsForm node={node} nodeTypes={nodeTypes} onUpdate={onUpdate} />
+        <NodeSettingsForm node={node} nodeTypes={nodeTypes} nodeIds={nodeIds} onUpdate={onUpdate} />
       </Box>
     </Box>
   );

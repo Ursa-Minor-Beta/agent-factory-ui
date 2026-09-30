@@ -65,6 +65,9 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
     return new Set(nodes.map((node) => node.type).filter((type): type is string => !!type));
   }, [nodes]);
 
+  // Compute list of node IDs for template variable validation
+  const nodeIds = useMemo(() => nodes.map((node) => node.id), [nodes]);
+
   const handleAddNode = useCallback(
     (nodeType: NodeType, exampleIndex?: number) => {
       // Build initial data from option defaults
@@ -163,11 +166,12 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
       }
 
       {selectedNode && (
-        <PanelRight 
-          node={selectedNode} 
-          nodeTypes={availableNodeTypes} 
-          onUpdate={updateNodeData} 
-          onClose={onPaneClick} 
+        <PanelRight
+          node={selectedNode}
+          nodeTypes={availableNodeTypes}
+          nodeIds={nodeIds}
+          onUpdate={updateNodeData}
+          onClose={onPaneClick}
           />
       )}
 

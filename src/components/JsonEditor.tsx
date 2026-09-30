@@ -17,12 +17,14 @@ export interface JsonEditorProps {
   label?: string;
   mode?: 'json' | 'javascript';
   showLineNumbers?: boolean;
+  fontSize?: number;
+  fontFamily?: string;
   // External text control (for split view sync)
   text?: string;
   onTextChange?: (text: string) => void;
 }
 
-export function JsonEditor({ value, onChange, readOnly = false, height = '100%', label, mode = 'json', showLineNumbers = true, text, onTextChange }: JsonEditorProps) {
+export function JsonEditor({ value, onChange, readOnly = false, height = '100%', label, mode = 'json', showLineNumbers = true, fontSize = 13, fontFamily = '"Inter", "Roboto", "Helvetica", "Arial", sans-serif', text, onTextChange }: JsonEditorProps) {
   const { colorScheme } = useMantineColorScheme();
   const isControlled = text !== undefined && onTextChange !== undefined;
 
@@ -94,7 +96,7 @@ export function JsonEditor({ value, onChange, readOnly = false, height = '100%',
           readOnly={readOnly}
           width="100%"
           height="100%"
-          fontSize={13}
+          fontSize={fontSize}
           showPrintMargin={false}
           showGutter={showLineNumbers}
           highlightActiveLine={!readOnly}
@@ -107,6 +109,7 @@ export function JsonEditor({ value, onChange, readOnly = false, height = '100%',
             enableLiveAutocompletion: false,
             foldStyle: 'markbegin',
             wrap: true,
+            fontFamily,
           }}
           editorProps={{ $blockScrolling: true }}
         />
