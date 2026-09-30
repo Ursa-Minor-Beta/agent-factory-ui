@@ -1,69 +1,29 @@
-import { memo, useRef, useEffect } from 'react';
+import { memo, useRef, useCallback } from 'react';
 import { Box, Text, Group, ActionIcon, Modal, Textarea } from '@mantine/core';
 import { IconArrowsMaximize, IconList, IconListNumbers } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import { TextEditorMarkdownRaw } from '../../TextEditorMarkdown/TextEditorMarkdown';
-
-const DEBOUNCE_MS = 300;
+import { TemplateInputWrapper } from './TemplateInputWrapper';
 
 interface TextInputProps {
   name: string;
   nodeLabel?: string;
   value: string;
+  nodeIds?: string[];
   onChange: (value: string) => void;
 }
 
-export const TextInput = memo(function TextInput({ name, nodeLabel, value, onChange }: TextInputProps) {
+export const TextInput = memo(function TextInput({ name, nodeLabel, value, nodeIds, onChange }: TextInputProps) {
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const onChangeRef = useRef(onChange);
-  const debounceRef = useRef<number | null>(null);
-  const lastEmittedRef = useRef<string | null>(null);
+  const highlightRef = useRef<HTMLDivElement>(null);
 
-  onChangeRef.current = onChange;
-
-  // Sync only on external value changes, not our own emitted changes
-  useEffect(() => {
-    if (lastEmittedRef.current === value) {
-      return;
+  // Sync scroll between textarea and highlight layer
+  const handleScroll = useCallback((e: React.UIEvent<HTMLTextAreaElement>) => {
+    if (highlightRef.current) {
+      highlightRef.current.scrollTop = e.currentTarget.scrollTop;
+      highlightRef.current.scrollLeft = e.currentTarget.scrollLeft;
     }
-    if (textareaRef.current && textareaRef.current.value !== value) {
-      textareaRef.current.value = value;
-    }
-  }, [value]);
-
-  // Cleanup debounce on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current !== null) {
-        clearTimeout(debounceRef.current);
-      }
-    };
   }, []);
-
-  // Debounced onChange
-  const handleChange = () => {
-    if (debounceRef.current !== null) {
-      clearTimeout(debounceRef.current);
-    }
-    debounceRef.current = window.setTimeout(() => {
-      if (textareaRef.current) {
-        lastEmittedRef.current = textareaRef.current.value;
-        onChangeRef.current(textareaRef.current.value);
-      }
-    }, DEBOUNCE_MS);
-  };
-
-  // Emit final value immediately on blur
-  const handleBlur = () => {
-    if (debounceRef.current !== null) {
-      clearTimeout(debounceRef.current);
-    }
-    if (textareaRef.current) {
-      lastEmittedRef.current = textareaRef.current.value;
-      onChangeRef.current(textareaRef.current.value);
-    }
-  };
 
   return (
     <Box>
@@ -73,16 +33,42 @@ export const TextInput = memo(function TextInput({ name, nodeLabel, value, onCha
           <IconArrowsMaximize size={12} />
         </ActionIcon>
       </Group>
-      <Textarea
-        ref={textareaRef}
-        size="xs"
-        defaultValue={value}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        minRows={3}
-        maxRows={8}
-        autosize
-      />
+
+      <TemplateInputWrapper
+        value={value}
+        nodeIds={nodeIds}
+        onChange={onChange}
+        highlightRef={highlightRef}
+        highlightStyle={{
+          padding: '4px 12px',
+          lineHeight: 1.55,
+          whiteSpace: 'pre-wrap',
+          wordWrap: 'break-word',
+          display: 'block',
+          alignItems: undefined,
+        }}
+      >
+        {({ inputRef, defaultValue, handleChange, handleBlur, handleClick, handleKeyDown }) => (
+          <Textarea
+            ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+            size="xs"
+            defaultValue={defaultValue}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            onClick={handleClick}
+            onScroll={handleScroll}
+            onKeyDown={handleKeyDown}
+            minRows={3}
+            maxRows={8}
+            autosize
+            styles={{
+              input: {
+                backgroundColor: 'transparent',
+              },
+            }}
+          />
+        )}
+      </TemplateInputWrapper>
 
       <Modal
         opened={modalOpened}
@@ -93,12 +79,12 @@ export const TextInput = memo(function TextInput({ name, nodeLabel, value, onCha
         centered
         styles={{
           content: { height: '100vh', display: 'flex', flexDirection: 'column' },
-          body: { 
-            flex: 1, 
-            padding: 0, 
-            display: 'flex', 
-            flexDirection: 'column', 
-            overflow: 'hidden' 
+          body: {
+            flex: 1,
+            padding: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
           },
         }}
       >

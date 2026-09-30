@@ -95,6 +95,7 @@ export const FieldInput = memo(function FieldInput({
         name={fieldKey}
         nodeLabel={nodeLabel}
         value={String(value ?? option?.default ?? '')}
+        nodeIds={nodeIds}
         onChange={handleChangeDebounced}
       />
     );
