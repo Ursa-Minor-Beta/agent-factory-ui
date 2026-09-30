@@ -61,6 +61,13 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
     <Modal
       opened={opened}
       onClose={handleClose}
+      fullScreen
+      trapFocus={false}
+      withCloseButton={false}
+      closeOnEscape={false}
+      styles={{
+        title: { flex: 1 },
+      }}
       title={
         <Group gap="sm" justify="space-between" style={{ width: '100%' }}>
           <Group gap="sm">
@@ -91,12 +98,6 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
           </Group>
         </Group>
       }
-      fullScreen
-      trapFocus={false}
-      withCloseButton={false}
-      styles={{
-        title: { flex: 1 },
-      }}
     >
       <form id="agent-form" onSubmit={handleSubmit(onSubmit)} style={{ height: '100%' }}>
         <Box style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)' }}>
