@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { Box, Text, Group, ActionIcon, Divider, Tabs } from '@mantine/core';
 import { IconLayoutSidebar, IconSettings, IconNote, IconBrush } from '@tabler/icons-react';
 import type { NodeType } from '../../../api';
+import type { Agent } from '../../../types/agent';
 import { NodesTab } from './NodesTab';
 import { SettingsTab } from './SettingsTab';
 import { CanvasTab } from './CanvasTab';
@@ -14,12 +15,14 @@ interface PanelLeftProps {
   nodeTypes: NodeType[];
   existingNodeTypes: Set<string>;
   edgeType: string;
+  agent: Agent | null;
   onAddNode: (nodeType: NodeType, exampleIndex?: number) => void;
   onEdgeTypeChange: (value: string) => void;
+  onAgentInfoChange: (data: { name?: string; description?: string }) => Promise<void>;
   onClose: () => void;
 }
 
-export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, onAddNode, onEdgeTypeChange, onClose }: PanelLeftProps) {
+export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, agent, onAddNode, onEdgeTypeChange, onAgentInfoChange, onClose }: PanelLeftProps) {
   const [viewingNodeType, setViewingNodeType] = useState<NodeType | null>(null);
   const [activeTab, setActiveTab] = useState<string | null>('nodes');
   const [width, setWidth] = useState(() => {
@@ -144,7 +147,7 @@ export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, onAddNode, o
             </Tabs.Panel>
 
             <Tabs.Panel value="settings" style={{ flex: 1, minHeight: 0 }} p="xs">
-              <SettingsTab />
+              <SettingsTab agent={agent} onAgentInfoChange={onAgentInfoChange} />
             </Tabs.Panel>
           </Tabs>
         </>

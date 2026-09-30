@@ -56,6 +56,7 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
     runAgent,
     stopAgent,
     updateNodeData,
+    updateAgentInfo,
     addNode,
   } = useAgentEditor({ agentId });
 
@@ -153,8 +154,10 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
           nodeTypes={availableNodeTypes}
           existingNodeTypes={existingNodeTypes}
           edgeType={edgeType}
+          agent={agent}
           onAddNode={handleAddNode}
           onEdgeTypeChange={handleEdgeTypeChange}
+          onAgentInfoChange={updateAgentInfo}
           onClose={togglePalette}
           />
       }

@@ -113,6 +113,24 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
     }
   }, [agent, nodes]);
 
+  // Update agent info (name, description)
+  const updateAgentInfo = useCallback(
+    async (data: { name?: string; description?: string }) => {
+      if (!agent) return;
+
+      setSaving(true);
+      try {
+        const updatedAgent = await agentsApi.update(agent.id, data);
+        setAgent(updatedAgent);
+      } catch (err) {
+        console.error('Failed to update agent info:', err);
+      } finally {
+        setSaving(false);
+      }
+    },
+    [agent]
+  );
+
   // Add new node
   const addNode = useCallback(
     (type: string, position?: { x: number; y: number }, data?: Record<string, unknown>) => {
@@ -212,5 +230,6 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
     runAgent,
     stopAgent,
     updateNodeData,
+    updateAgentInfo,
   };
 }
