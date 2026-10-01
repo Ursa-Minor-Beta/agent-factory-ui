@@ -3,16 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
   Text,
-  Button,
   Group,
-  Stack,
   Loader,
   Alert,
-  Card,
-  Badge,
   ActionIcon,
   Tooltip,
-  Title,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
@@ -20,19 +15,18 @@ import {
   IconTrash,
   IconAlertCircle,
   IconArrowLeft,
-  IconRobot,
 } from '@tabler/icons-react';
 import { workspacesApi } from '../../api/workspaces';
 import type { Workspace, WorkspaceDeleteMode } from '../../types/workspace';
 import { WorkspaceModal } from './WorkspaceModal';
 import { WorkspaceDeleteModal } from './WorkspaceDeleteModal';
+import { AgentsList } from '../../components/AgentsList';
 
 export function WorkspaceDetailPage() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const navigate = useNavigate();
 
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
-  const [agentCount, setAgentCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -43,7 +37,9 @@ export function WorkspaceDetailPage() {
   // Delete modal
   const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
   const [deleting, setDeleting] = useState(false);
+  const [agentCount, setAgentCount] = useState(0);
 
+  // Load workspace data
   useEffect(() => {
     if (!workspaceId) return;
 
@@ -116,9 +112,6 @@ export function WorkspaceDetailPage() {
         <Alert icon={<IconAlertCircle size={16} />} color="red">
           Workspace not found
         </Alert>
-        <Button mt="md" leftSection={<IconArrowLeft size={16} />} onClick={() => navigate('/workspaces')}>
-          Back to Workspaces
-        </Button>
       </Box>
     );
   }
@@ -126,22 +119,26 @@ export function WorkspaceDetailPage() {
   return (
     <Box>
       {/* Header */}
-      <Group mb="lg" align='flex-start'>
-        <ActionIcon variant="subtle" onClick={() => navigate('/workspaces')}>
+      <Group mb="lg" align="flex-start">
+        {/* <ActionIcon variant="subtle" onClick={() => navigate('/workspaces')}>
           <IconArrowLeft size={20} />
-        </ActionIcon>        
+        </ActionIcon> */}
         <Box>
-            <Text fw={500} size="lg" mb="xs">{workspace.name}</Text>
-            <Text c="dimmed" size="sm" mb="md">{workspace.description}</Text>
+          <Text fw={500} size="lg" mb="xs">
+            Workspace {workspace.name}
+          </Text>
+          <Text c="dimmed" size="sm" mb="md">
+            {workspace.description}
+          </Text>
         </Box>
         <Box style={{ flex: 1 }} />
-        <Tooltip label="Edit">
-          <ActionIcon variant="light" color="cyan" size="lg" onClick={openEditModal}>
+        <Tooltip label="Edit workspace">
+          <ActionIcon variant="subtle" color="cyan" size="lg" onClick={openEditModal}>
             <IconEdit size={18} />
           </ActionIcon>
         </Tooltip>
-        <Tooltip label="Delete">
-          <ActionIcon variant="light" color="red" size="lg" onClick={openDeleteModal}>
+        <Tooltip label="Delete workspace">
+          <ActionIcon variant="subtle" color="red" size="lg" onClick={openDeleteModal}>
             <IconTrash size={18} />
           </ActionIcon>
         </Tooltip>
@@ -159,40 +156,13 @@ export function WorkspaceDetailPage() {
         </Alert>
       )}
 
-      <Stack gap="md">
-        {/* Agents Card */}
-        <Card withBorder>
-          <Group mb="md">
-            <IconRobot size={20} />
-            <Text fw={600} size="lg">
-              Agents in this Workspace
-            </Text>
-            <Badge size="lg" variant="light">
-              {agentCount}
-            </Badge>
-          </Group>
-
-          {agentCount === 0 ? (
-            <Text c="dimmed" ta="center" py="xl">
-              No agents in this workspace yet.
-            </Text>
-          ) : (
-            <Text c="dimmed" size="sm">
-              This workspace contains {agentCount} agent{agentCount !== 1 ? 's' : ''}.
-            </Text>
-          )}
-
-          <Button
-            mt="md"
-            variant="light"
-            fullWidth
-            onClick={() => navigate('/agents')}
-            leftSection={<IconRobot size={16} />}
-          >
-            View All Agents
-          </Button>
-        </Card>
-      </Stack>
+      {/* Agents list for this workspace */}
+      <AgentsList
+        workspaceId={workspaceId}
+        showFilters={false}
+        showPagination={false}
+        showCreateButton={false}
+      />
 
       <WorkspaceModal
         opened={editModalOpened}

@@ -9,6 +9,7 @@ export interface AgentCardProps {
   onEdit: (agent: Agent) => void;
   onDelete: (agent: Agent) => void;
   onClone: (agent: Agent) => void;
+  onWorkspace: (agent: Agent) => void;
 }
 
 export interface AgentFiltersProps {

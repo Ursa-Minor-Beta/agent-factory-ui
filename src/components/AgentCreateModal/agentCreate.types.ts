@@ -10,7 +10,6 @@ export const DEFAULT_NODES: AgentNode[] = [];
 export interface AgentCreateForm {
   name: string;
   description: string;
-  workspaceId: string;
 }
 
 export interface AgentCreateModalProps {

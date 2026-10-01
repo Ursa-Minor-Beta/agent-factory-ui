@@ -1,10 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { agentsApi, nodesApi } from '../../api';
-import { workspacesApi } from '../../api/workspaces';
 import type { NodeType } from '../../api';
 import type { Agent, AgentNode } from '../../types';
-import type { Workspace } from '../../types/workspace';
 import {
   DEFAULT_NODES,
   generateNodeId,
@@ -43,10 +41,6 @@ export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreat
   const [nodeTypesLoading, setNodeTypesLoading] = useState(false);
   const [nodeTypesError, setNodeTypesError] = useState('');
 
-  // Workspaces state
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [workspacesLoading, setWorkspacesLoading] = useState(false);
-
   // Resizable panel
   const [rightPanelWidth, setRightPanelWidth] = useState(RIGHT_PANEL_MIN_WIDTH);
   const resizingRef = useRef(false);
@@ -82,46 +76,27 @@ export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreat
     }
   }, []);
 
-  // Load workspaces
-  const loadWorkspaces = useCallback(async () => {
-    setWorkspacesLoading(true);
-    try {
-      const data = await workspacesApi.list({ limit: 100, sortBy: 'name', sortOrder: 'asc' });
-      setWorkspaces(data.workspaces);
-    } catch (err) {
-      console.error('Failed to load workspaces:', err);
-      setWorkspaces([]);
-    } finally {
-      setWorkspacesLoading(false);
-    }
-  }, []);
-
-  // Reset state and load node types and workspaces when modal opens
+  // Reset state and load node types when modal opens
   useEffect(() => {
     if (opened) {
       if (agent) {
-        reset({
-          name: agent.name,
-          description: agent.description || '',
-          workspaceId: agent.workspaceId || ''
-        });
+        reset({ name: agent.name, description: agent.description || '' });
         const agentNodes = agent.nodes || DEFAULT_NODES;
         setNodes(agentNodes);
         setNodesText(JSON.stringify(agentNodes, null, 2));
       } else {
-        reset({ name: '', description: '', workspaceId: '' });
+        reset({ name: '', description: '' });
         setNodes(DEFAULT_NODES);
         setNodesText(JSON.stringify(DEFAULT_NODES, null, 2));
       }
       setNodesValid(true);
       setError('');
       loadNodeTypes();
-      loadWorkspaces();
     }
-  }, [opened, agent, reset, loadNodeTypes, loadWorkspaces]);
+  }, [opened, agent, reset, loadNodeTypes]);
 
   const handleClose = useCallback(() => {
-    reset({ name: '', description: '', workspaceId: '' });
+    reset({ name: '', description: '' });
     setNodes(DEFAULT_NODES);
     setNodesText(JSON.stringify(DEFAULT_NODES, null, 2));
     setNodesValid(true);
@@ -213,14 +188,12 @@ export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreat
             name: data.name,
             description: data.description || undefined,
             nodes,
-            workspaceId: data.workspaceId || undefined,
           });
         } else {
           await agentsApi.create({
             name: data.name,
             description: data.description || undefined,
             nodes,
-            workspaceId: data.workspaceId || undefined,
           });
         }
         if (closeAfterSave) {
@@ -332,10 +305,6 @@ export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreat
     nodeTypes,
     nodeTypesLoading,
     nodeTypesError,
-
-    // Workspaces
-    workspaces,
-    workspacesLoading,
 
     // Tips panel
     tipsOpen,

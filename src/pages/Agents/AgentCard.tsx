@@ -1,15 +1,16 @@
 import { Link } from 'react-router-dom';
-import { Card, Text, Group, Stack, ActionIcon, Badge } from '@mantine/core';
+import { Card, Text, Group, Stack, ActionIcon, Badge, Tooltip } from '@mantine/core';
 import {
   IconTrash,
   IconEdit,
   IconMessageCircle,
   IconChevronRight,
   IconCopy,
+  IconFolder,
 } from '@tabler/icons-react';
 import type { AgentCardProps } from './types';
 
-export function AgentCard({ agent, onEdit, onDelete, onClone }: AgentCardProps) {
+export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace }: AgentCardProps) {
   return (
     <Card
       withBorder
@@ -72,26 +73,40 @@ export function AgentCard({ agent, onEdit, onDelete, onClone }: AgentCardProps) 
           <IconChevronRight size={14} />
         </Link>
         <Group gap="xs">
-          <ActionIcon
-            variant="subtle"
-            onClick={() => onEdit(agent)}
-          >
-            <IconEdit size={18} />
-          </ActionIcon>
-          <ActionIcon
-            variant="subtle"
-            onClick={() => onClone(agent)}
-            title="Clone agent"
-          >
-            <IconCopy size={18} />
-          </ActionIcon>
-          <ActionIcon
-            variant="subtle"
-            color="red"
-            onClick={() => onDelete(agent)}
-          >
-            <IconTrash size={18} />
-          </ActionIcon>
+          <Tooltip label="Edit">
+            <ActionIcon
+              variant="subtle"
+              onClick={() => onEdit(agent)}
+            >
+              <IconEdit size={18} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Clone">
+            <ActionIcon
+              variant="subtle"
+              onClick={() => onClone(agent)}
+            >
+              <IconCopy size={18} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Manage workspace">
+            <ActionIcon
+              variant="subtle"
+              color="cyan"
+              onClick={() => onWorkspace(agent)}
+            >
+              <IconFolder size={18} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Delete">
+            <ActionIcon
+              variant="subtle"
+              color="red"
+              onClick={() => onDelete(agent)}
+            >
+              <IconTrash size={18} />
+            </ActionIcon>
+          </Tooltip>
         </Group>
       </Group>
     </Card>

@@ -64,8 +64,8 @@ interface NavItem {
 }
 
 const getBaseNavItems = (): NavItem[] => [
-  { label: 'Agents', path: '/agents', icon: <IconRobot size={20} /> },
   { label: 'Workspaces', path: '/workspaces', icon: <IconFolders size={20} /> }, // Will be populated dynamically
+  { label: 'Agents', path: '/agents', icon: <IconRobot size={20} /> },
   { label: 'Providers', path: '/providers', icon: <IconSettings size={20} /> },
   { label: 'Secrets', path: '/secrets', icon: <IconLock size={20} /> },
   { label: 'Collections', path: '/collections', icon: <IconDatabase size={20} /> },
