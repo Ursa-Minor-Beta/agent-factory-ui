@@ -5,6 +5,7 @@ export interface CreateAgentInput {
   name: string;
   description?: string;
   nodes?: Agent['nodes'];
+  workspaceId?: string;
 }
 
 export interface UpdateAgentInput {
@@ -12,6 +13,7 @@ export interface UpdateAgentInput {
   description?: string;
   nodes?: Agent['nodes'];
   status?: 'draft' | 'published';
+  workspaceId?: string;
 }
 
 function buildQueryString(params: AgentQueryParams): string {

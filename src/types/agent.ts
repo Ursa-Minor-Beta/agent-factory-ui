@@ -27,6 +27,7 @@ export interface Agent {
   description?: string;
   nodes: AgentNode[];
   status: 'draft' | 'published';
+  workspaceId?: string;
   defaultName?: string;
   systemName?: string;
   createdAt: string;
@@ -37,6 +38,7 @@ export interface AgentQueryParams {
   id?: string;
   name?: string;
   description?: string;
+  workspaceId?: string;
   createdAfter?: string;
   createdBefore?: string;
   sortBy?: 'name' | 'createdAt' | 'updatedAt';

@@ -21,7 +21,9 @@ import {
   IconAlertCircle,
 } from '@tabler/icons-react';
 import { agentsApi } from '../../api';
+import { workspacesApi } from '../../api/workspaces';
 import type { Agent, AgentQueryParams } from '../../types';
+import type { Workspace } from '../../types/workspace';
 import { AgentCard } from './AgentCard';
 import { AgentFilters } from './AgentFilters';
 import { useAgentModal } from '../../components/AgentCreateModal';
@@ -50,12 +52,17 @@ export function AgentsPage() {
   const [searchDebounced, setSearchDebounced] = useState('');
   const [descriptionFilter, setDescriptionFilter] = useState('');
   const [descriptionDebounced, setDescriptionDebounced] = useState('');
+  const [workspaceFilter, setWorkspaceFilter] = useState('');
   const [createdAfter, setCreatedAfter] = useState('');
   const [createdBefore, setCreatedBefore] = useState('');
   const [sortValue, setSortValue] = useState<string | null>(() => {
     return localStorage.getItem(SORT_STORAGE_KEY) || 'name-asc';
   });
   const [page, setPage] = useState(1);
+
+  // Workspaces for filter
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [workspacesLoading, setWorkspacesLoading] = useState(false);
 
   // Persist sort value
   const handleSortChange = (val: string | null) => {
@@ -71,9 +78,26 @@ export function AgentsPage() {
   const activeFilterCount = [
     searchDebounced,
     descriptionDebounced,
+    workspaceFilter,
     createdAfter,
     createdBefore,
   ].filter(Boolean).length;
+
+  // Load workspaces for filter
+  useEffect(() => {
+    const loadWorkspaces = async () => {
+      setWorkspacesLoading(true);
+      try {
+        const data = await workspacesApi.list({ limit: 100, sortBy: 'name', sortOrder: 'asc' });
+        setWorkspaces(data.workspaces);
+      } catch (err) {
+        console.error('Failed to load workspaces:', err);
+      } finally {
+        setWorkspacesLoading(false);
+      }
+    };
+    loadWorkspaces();
+  }, []);
 
   // Debounce search inputs
   useEffect(() => {
@@ -107,6 +131,9 @@ export function AgentsPage() {
       if (descriptionDebounced.trim()) {
         params.description = descriptionDebounced;
       }
+      if (workspaceFilter) {
+        params.workspaceId = workspaceFilter;
+      }
       if (createdAfter) {
         params.createdAfter = new Date(createdAfter).toISOString();
       }
@@ -122,7 +149,7 @@ export function AgentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [searchDebounced, descriptionDebounced, createdAfter, createdBefore, sortBy, sortOrder, page]);
+  }, [searchDebounced, descriptionDebounced, workspaceFilter, createdAfter, createdBefore, sortBy, sortOrder, page]);
 
   useEffect(() => {
     loadAgents();
@@ -161,6 +188,7 @@ export function AgentsPage() {
     setSearchDebounced('');
     setDescriptionFilter('');
     setDescriptionDebounced('');
+    setWorkspaceFilter('');
     setCreatedAfter('');
     setCreatedBefore('');
     setPage(1);
@@ -217,6 +245,10 @@ export function AgentsPage() {
         <AgentFilters
           descriptionFilter={descriptionFilter}
           onDescriptionChange={setDescriptionFilter}
+          workspaceId={workspaceFilter}
+          onWorkspaceChange={(val) => { setWorkspaceFilter(val); setPage(1); }}
+          workspaces={workspaces}
+          workspacesLoading={workspacesLoading}
           createdAfter={createdAfter}
           onCreatedAfterChange={(val) => { setCreatedAfter(val); setPage(1); }}
           createdBefore={createdBefore}

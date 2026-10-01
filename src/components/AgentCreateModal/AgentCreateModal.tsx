@@ -14,6 +14,7 @@ import {
   Textarea,
   Tabs,
   Stack,
+  Select,
 } from '@mantine/core';
 import { IconAlertCircle, IconBulb, IconCopy, IconCheck, IconLayoutColumns } from '@tabler/icons-react';
 import { JsonEditor } from '../JsonEditor';
@@ -42,6 +43,8 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
     nodeTypes,
     nodeTypesLoading,
     nodeTypesError,
+    workspaces,
+    workspacesLoading,
     tipsOpen,
     setTipsOpen,
     tipsPosition,
@@ -253,6 +256,15 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
                       minRows={3}
                       maxRows={8}
                       {...register('description')}
+                    />
+                    <Select
+                      label="Workspace"
+                      placeholder={workspacesLoading ? 'Loading...' : 'Select workspace (optional)'}
+                      data={workspaces.map((ws) => ({ value: ws.id, label: ws.name }))}
+                      disabled={workspacesLoading}
+                      searchable
+                      clearable
+                      {...register('workspaceId')}
                     />
                     {isEditMode && agent && (
                       <Group gap="xs">
