@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { Box, Text, useMantineColorScheme } from '@mantine/core';
 import AceEditor from 'react-ace';
 

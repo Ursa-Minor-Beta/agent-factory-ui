@@ -180,7 +180,6 @@ export function createTemplateMention(nodes: NodeMetadata[]) {
   let lastActionWasTyping = false;
 
   // Build lookup maps
-  const nodeIds = nodes.map(n => n.id);
   const nodeOutputsMap = new Map<string, string[]>();
   nodes.forEach(node => {
     if (node.outputs) {
