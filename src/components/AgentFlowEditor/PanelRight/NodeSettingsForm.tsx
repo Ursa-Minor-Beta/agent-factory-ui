@@ -6,6 +6,7 @@ import type { Node } from '@xyflow/react';
 import type { NodeType, NodeTypeOption } from '../../../api';
 import type { NodeMetadata } from '../inputs/templateUtils';
 import { FieldInput } from './FieldInput';
+import { SchemaEditor } from './SchemaEditor';
 
 interface NodeSettingsFormProps {
   node: Node;
@@ -108,6 +109,11 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, nodeIds, onUpdate }: 
   const nodeData = node.data as Record<string, unknown>;
   const nodeLabel = useMemo(() => (nodeData.label as string) || node.id, [nodeData.label, node.id]);
 
+  // Handle schema changes for input nodes
+  const handleSchemaChange = (newSchema: Record<string, unknown>) => {
+    onUpdate(node.id, { schema: newSchema });
+  };
+
   // Get options for this node type as a map by name
   const optionsMap = useMemo(() => {
     const nodeType = nodeTypes.find((nt) => nt.type === node.type);
@@ -147,7 +153,6 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, nodeIds, onUpdate }: 
         const schema = n.data.schema as Record<string, unknown>;
         const schemaFields = Object.keys(schema);
 
-        // Only use schema fields if we actually found some
         if (schemaFields.length > 0) {
           return {
             id: n.id,
@@ -205,19 +210,27 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, nodeIds, onUpdate }: 
 
         <Divider />
 
-        {dataKeys.map((key) => (
-          <FieldInput
-            key={key}
-            fieldKey={key}
-            nodeData={nodeData}
-            option={optionsMap[key]}
-            nodeId={node.id}
-            nodeLabel={nodeLabel}
-            nodes={nodesMetadata}
-            nodeIds={nodeIds}
-            onUpdate={onUpdate}
+        {/* Schema editor for input nodes */}
+        { node.type === 'input' ? (
+          <SchemaEditor
+            schema={(nodeData.schema as Record<string, any>) || {}}
+            onChange={handleSchemaChange}
           />
-        ))}
+        ) : (
+          dataKeys.map( key => (
+            <FieldInput
+              key={key}
+              fieldKey={key}
+              nodeData={nodeData}
+              option={optionsMap[key]}
+              nodeId={node.id}
+              nodeLabel={nodeLabel}
+              nodes={nodesMetadata}
+              nodeIds={nodeIds}
+              onUpdate={onUpdate}
+            />
+          )))
+        }
       </Stack>
     </ScrollArea>
   );
