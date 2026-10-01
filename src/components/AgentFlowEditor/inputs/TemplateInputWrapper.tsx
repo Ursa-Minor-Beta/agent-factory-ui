@@ -1,5 +1,5 @@
 import { useRef, useEffect, useMemo, useState, type RefObject, type ReactNode } from 'react';
-import { Box, Text, Combobox, useCombobox, ScrollArea } from '@mantine/core';
+import { Box, Text, Combobox, useCombobox, ScrollArea, type FloatingPosition } from '@mantine/core';
 import { HighlightedText, findTemplateStart, parseTemplateContext, type NodeMetadata } from './templateUtils';
 
 const DEBOUNCE_MS = 300;
@@ -22,7 +22,7 @@ interface TemplateInputWrapperProps {
   wrapperStyle?: React.CSSProperties;
   highlightStyle?: React.CSSProperties;
   highlightRef?: RefObject<HTMLDivElement | null>;
-  dropdownPosition?: 'bottom-start' | 'top-start';
+  dropdownPosition?: FloatingPosition;
   children: (props: InputRenderProps) => ReactNode;
 }
 
