@@ -116,7 +116,8 @@ export function TemplateInputWrapper({
     const query = context.query.toLowerCase();
     const filtered = query ? outputs.filter(output => output.toLowerCase().includes(query)) : outputs;
 
-    return filtered.sort((a, b) => a.localeCompare(b));
+    // Prepend nodeId to each output to maintain full reference format
+    return filtered.map(output => `${context.nodeId}.${output}`).sort((a, b) => a.localeCompare(b));
   }, [nodeMetadata, filterQuery, allTemplateOptions, nodeOutputsMap]);
 
   // Sync on external value changes

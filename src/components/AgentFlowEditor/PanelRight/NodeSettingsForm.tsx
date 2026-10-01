@@ -142,15 +142,21 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, nodeIds, onUpdate }: 
       // Find the node type definition for this node's type
       const nodeTypeDef = nodeTypes.find(nt => nt.type === n.type);
 
-      // Special handling for input nodes - use schema fields as outputs
-      if (n.type === 'input' && n.data?.schema && typeof n.data.schema === 'object') {
-        const schemaFields = Object.keys(n.data.schema as Record<string, unknown>);
-        return {
-          id: n.id,
-          outputs: schemaFields,
-        };
+      // If node has a schema, use schema fields as outputs
+      if (n.data?.schema && typeof n.data.schema === 'object') {
+        const schema = n.data.schema as Record<string, unknown>;
+        const schemaFields = Object.keys(schema);
+
+        // Only use schema fields if we actually found some
+        if (schemaFields.length > 0) {
+          return {
+            id: n.id,
+            outputs: schemaFields,
+          };
+        }
       }
 
+      // Fallback to node type outputs
       return {
         id: n.id,
         outputs: nodeTypeDef?.outputs,
