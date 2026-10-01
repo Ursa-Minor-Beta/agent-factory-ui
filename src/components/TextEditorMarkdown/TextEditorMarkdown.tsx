@@ -12,6 +12,7 @@ import { common, createLowlight } from 'lowlight';
 import { useEffect, useRef, useState } from 'react';
 import { Box, Button, Group, Textarea } from '@mantine/core';
 import type { Icon } from '@tabler/icons-react';
+import type { Extension } from '@tiptap/core';
 import classes from './TextEditorMarkdown.module.css';
 
 // Create lowlight instance with error handling for unrecognized languages
@@ -82,6 +83,7 @@ interface TextEditorMarkdownRawProps {
     placeholder?: string;
     toolbarFormatBtns?: ToolbarItem[];
     toolbarCommonBtns?: ToolbarItem[];
+    customExtensions?: Extension[];
 
     getValues: (fieldName: string) => string;
     setValue: (fieldName: string, value: string) => void;
@@ -118,6 +120,7 @@ export const TextEditorMarkdownRaw = ({
     placeholder,
     toolbarFormatBtns,
     toolbarCommonBtns,
+    customExtensions = [],
 
     setValue, getValues, subscribe
 
@@ -212,6 +215,9 @@ export const TextEditorMarkdownRaw = ({
                 }),
 
                 Typography,
+
+                // Custom extensions passed from outside
+                ...customExtensions,
             ],
             editable: !disabled,
             ...getEditorProps(heightRef.current),
@@ -230,7 +236,7 @@ export const TextEditorMarkdownRaw = ({
                 if (formatedTouched.current) setFormValue(p.editor.getMarkdown());
             },
         },
-        [],
+        [customExtensions],
     );
 
     // Handle external updates via subscription

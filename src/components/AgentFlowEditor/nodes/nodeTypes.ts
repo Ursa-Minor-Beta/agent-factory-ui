@@ -4,16 +4,15 @@ import { BaseNode } from './BaseNode';
 // Register all node types to use BaseNode
 // This prevents "Node type not found" warnings
 export const nodeTypes: NodeTypes = {
-  js: BaseNode,
+  input: BaseNode,
+  output: BaseNode,
   llm: BaseNode,
   http: BaseNode,
+  js: BaseNode,
+  agent: BaseNode,
   branch: BaseNode,
-  memory: BaseNode,
-  transform: BaseNode,
-  filter: BaseNode,
-  merge: BaseNode,
-  delay: BaseNode,
-  webhook: BaseNode,
-  code: BaseNode,
-  api: BaseNode,
+  'memory-store': BaseNode,
+  'memory-search': BaseNode,
+  'memory-update': BaseNode,
+  'memory-delete': BaseNode,
 };

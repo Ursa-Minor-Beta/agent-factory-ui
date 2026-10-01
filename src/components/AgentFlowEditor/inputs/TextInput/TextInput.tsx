@@ -2,8 +2,8 @@ import { memo, useRef, useCallback } from 'react';
 import { Box, Text, Group, ActionIcon, Modal, Textarea } from '@mantine/core';
 import { IconArrowsMaximize, IconList, IconListNumbers } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
-import { TextEditorMarkdownRaw } from '../../TextEditorMarkdown/TextEditorMarkdown';
-import { TemplateInputWrapper } from './TemplateInputWrapper';
+import { TemplateInputWrapper } from '../TemplateInputWrapper';
+import { TemplateTextEditorFull } from './TemplateTextEditorFull';
 
 interface TextInputProps {
   name: string;
@@ -88,10 +88,11 @@ export const TextInput = memo(function TextInput({ name, nodeLabel, value, nodeI
           },
         }}
       >
-        <TextEditorMarkdownRaw
+        <TemplateTextEditorFull
           formFieldName={name}
           getValues={() => value}
           setValue={(_, newValue) => onChange(newValue)}
+          nodeIds={nodeIds}
           toolbarFormatBtns={[
             {
               title: 'H1',

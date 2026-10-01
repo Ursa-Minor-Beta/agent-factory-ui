@@ -1,5 +1,19 @@
 import { api } from './client';
 
+export const NODE_TYPES = [
+  'input',
+  'output',
+  'llm',
+  'http',
+  'js',
+  'agent',
+  'branch',
+  'memory-store',
+  'memory-search',
+  'memory-update',
+  'memory-delete',
+] as const;
+
 /**
  * Valid node option types:
  * - string: Short text input (single line, e.g., URLs, names, model names)
@@ -28,7 +42,7 @@ export interface NodeTypeExample {
 }
 
 export interface NodeType {
-  type: string;
+  type: typeof NODE_TYPES[number];
   name?: string;
   description?: string;
   category?: string;

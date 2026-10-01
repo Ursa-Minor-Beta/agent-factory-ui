@@ -242,3 +242,23 @@
 .tiptapContent p {
     margin: .5rem 0;
 }
+
+/* Template Mention (Node References) */
+.tiptapContent :global(.template-mention) {
+    background-color: rgba(34, 184, 207, 0.15);
+    border-radius: 2px;
+    padding: 1px 4px;
+    font-family: var(--mantine-font-family-monospace);
+    font-size: 0.9em;
+}
+
+/* Template Reference Highlighting */
+.tiptapContent :global(.template-ref-valid) {
+    background-color: rgba(34, 184, 207, 0.15);
+    border-radius: 2px;
+}
+
+.tiptapContent :global(.template-ref-invalid) {
+    background-color: rgba(239, 68, 68, 0.15);
+    border-radius: 2px;
+}

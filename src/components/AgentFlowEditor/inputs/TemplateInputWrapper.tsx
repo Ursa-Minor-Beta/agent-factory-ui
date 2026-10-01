@@ -1,4 +1,4 @@
-import { useRef, useEffect, useMemo, useState, useCallback, type RefObject, type ReactNode } from 'react';
+import { useRef, useEffect, useMemo, useState, type RefObject, type ReactNode } from 'react';
 import { Box, Text, Combobox, useCombobox, ScrollArea } from '@mantine/core';
 import { HighlightedText, findTemplateStart } from './templateUtils';
 
@@ -17,8 +17,10 @@ interface TemplateInputWrapperProps {
   value: string;
   nodeIds?: string[];
   onChange: (value: string) => void;
+  wrapperStyle?: React.CSSProperties;
   highlightStyle?: React.CSSProperties;
-  highlightRef?: RefObject<HTMLDivElement>;
+  highlightRef?: RefObject<HTMLDivElement | null>;
+  dropdownPosition?: 'bottom-start' | 'top-start';
   children: (props: InputRenderProps) => ReactNode;
 }
 
@@ -26,8 +28,10 @@ export function TemplateInputWrapper({
   value,
   nodeIds,
   onChange,
+  wrapperStyle,
   highlightStyle,
   highlightRef: externalHighlightRef,
+  dropdownPosition = 'bottom-start',
   children,
 }: TemplateInputWrapperProps) {
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
@@ -72,7 +76,7 @@ export function TemplateInputWrapper({
   }, []);
 
   // Insert suggestion
-  const insertSuggestion = useCallback((nodeId: string) => {
+  const insertSuggestion = (nodeId: string) => {
     if (!inputRef.current) return;
 
     const input = inputRef.current;
@@ -82,7 +86,7 @@ export function TemplateInputWrapper({
     const templateInfo = findTemplateStart(currentValue, cursorPos);
     if (!templateInfo) return;
 
-    const template = `{{node: ${nodeId}}}`;
+    const template = `{{node:${nodeId}}}`;
     const before = currentValue.slice(0, templateInfo.start);
     const after = currentValue.slice(cursorPos);
     const newValue = before + template + after;
@@ -98,31 +102,39 @@ export function TemplateInputWrapper({
 
     combobox.closeDropdown();
     setFilterQuery('');
-  }, [combobox]);
+  };
 
-  // Check autocomplete
-  const checkAutocomplete = useCallback(() => {
-    if (!inputRef.current || !nodeIds || nodeIds.length === 0) {
+  // Check autocomplete with given value and cursor position
+  const checkAutocomplete = (currentValue: string, cursorPos: number) => {
+    if (!nodeIds || nodeIds.length === 0) {
       combobox.closeDropdown();
       return;
     }
 
-    const cursorPos = inputRef.current.selectionStart || 0;
-    const templateInfo = findTemplateStart(inputRef.current.value, cursorPos);
+    const templateInfo = findTemplateStart(currentValue, cursorPos);
 
     if (templateInfo) {
       setFilterQuery(templateInfo.query);
+      // setDropdownKey(k => k + 1); // Force re-render when opening
       combobox.openDropdown();
       combobox.resetSelectedOption();
-    } else {
+    } 
+    else {
       combobox.closeDropdown();
       setFilterQuery('');
     }
-  }, [nodeIds, combobox]);
+  };
 
-  // Debounced change
-  const handleChange = useCallback(() => {
-    checkAutocomplete();
+  // Debounced change - update highlight immediately, debounce onChange callback
+  const handleChange = () => {
+    if (!inputRef.current) return;
+
+    const currentValue = inputRef.current.value;
+
+    const cursorPos = inputRef.current.selectionStart || currentValue.length;
+
+    setHighlightValue(currentValue);
+    checkAutocomplete(currentValue, cursorPos);
 
     if (debounceRef.current !== null) {
       clearTimeout(debounceRef.current);
@@ -133,10 +145,10 @@ export function TemplateInputWrapper({
         onChangeRef.current(inputRef.current.value);
       }
     }, DEBOUNCE_MS);
-  }, [checkAutocomplete]);
+  };
 
   // Blur handler
-  const handleBlur = useCallback(() => {
+  const handleBlur = () => {
     if (debounceRef.current !== null) {
       clearTimeout(debounceRef.current);
     }
@@ -145,22 +157,25 @@ export function TemplateInputWrapper({
       lastEmittedRef.current = inputRef.current.value;
       onChangeRef.current(inputRef.current.value);
     }
-  }, []);
+  };
 
   // Click handler
-  const handleClick = useCallback(() => {
-    checkAutocomplete();
-  }, [checkAutocomplete]);
+  const handleClick = () => {
+    if (!inputRef.current) return;
+    const currentValue = inputRef.current.value;
+    const cursorPos = inputRef.current.selectionStart || currentValue.length;
+    checkAutocomplete(currentValue, cursorPos);
+  };
 
   // KeyDown handler
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       combobox.closeDropdown();
     }
     if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !combobox.dropdownOpened) {
       e.stopPropagation();
     }
-  }, [combobox]);
+  };
 
   const options = filteredSuggestions.map((nodeId) => (
     <Combobox.Option value={nodeId} key={nodeId}>
@@ -193,6 +208,7 @@ export function TemplateInputWrapper({
         insertSuggestion(val);
         inputRef.current?.focus();
       }}
+      position={dropdownPosition}
     >
       <Combobox.Target>
         <Box
@@ -200,6 +216,7 @@ export function TemplateInputWrapper({
           style={{
             backgroundColor: 'var(--input-bg)',
             borderRadius: 'var(--mantine-radius-default)',
+            ...wrapperStyle,
           }}
         >
           {/* Highlight layer */}
@@ -218,7 +235,9 @@ export function TemplateInputWrapper({
         </Box>
       </Combobox.Target>
 
-      <Combobox.Dropdown>
+      <Combobox.Dropdown
+        hidden={filteredSuggestions.length === 0}
+      >
         <Combobox.Options>
           <ScrollArea.Autosize mah={200}>
             {options.length > 0 ? options : <Combobox.Empty>No nodes found</Combobox.Empty>}

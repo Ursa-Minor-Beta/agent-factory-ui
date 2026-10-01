@@ -69,6 +69,11 @@ export function extractEdges(nodes: Node[]): Edge[] {
 
 // Generate unique node ID
 export function generateNodeId(type: string, existingNodes: Node[]): string {
+  // Input and output nodes are unique - no numeric suffix needed
+  if (type === 'input' || type === 'output') {
+    return type;
+  }
+
   const typeNodes = existingNodes.filter((n) => n.id.startsWith(`${type}-`));
   return `${type}-${typeNodes.length + 1}`;
 }
@@ -77,10 +82,10 @@ export function generateNodeId(type: string, existingNodes: Node[]): string {
 export function autoLayoutNodes(nodes: Node[], edges: Edge[]): Node[] {
   if (nodes.length === 0) return nodes;
 
-  const NODE_WIDTH = 100;
+  const NODE_WIDTH = 150;
   const NODE_HEIGHT = 80;
-  const H_GAP = 100;
-  const V_GAP = 40;
+  const H_GAP = 70;
+  const V_GAP = 50;
 
   // Build adjacency: source -> targets
   const outgoing = new Map<string, string[]>();

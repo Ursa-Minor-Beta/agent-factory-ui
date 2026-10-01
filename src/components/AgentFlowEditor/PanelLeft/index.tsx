@@ -10,6 +10,7 @@ import { CanvasTab } from './CanvasTab';
 const MIN_WIDTH = 120;
 const MAX_WIDTH_RATIO = 0.4; // 40% of viewport
 const STORAGE_KEY = 'agent-editor-palette-width';
+const TAB_STORAGE_KEY = 'agent-editor-active-tab';
 
 interface PanelLeftProps {
   nodeTypes: NodeType[];
@@ -24,7 +25,10 @@ interface PanelLeftProps {
 
 export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, agent, onAddNode, onEdgeTypeChange, onAgentInfoChange, onClose }: PanelLeftProps) {
   const [viewingNodeType, setViewingNodeType] = useState<NodeType | null>(null);
-  const [activeTab, setActiveTab] = useState<string | null>('nodes');
+  const [activeTab, setActiveTab] = useState<string | null>(() => {
+    const saved = localStorage.getItem(TAB_STORAGE_KEY);
+    return saved || 'nodes';
+  });
   const [width, setWidth] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     return saved ? parseInt(saved, 10) : 180;
@@ -35,6 +39,12 @@ export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, agent, onAdd
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, String(width));
   }, [width]);
+
+  useEffect(() => {
+    if (activeTab) {
+      localStorage.setItem(TAB_STORAGE_KEY, activeTab);
+    }
+  }, [activeTab]);
 
   // Cleanup resize state on unmount
   useEffect(() => {

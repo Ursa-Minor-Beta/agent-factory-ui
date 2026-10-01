@@ -1,11 +1,11 @@
 import { Stack, Select, Text } from '@mantine/core';
 
 const EDGE_TYPE_OPTIONS = [
+  { value: 'default', label: 'Bezier' },
   { value: 'smart', label: 'Smart' },
-  { value: 'default', label: 'Bezier (Default)' },
-  { value: 'straight', label: 'Straight' },
-  { value: 'step', label: 'Step' },
   { value: 'smoothstep', label: 'Smooth Step' },
+  { value: 'step', label: 'Step' },
+  { value: 'straight', label: 'Straight' },
 ];
 
 interface CanvasTabProps {

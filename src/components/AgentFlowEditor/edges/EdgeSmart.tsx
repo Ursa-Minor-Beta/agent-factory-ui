@@ -72,10 +72,10 @@ function useCountConnectedEdges(sourceId: string, targetId: string) {
 
 function getBox(x: number, y: number, w: number, h: number) {
   return {
-    a: { x, y }, //  a ______ b
-    b: { x: x + w, y }, //   | node |
+    a: { x, y },               //  a ______ b
+    b: { x: x + w, y },        //   | node |
     c: { x: x + w, y: y + h }, //   |______|
-    d: { x, y: y + h }, //  d        c
+    d: { x, y: y + h },        //   d        c
   };
 }
 
