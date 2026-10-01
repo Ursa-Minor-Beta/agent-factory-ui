@@ -6,7 +6,8 @@ import type { Node } from '@xyflow/react';
 import type { NodeType, NodeTypeOption } from '../../../api';
 import type { NodeMetadata } from '../inputs/templateUtils';
 import { FieldInput } from './FieldInput';
-import { SchemaEditor } from './SchemaEditor';
+import { InputNodeEditor } from './InputNodeEditor';
+import { OutputNodeEditor } from './OutputNodeEditor';
 
 interface NodeSettingsFormProps {
   node: Node;
@@ -14,6 +15,7 @@ interface NodeSettingsFormProps {
   nodeTypes: NodeType[];
   nodeIds?: string[];
   onUpdate: (nodeId: string, data: Record<string, unknown>) => void;
+  onReplace: (nodeId: string, data: Record<string, unknown>) => void;
 }
 
 interface NodeFormData {
@@ -23,7 +25,7 @@ interface NodeFormData {
 
 const DEBOUNCE_MS = 300;
 
-export function NodeSettingsForm({ node, nodes, nodeTypes, nodeIds, onUpdate }: NodeSettingsFormProps) {
+export function NodeSettingsForm({ node, nodes, nodeTypes, nodeIds, onUpdate, onReplace }: NodeSettingsFormProps) {
   const { register, reset, watch } = useForm<NodeFormData>();
   const updateTimeoutRef = useRef<number | undefined>(undefined);
 
@@ -148,7 +150,7 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, nodeIds, onUpdate }: 
       // Find the node type definition for this node's type
       const nodeTypeDef = nodeTypes.find(nt => nt.type === n.type);
 
-      // If node has a schema, use schema fields as outputs
+      // If node has a schema (input nodes), use schema fields as outputs
       if (n.data?.schema && typeof n.data.schema === 'object') {
         const schema = n.data.schema as Record<string, unknown>;
         const schemaFields = Object.keys(schema);
@@ -157,6 +159,19 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, nodeIds, onUpdate }: 
           return {
             id: n.id,
             outputs: schemaFields,
+          };
+        }
+      }
+
+      // If node is an output node, use its data field names as outputs (excluding special fields)
+      if (n.type === 'output' && n.data) {
+        const dataKeys = Object.keys(n.data).filter(key =>
+          key !== 'label' && key !== 'schema' && key !== 'outputFields'
+        );
+        if (dataKeys.length > 0) {
+          return {
+            id: n.id,
+            outputs: dataKeys,
           };
         }
       }
@@ -210,14 +225,24 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, nodeIds, onUpdate }: 
 
         <Divider />
 
-        {/* Schema editor for input nodes */}
-        { node.type === 'input' ? (
-          <SchemaEditor
+        {/* Schema editor for input nodes, output fields editor for output nodes, regular fields for everything else */}
+        {node.type === 'input' ? (
+          <InputNodeEditor
             schema={(nodeData.schema as Record<string, any>) || {}}
             onChange={handleSchemaChange}
           />
+        ) : node.type === 'output' ? (
+          <OutputNodeEditor
+            nodeId={node.id}
+            nodeLabel={nodeLabel}
+            nodeData={nodeData}
+            nodes={nodesMetadata}
+            nodeIds={nodeIds}
+            onUpdate={onUpdate}
+            onReplace={onReplace}
+          />
         ) : (
-          dataKeys.map( key => (
+          dataKeys.map(key => (
             <FieldInput
               key={key}
               fieldKey={key}
@@ -229,8 +254,8 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, nodeIds, onUpdate }: 
               nodeIds={nodeIds}
               onUpdate={onUpdate}
             />
-          )))
-        }
+          ))
+        )}
       </Stack>
     </ScrollArea>
   );

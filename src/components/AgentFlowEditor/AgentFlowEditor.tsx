@@ -56,6 +56,7 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
     runAgent,
     stopAgent,
     updateNodeData,
+    replaceNodeData,
     updateAgentInfo,
     addNode,
   } = useAgentEditor({ agentId });
@@ -172,6 +173,7 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
           nodeTypes={availableNodeTypes}
           nodeIds={nodeIds}
           onUpdate={updateNodeData}
+          onReplace={replaceNodeData}
           onClose={onPaneClick}
           />
       )}

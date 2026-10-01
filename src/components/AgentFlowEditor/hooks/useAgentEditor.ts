@@ -248,6 +248,51 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
     [setNodes, setEdges, nodes]
   );
 
+  const replaceNodeData = useCallback(
+    (nodeId: string, data: Record<string, unknown>) => {
+      setNodes((nds) =>
+        nds.map((n) => (n.id === nodeId ? { ...n, data } : n))
+      );
+
+      // Auto-manage edges based on template references
+      setEdges((eds) => {
+        // Extract referenced node IDs from new data
+        const referencedIds = extractReferencedNodeIds(data);
+
+        // Get existing node IDs for validation
+        const existingNodeIds = new Set(nodes.map((n) => n.id));
+
+        // Current edges targeting this node
+        const currentSourceIds = new Set(
+          eds.filter((e) => e.target === nodeId).map((e) => e.source)
+        );
+
+        // Remove edges for references that no longer exist
+        let updatedEdges = eds.filter((e) => {
+          if (e.target !== nodeId) return true;
+          return referencedIds.has(e.source);
+        });
+
+        // Add new edges for new references (only if source node exists)
+        referencedIds.forEach((sourceId) => {
+          if (!currentSourceIds.has(sourceId) && existingNodeIds.has(sourceId)) {
+            const edgeId = `${sourceId}-${nodeId}`;
+            if (!updatedEdges.some((e) => e.id === edgeId)) {
+              updatedEdges.push({
+                id: edgeId,
+                source: sourceId,
+                target: nodeId,
+              });
+            }
+          }
+        });
+
+        return updatedEdges;
+      });
+    },
+    [setNodes, setEdges, nodes]
+  );
+
   // Clear selection when clicking canvas
   const onPaneClick = useCallback(() => {
     setSelectedNodeId(null);
@@ -276,6 +321,7 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
     runAgent,
     stopAgent,
     updateNodeData,
+    replaceNodeData,
     updateAgentInfo,
   };
 }

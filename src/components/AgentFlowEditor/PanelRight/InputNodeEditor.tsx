@@ -22,7 +22,7 @@ interface EditingField {
   originalName?: string;
 }
 
-export function SchemaEditor({ schema, onChange }: SchemaEditorProps) {
+export function InputNodeEditor({ schema, onChange }: SchemaEditorProps) {
   const [editingField, setEditingField] = useState<EditingField | null>(null);
 
   const handleAddField = () => {
