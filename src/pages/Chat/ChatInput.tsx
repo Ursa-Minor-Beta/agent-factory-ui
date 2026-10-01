@@ -6,7 +6,7 @@ import type { ChatInputProps } from './types';
 
 const DRAFT_DEBOUNCE_MS = 3000;
 
-export function ChatInput({ onSend, sending, inputSchema, draftKey, onCancel, onHeightChange }: ChatInputProps) {
+export function ChatInput({ onSend, sending, inputSchema, draftKey, isMobile, onCancel, onHeightChange }: ChatInputProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { colorScheme } = useMantineColorScheme();
   const glassBg = colorScheme === 'dark' ? 'rgba(28, 28, 34, 0.85)' : 'rgba(255, 255, 255, 0.85)';
@@ -172,8 +172,8 @@ export function ChatInput({ onSend, sending, inputSchema, draftKey, onCancel, on
       ref={containerRef}
       style={{
         position: 'absolute',
-        bottom: 0,
-        left: 0,
+        bottom: 'var(--app-shell-padding)',
+        left: isMobile ? 0 : 'var(--app-shell-padding)',
         right: 0,
         zIndex: 10,
         pointerEvents: 'none',

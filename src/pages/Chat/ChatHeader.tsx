@@ -16,8 +16,8 @@ export function ChatHeader({
     <Box
       style={{
         position: 'absolute',
-        top: 0,
-        left: 0,
+        top: 'var(--app-shell-padding)',
+        left: isMobile ? 0 : 'var(--app-shell-padding)',
         right: 0,
         zIndex: 10,
         pointerEvents: 'none',

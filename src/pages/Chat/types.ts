@@ -39,6 +39,7 @@ export interface ChatInputProps {
   sending: boolean;
   inputSchema: InputSchema;
   draftKey: string;
+  isMobile: boolean;
   onCancel?: () => void;
   onHeightChange?: (height: number) => void;
 }
