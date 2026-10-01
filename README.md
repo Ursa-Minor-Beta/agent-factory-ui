@@ -10,6 +10,7 @@ React frontend for the Agent Factory platform.
 
 - **Authentication** - Cookie-based auth with automatic token refresh
 - **Agents Management** - Create, edit, delete AI agents
+- **Workspaces** - Organize agents into workspaces with flexible deletion options
 - **Chat Interface** - Real-time chat with agents, incognito mode support
 - **Sessions** - Manage and review chat sessions
 - **Runs** - Track agent execution runs

@@ -19,6 +19,8 @@ const UsersSettings = lazy(() => import('./pages/Settings').then(m => ({ default
 const ApiKeysSettings = lazy(() => import('./pages/Settings').then(m => ({ default: m.ApiKeysSettings })));
 const CollectionsPage = lazy(() => import('./pages/Collections').then(m => ({ default: m.CollectionsPage })));
 const CollectionRecordsPage = lazy(() => import('./pages/Collections').then(m => ({ default: m.CollectionRecordsPage })));
+const WorkspacesPage = lazy(() => import('./pages/Workspaces/Workspaces').then(m => ({ default: m.WorkspacesPage })));
+const WorkspaceDetailPage = lazy(() => import('./pages/Workspaces/WorkspaceDetailPage').then(m => ({ default: m.WorkspaceDetailPage })));
 
 const PageLoader = () => (
   <Center style={{ height: '100%', minHeight: 400 }}>
@@ -80,6 +82,19 @@ export const router = createBrowserRouter([
       {
         path: 'collections/:collection/records',
         element: <CollectionRecordsPage />,
+      },
+      {
+        path: 'workspaces',
+        children: [
+          {
+            index: true,
+            element: <WorkspacesPage />,
+          },
+          {
+            path: ':workspaceId',
+            element: <WorkspaceDetailPage />,
+          },
+        ],
       },
       {
         path: 'runs',
