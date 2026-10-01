@@ -4,16 +4,19 @@ import { IconArrowsMaximize, IconList, IconListNumbers } from '@tabler/icons-rea
 import { useDisclosure } from '@mantine/hooks';
 import { TemplateInputWrapper } from '../TemplateInputWrapper';
 import { TemplateTextEditorFull } from './TemplateTextEditorFull';
+import type { NodeMetadata } from '../templateUtils';
 
 interface TextInputProps {
   name: string;
   nodeLabel?: string;
   value: string;
+  /** @deprecated Use nodes instead */
   nodeIds?: string[];
+  nodes?: NodeMetadata[];
   onChange: (value: string) => void;
 }
 
-export const TextInput = memo(function TextInput({ name, nodeLabel, value, nodeIds, onChange }: TextInputProps) {
+export const TextInput = memo(function TextInput({ name, nodeLabel, value, nodeIds, nodes, onChange }: TextInputProps) {
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
   const highlightRef = useRef<HTMLDivElement>(null);
 
@@ -36,6 +39,7 @@ export const TextInput = memo(function TextInput({ name, nodeLabel, value, nodeI
 
       <TemplateInputWrapper
         value={value}
+        nodes={nodes}
         nodeIds={nodeIds}
         onChange={onChange}
         highlightRef={highlightRef}
@@ -92,6 +96,7 @@ export const TextInput = memo(function TextInput({ name, nodeLabel, value, nodeI
           formFieldName={name}
           getValues={() => value}
           setValue={(_, newValue) => onChange(newValue)}
+          nodes={nodes}
           nodeIds={nodeIds}
           toolbarFormatBtns={[
             {

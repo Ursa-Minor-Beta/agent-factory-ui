@@ -7,6 +7,7 @@ import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { TEMPLATE_VAR_REGEX, TEMPLATE_NODE_ID_REGEX } from '../../utils/converters';
+import { parseTemplateContext, type NodeMetadata } from '../templateUtils';
 
 interface MentionListRef {
   onKeyDown: (props: SuggestionKeyDownProps) => boolean;
@@ -92,7 +93,7 @@ const MentionList = forwardRef<MentionListRef, MentionListProps>(({ items, comma
               backgroundColor: index === selectedIndex ? 'var(--mantine-color-default-hover)' : 'transparent',
             }}
           >
-            <Text size="xs" ff="monospace">{item}</Text>
+            <Text size="xs" ff="monospace">{`node:${item}`}</Text>
           </Box>
         ))}
       </ScrollArea.Autosize>
@@ -174,9 +175,30 @@ function findTemplateDecorations(doc: any, nodeIdSet: Set<string>): DecorationSe
 const typingStateKey = new PluginKey('typingState');
 
 // Create suggestion extension for template autocomplete
-export function createTemplateMention(nodeIds: string[]) {
+export function createTemplateMention(nodes: NodeMetadata[]) {
   // Track if the last action was typing (not click)
   let lastActionWasTyping = false;
+
+  // Build lookup maps
+  const nodeIds = nodes.map(n => n.id);
+  const nodeOutputsMap = new Map<string, string[]>();
+  nodes.forEach(node => {
+    if (node.outputs) {
+      nodeOutputsMap.set(node.id, node.outputs);
+    }
+  });
+
+  // Generate all possible template options (only node.outputs, not bare nodes)
+  const allTemplateOptions: string[] = [];
+  nodes.forEach(node => {
+    // Only add node.output combinations
+    if (node.outputs && node.outputs.length > 0) {
+      node.outputs.forEach(output => {
+        allTemplateOptions.push(`${node.id}.${output}`);
+      });
+    }
+  });
+  allTemplateOptions.sort((a, b) => a.localeCompare(b));
 
   return Extension.create({
     name: 'templateSuggestion',
@@ -241,20 +263,34 @@ export function createTemplateMention(nodeIds: string[]) {
             if (!query.startsWith('{')) {
               return [];
             }
-            // Remove the leading { and optional "node:" prefix
-            const actualQuery = query.slice(1).toLowerCase().replace(/^node:\s*/, '');
-            if (!actualQuery) return nodeIds;
-            return nodeIds.filter(id => id.toLowerCase().includes(actualQuery));
+            // Remove the leading { to get actual query
+            const actualQuery = query.slice(1);
+
+            const context = parseTemplateContext(actualQuery);
+
+            if (!context || context.type === 'node-id') {
+              // Show all template options, filtered by query
+              const q = context?.query?.toLowerCase() || '';
+
+              if (!q) {
+                return allTemplateOptions;
+              }
+
+              return allTemplateOptions.filter(option => option.toLowerCase().includes(q));
+            }
+
+            // When user has typed a specific node ID with dot, show only that node's outputs
+            const outputs = nodeOutputsMap.get(context.nodeId);
+            if (!outputs || outputs.length === 0) return [];
+
+            const q = context.query.toLowerCase();
+            const filtered = q ? outputs.filter(output => output.toLowerCase().includes(q)) : outputs;
+            return filtered.sort((a, b) => a.localeCompare(b));
           },
           command: ({ editor, range, props }: { editor: any; range: any; props: { id: string } }) => {
-            // Insert the template reference as plain text
+            // The props.id is already in the format "nodeId" or "nodeId.output"
             const template = `{{node:${props.id}}}`;
-            editor
-              .chain()
-              .focus()
-              .deleteRange(range)
-              .insertContent(template)
-              .run();
+            editor.chain().focus().deleteRange(range).insertContent(template).run();
           },
           render: () => {
             let component: ReactRenderer<MentionListRef> | null = null;

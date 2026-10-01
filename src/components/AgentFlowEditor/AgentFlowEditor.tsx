@@ -168,6 +168,7 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
       {selectedNode && (
         <PanelRight
           node={selectedNode}
+          nodes={nodes}
           nodeTypes={availableNodeTypes}
           nodeIds={nodeIds}
           onUpdate={updateNodeData}

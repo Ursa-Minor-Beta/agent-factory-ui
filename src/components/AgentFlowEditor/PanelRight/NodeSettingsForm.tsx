@@ -4,10 +4,12 @@ import { TextInput as MantineTextInput, Stack, Badge, Divider, ScrollArea, Group
 import { IconPencil } from '@tabler/icons-react';
 import type { Node } from '@xyflow/react';
 import type { NodeType, NodeTypeOption } from '../../../api';
+import type { NodeMetadata } from '../inputs/templateUtils';
 import { FieldInput } from './FieldInput';
 
 interface NodeSettingsFormProps {
   node: Node;
+  nodes: Node[];
   nodeTypes: NodeType[];
   nodeIds?: string[];
   onUpdate: (nodeId: string, data: Record<string, unknown>) => void;
@@ -20,7 +22,7 @@ interface NodeFormData {
 
 const DEBOUNCE_MS = 300;
 
-export function NodeSettingsForm({ node, nodeTypes, nodeIds, onUpdate }: NodeSettingsFormProps) {
+export function NodeSettingsForm({ node, nodes, nodeTypes, nodeIds, onUpdate }: NodeSettingsFormProps) {
   const { register, reset, watch } = useForm<NodeFormData>();
   const updateTimeoutRef = useRef<number | undefined>(undefined);
 
@@ -126,6 +128,36 @@ export function NodeSettingsForm({ node, nodeTypes, nodeIds, onUpdate }: NodeSet
     return Array.from(allKeys);
   }, [optionsMap, nodeData]);
 
+  // Create node metadata with outputs for template suggestions
+  const nodesMetadata = useMemo((): NodeMetadata[] => {
+    if (!nodes || nodes.length === 0) return [];
+
+    // Create a map of nodeId -> node type for quick lookup
+    const nodeTypeMap = new Map<string, string>();
+    nodes.forEach(n => {
+      nodeTypeMap.set(n.id, n.type || 'default');
+    });
+
+    return nodes.map(n => {
+      // Find the node type definition for this node's type
+      const nodeTypeDef = nodeTypes.find(nt => nt.type === n.type);
+
+      // Special handling for input nodes - use schema fields as outputs
+      if (n.type === 'input' && n.data?.schema && typeof n.data.schema === 'object') {
+        const schemaFields = Object.keys(n.data.schema as Record<string, unknown>);
+        return {
+          id: n.id,
+          outputs: schemaFields,
+        };
+      }
+
+      return {
+        id: n.id,
+        outputs: nodeTypeDef?.outputs,
+      };
+    });
+  }, [nodes, nodeTypes]);
+
   return (
     <ScrollArea flex={1}>
       <Stack gap="md" p="lg">
@@ -175,6 +207,7 @@ export function NodeSettingsForm({ node, nodeTypes, nodeIds, onUpdate }: NodeSet
             option={optionsMap[key]}
             nodeId={node.id}
             nodeLabel={nodeLabel}
+            nodes={nodesMetadata}
             nodeIds={nodeIds}
             onUpdate={onUpdate}
           />

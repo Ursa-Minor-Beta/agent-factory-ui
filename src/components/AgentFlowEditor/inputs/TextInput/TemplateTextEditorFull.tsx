@@ -14,6 +14,7 @@ import { common, createLowlight } from 'lowlight';
 import type { Icon } from '@tabler/icons-react';
 import { createTemplateMention, createTemplateHighlight } from './templateMention';
 import { TemplateInputWrapper } from '../TemplateInputWrapper';
+import type { NodeMetadata } from '../templateUtils';
 import classes from '../../../TextEditorMarkdown/TextEditorMarkdown.module.css';
 
 // Create lowlight instance with error handling
@@ -61,7 +62,9 @@ interface TemplateTextEditorFullProps {
     placeholder?: string;
     toolbarFormatBtns?: ToolbarItem[];
     toolbarCommonBtns?: ToolbarItem[];
+    /** @deprecated Use nodes instead */
     nodeIds?: string[];
+    nodes?: NodeMetadata[];
 
     getValues: (fieldName: string) => string;
     setValue: (fieldName: string, value: string) => void;
@@ -98,6 +101,7 @@ export function TemplateTextEditorFull({
     toolbarFormatBtns,
     toolbarCommonBtns,
     nodeIds,
+    nodes,
     setValue,
     getValues,
 }: TemplateTextEditorFullProps) {
@@ -116,19 +120,26 @@ export function TemplateTextEditorFull({
     const isModeFormatted = editorMode === 'formatted';
 
     // Template extensions for TipTap - use stable key to prevent unnecessary recreations
+    const nodesRef = useRef(nodes);
     const nodeIdsRef = useRef(nodeIds);
+    nodesRef.current = nodes;
     nodeIdsRef.current = nodeIds;
-    const nodeIdsKey = nodeIds?.join(',') ?? '';
+    const nodeMetadataKey = nodes?.map(n => `${n.id}:${n.outputs?.join(',') || ''}`).join('|') || nodeIds?.join(',') || '';
 
     const templateExtensions = useMemo(() => {
-        const ids = nodeIdsRef.current;
-        if (!ids || ids.length === 0) return [];
+        // Backward compatibility: convert nodeIds to nodes
+        const nodeMetadata: NodeMetadata[] = nodesRef.current || (nodeIdsRef.current ? nodeIdsRef.current.map(id => ({ id })) : []);
+
+        if (nodeMetadata.length === 0) return [];
+
+        const nodeIdList = nodeMetadata.map(n => n.id);
+
         return [
-            createTemplateMention(ids),
-            createTemplateHighlight(ids),
+            createTemplateMention(nodeMetadata),
+            createTemplateHighlight(nodeIdList),
         ];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [nodeIdsKey]);
+    }, [nodeMetadataKey]);
 
     const handleMode = (mode: EditorMode) => {
         if (editorMode === mode) return;
@@ -274,6 +285,7 @@ export function TemplateTextEditorFull({
                         <TemplateInputWrapper
                             key={rawModeKey}
                             value={contentRef.current}
+                            nodes={nodes}
                             nodeIds={nodeIds}
                             onChange={handleRawContentChange}
                             highlightRef={highlightRef}

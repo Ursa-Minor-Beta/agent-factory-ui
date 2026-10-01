@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback, memo } from 'react';
 import type { NodeTypeOption } from '../../../api';
+import type { NodeMetadata } from '../inputs/templateUtils';
 import { StringInput, TextInput, EditorInput, NumberInput, EnumInput, MultiEnumInput } from '../inputs';
 
 interface FieldInputProps {
@@ -8,7 +9,9 @@ interface FieldInputProps {
   option: NodeTypeOption | undefined;
   nodeId: string;
   nodeLabel: string;
+  /** @deprecated Use nodes instead */
   nodeIds?: string[];
+  nodes?: NodeMetadata[];
   onUpdate: (nodeId: string, data: Record<string, unknown>) => void;
 }
 
@@ -20,6 +23,7 @@ export const FieldInput = memo(function FieldInput({
   nodeId,
   nodeLabel,
   nodeIds,
+  nodes,
   onUpdate,
 }: FieldInputProps) {
   const value = nodeData[fieldKey];
@@ -95,6 +99,7 @@ export const FieldInput = memo(function FieldInput({
         name={fieldKey}
         nodeLabel={nodeLabel}
         value={String(value ?? option?.default ?? '')}
+        nodes={nodes}
         nodeIds={nodeIds}
         onChange={handleChangeDebounced}
       />
@@ -134,6 +139,7 @@ export const FieldInput = memo(function FieldInput({
       name={fieldKey}
       nodeLabel={nodeLabel}
       value={String(value ?? option?.default ?? '')}
+      nodes={nodes}
       nodeIds={nodeIds}
       onChange={handleChangeDebounced}
     />

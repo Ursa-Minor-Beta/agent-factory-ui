@@ -1,21 +1,25 @@
 import { memo } from 'react';
 import { TextInput, Box, Text } from '@mantine/core';
 import { TemplateInputWrapper } from './TemplateInputWrapper';
+import type { NodeMetadata } from './templateUtils';
 
 interface StringInputProps {
   name: string;
   nodeLabel?: string;
   value: string;
+  /** @deprecated Use nodes instead */
   nodeIds?: string[];
+  nodes?: NodeMetadata[];
   onChange: (value: string) => void;
 }
 
-export const StringInput = memo(function StringInput({ name, value, nodeIds, onChange }: StringInputProps) {
+export const StringInput = memo(function StringInput({ name, value, nodeIds, nodes, onChange }: StringInputProps) {
   return (
     <Box>
       <Text size="xs" c="dimmed" mb={4}>{name}</Text>
       <TemplateInputWrapper
         value={value}
+        nodes={nodes}
         nodeIds={nodeIds}
         onChange={onChange}
         highlightStyle={{
