@@ -23,6 +23,7 @@ export const EditorInput = memo(function EditorInput({ name, nodeLabel, value, o
     return saved ? parseInt(saved, 10) : MIN_HEIGHT;
   });
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
+  const [editorKey, setEditorKey] = useState(0);
   const resizingRef = useRef(false);
   const startYRef = useRef(0);
   const startHeightRef = useRef(0);
@@ -32,6 +33,22 @@ export const EditorInput = memo(function EditorInput({ name, nodeLabel, value, o
   const pendingValueRef = useRef<unknown>(null);
 
   onChangeRef.current = onChange;
+
+  // Flush pending changes when modal closes and remount inline editor
+  const handleCloseModal = useCallback(() => {
+    if (debounceRef.current !== null) {
+      clearTimeout(debounceRef.current);
+      if (pendingValueRef.current !== null) {
+        onChangeRef.current(pendingValueRef.current);
+        pendingValueRef.current = null;
+      }
+    }
+    closeModal();
+    // Force inline editor to remount after parent updates
+    setTimeout(() => {
+      setEditorKey((prev) => prev + 1);
+    }, 0);
+  }, [closeModal]);
 
   // Keep heightRef in sync with height state
   useEffect(() => {
@@ -106,6 +123,7 @@ export const EditorInput = memo(function EditorInput({ name, nodeLabel, value, o
       </Group>
       <Box style={{ position: 'relative' }}>
         <JsonEditor
+          key={editorKey}
           value={value}
           height={height}
           mode="javascript"
@@ -139,7 +157,7 @@ export const EditorInput = memo(function EditorInput({ name, nodeLabel, value, o
         </Box>
       </Box>
 
-      <Modal opened={modalOpened} onClose={closeModal} title={`${nodeLabel || 'Node'} / ${name}`} size="xl" fullScreen centered>
+      <Modal opened={modalOpened} onClose={handleCloseModal} title={`${nodeLabel || 'Node'} / ${name}`} size="xl" fullScreen centered>
         <JsonEditor
           value={value}
           height="calc(100vh - 100px)"

@@ -24,7 +24,7 @@ export interface JsonEditorProps {
   onTextChange?: (text: string) => void;
 }
 
-export function JsonEditor({ value, onChange, readOnly = false, height = '100%', label, mode = 'json', showLineNumbers = true, fontSize = 13, fontFamily = '"Inter", "Roboto", "Helvetica", "Arial", sans-serif', text, onTextChange }: JsonEditorProps) {
+export function JsonEditor({ value, onChange, readOnly = false, height = '100%', label, mode = 'json', showLineNumbers = true, fontSize = 13, fontFamily = '"Monaco", "Menlo", "Consolas", "Courier New", monospace', text, onTextChange }: JsonEditorProps) {
   const { colorScheme } = useMantineColorScheme();
   const isControlled = text !== undefined && onTextChange !== undefined;
 
@@ -38,17 +38,6 @@ export function JsonEditor({ value, onChange, readOnly = false, height = '100%',
 
   // Keep internal string state so edits persist even when JSON is invalid
   const [internalValue, setInternalValue] = useState(() => valueToString(value));
-  const lastExternalValue = useRef<string>(valueToString(value));
-
-  // Sync from prop only when external value actually changes (uncontrolled mode)
-  useEffect(() => {
-    if (isControlled) return; // Skip if using external text control
-    const newExternalValue = valueToString(value);
-    if (newExternalValue !== lastExternalValue.current) {
-      lastExternalValue.current = newExternalValue;
-      setInternalValue(newExternalValue);
-    }
-  }, [value, isControlled, valueToString]);
 
   const handleChange = useCallback((newValue: string) => {
     if (isControlled) {
