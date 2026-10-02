@@ -57,11 +57,18 @@ jobs:
           (cd .infra && sc secrets reveal --force)
           cp -fR .infra/.sc/stacks/* .sc/stacks/
 
+      - name: Record deploy start
+        run: echo "DEPLOY_STARTED=$(date -u +%s)" >> "$GITHUB_ENV"
+
       # SC_CONFIG is raw YAML (never base64): the CI RSA key + parentRepository.
       - name: sc deploy
         env:
           SIMPLE_CONTAINER_CONFIG: ${{ secrets.SC_CONFIG }}
-        run: sc deploy -s agent-factory-ui -e test
+        # A unique version per run. With the default "latest" the task
+        # definition never changes, so ECS keeps the old task running while
+        # the job goes green. The run number makes a re-run of the same
+        # commit roll out too.
+        run: sc deploy -s agent-factory-ui -e test -V "${GITHUB_SHA::12}-${GITHUB_RUN_NUMBER}"
 
       - name: Health gate
         run: |
@@ -71,6 +78,20 @@ jobs:
             [ "$code" = "200" ] && exit 0
             sleep 10
           done
+          exit 1
+
+      # nginx serves index.html with the mtime from this run's build, so an
+      # older Last-Modified means the old task is still serving.
+      - name: Freshness gate
+        run: |
+          for i in $(seq 1 18); do
+            lm=$(curl -fsSI "$UI_URL/" | tr -d '\r' | awk -F': ' 'tolower($1)=="last-modified"{print $2}')
+            served=$(date -u -d "$lm" +%s 2>/dev/null || echo 0)
+            echo "attempt $i: Last-Modified $lm"
+            [ "$served" -ge "$DEPLOY_STARTED" ] && exit 0
+            sleep 10
+          done
+          echo "still serving a build from before this deploy"
           exit 1
 
       # A green deploy can still serve a bundle wired to localhost. Fail unless
