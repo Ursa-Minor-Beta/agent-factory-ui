@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
-import { agentsApi, nodesApi } from '../../api';
+import { agentsApi, nodesApi, workspacesApi } from '../../api';
 import type { NodeType } from '../../api';
 import type { Agent, AgentNode } from '../../types';
+import type { Workspace } from '../../types/workspace';
 import {
   DEFAULT_NODES,
   generateNodeId,
@@ -22,9 +23,10 @@ interface UseAgentCreateOptions {
   onClose: () => void;
   onSave: () => void;
   agent?: Agent | null;
+  defaultWorkspaceId?: string | null;
 }
 
-export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreateOptions) {
+export function useAgentCreate({ opened, onClose, onSave, agent, defaultWorkspaceId }: UseAgentCreateOptions) {
   const isEditMode = Boolean(agent);
   // Form state
   const [saving, setSaving] = useState(false);
@@ -40,6 +42,10 @@ export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreat
   const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
   const [nodeTypesLoading, setNodeTypesLoading] = useState(false);
   const [nodeTypesError, setNodeTypesError] = useState('');
+
+  // Workspaces state
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [workspacesLoading, setWorkspacesLoading] = useState(false);
 
   // Resizable panel
   const [rightPanelWidth, setRightPanelWidth] = useState(RIGHT_PANEL_MIN_WIDTH);
@@ -59,6 +65,7 @@ export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreat
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
   } = useForm<AgentCreateForm>();
 
@@ -76,27 +83,41 @@ export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreat
     }
   }, []);
 
+  // Load workspaces
+  const loadWorkspaces = useCallback(async () => {
+    setWorkspacesLoading(true);
+    try {
+      const data = await workspacesApi.list({ sortBy: 'name', sortOrder: 'asc', limit: 100 });
+      setWorkspaces(data.workspaces);
+    } catch (err) {
+      console.error('Failed to load workspaces:', err);
+    } finally {
+      setWorkspacesLoading(false);
+    }
+  }, []);
+
   // Reset state and load node types when modal opens
   useEffect(() => {
     if (opened) {
       if (agent) {
-        reset({ name: agent.name, description: agent.description || '' });
+        reset({ name: agent.name, description: agent.description || '', workspaceId: agent.workspaceId || '' });
         const agentNodes = agent.nodes || DEFAULT_NODES;
         setNodes(agentNodes);
         setNodesText(JSON.stringify(agentNodes, null, 2));
       } else {
-        reset({ name: '', description: '' });
+        reset({ name: '', description: '', workspaceId: defaultWorkspaceId || '' });
         setNodes(DEFAULT_NODES);
         setNodesText(JSON.stringify(DEFAULT_NODES, null, 2));
       }
       setNodesValid(true);
       setError('');
       loadNodeTypes();
+      loadWorkspaces();
     }
-  }, [opened, agent, reset, loadNodeTypes]);
+  }, [opened, agent, defaultWorkspaceId, reset, loadNodeTypes, loadWorkspaces]);
 
   const handleClose = useCallback(() => {
-    reset({ name: '', description: '' });
+    reset({ name: '', description: '', workspaceId: '' });
     setNodes(DEFAULT_NODES);
     setNodesText(JSON.stringify(DEFAULT_NODES, null, 2));
     setNodesValid(true);
@@ -187,12 +208,14 @@ export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreat
           await agentsApi.update(agent.id, {
             name: data.name,
             description: data.description || undefined,
+            workspaceId: data.workspaceId || undefined,
             nodes,
           });
         } else {
           await agentsApi.create({
             name: data.name,
             description: data.description || undefined,
+            workspaceId: data.workspaceId || undefined,
             nodes,
           });
         }
@@ -286,6 +309,7 @@ export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreat
     // Form
     register,
     handleSubmit,
+    control,
     errors,
     saving,
     error,
@@ -305,6 +329,10 @@ export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreat
     nodeTypes,
     nodeTypesLoading,
     nodeTypesError,
+
+    // Workspaces
+    workspaces,
+    workspacesLoading,
 
     // Tips panel
     tipsOpen,

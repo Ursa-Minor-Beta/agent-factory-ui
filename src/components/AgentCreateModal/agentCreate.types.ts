@@ -10,6 +10,7 @@ export const DEFAULT_NODES: AgentNode[] = [];
 export interface AgentCreateForm {
   name: string;
   description: string;
+  workspaceId: string;
 }
 
 export interface AgentCreateModalProps {
@@ -18,6 +19,7 @@ export interface AgentCreateModalProps {
   onSave: () => void;
   isMobile?: boolean;
   agent?: Agent | null;
+  defaultWorkspaceId?: string | null;
 }
 
 export interface TipsPosition {

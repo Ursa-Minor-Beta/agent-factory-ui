@@ -21,6 +21,8 @@ const CollectionsPage = lazy(() => import('./pages/Collections').then(m => ({ de
 const CollectionRecordsPage = lazy(() => import('./pages/Collections').then(m => ({ default: m.CollectionRecordsPage })));
 const NotFoundPage = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFoundPage })));
 const ErrorPage = lazy(() => import('./pages/ErrorPage').then(m => ({ default: m.ErrorPage })));
+const WorkspacesPage = lazy(() => import('./pages/Workspaces/Workspaces').then(m => ({ default: m.WorkspacesPage })));
+const WorkspaceDetailPage = lazy(() => import('./pages/Workspaces/WorkspaceDetailPage').then(m => ({ default: m.WorkspaceDetailPage })));
 
 const PageLoader = () => (
   <Center style={{ height: '100%', minHeight: 400 }}>
@@ -92,6 +94,19 @@ export const router = createBrowserRouter([
       {
         path: 'collections/:collection/records',
         element: <CollectionRecordsPage />,
+      },
+      {
+        path: 'workspaces',
+        children: [
+          {
+            index: true,
+            element: <WorkspacesPage />,
+          },
+          {
+            path: ':workspaceId',
+            element: <WorkspaceDetailPage />,
+          },
+        ],
       },
       {
         path: 'runs',
