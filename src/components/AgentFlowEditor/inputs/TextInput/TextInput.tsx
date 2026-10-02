@@ -92,7 +92,7 @@ export const TextInput = memo(function TextInput({ name, nodeLabel, value, nodeI
           },
         }}
       >
-      <Box onKeyDown={(e) => e.stopPropagation()}>
+      <Box onKeyDown={(e) => e.stopPropagation()} style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
         <TemplateTextEditorFull
           formFieldName={name}
           getValues={() => value}

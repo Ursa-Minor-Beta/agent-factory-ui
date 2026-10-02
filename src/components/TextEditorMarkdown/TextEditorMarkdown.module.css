@@ -10,13 +10,24 @@
 .tiptapContent {
     flex: 1;
     min-height: 0;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.tiptapContent :global(.tiptap) {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
     overflow: auto;
-    padding: 12px;
 }
 
 /* Remove focus borders from editor */
 .tiptapContent :global(.ProseMirror) {
     outline: none;
+    height: 100%;
+    min-height: 100%;
 }
 
 .tiptapContent :global(.ProseMirror):focus {

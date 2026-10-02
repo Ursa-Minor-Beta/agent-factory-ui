@@ -58,7 +58,6 @@ interface TemplateTextEditorFullProps {
     formFieldName: string;
     defaultMode?: EditorMode;
     disabled?: boolean;
-    heightInitPx?: number;
     placeholder?: string;
     toolbarFormatBtns?: ToolbarItem[];
     toolbarCommonBtns?: ToolbarItem[];
@@ -70,14 +69,13 @@ interface TemplateTextEditorFullProps {
     setValue: (fieldName: string, value: string) => void;
 }
 
-const getEditorProps = (height: string) => ({
+const editorProps = {
     editorProps: {
         attributes: {
             class: 'tiptap-content',
-            style: `height: ${height}`,
         },
     },
-});
+};
 
 const ToolbarItemComponent = ({ toolbarItem, onClick }: { toolbarItem: ToolbarItem; onClick?: () => void }) => {
     if ('separator' in toolbarItem) {
@@ -96,7 +94,6 @@ export function TemplateTextEditorFull({
     formFieldName,
     defaultMode = 'formatted',
     disabled = false,
-    heightInitPx = 400,
     placeholder,
     toolbarFormatBtns,
     toolbarCommonBtns,
@@ -107,7 +104,6 @@ export function TemplateTextEditorFull({
 }: TemplateTextEditorFullProps) {
     const textAreaRef = useRef<HTMLTextAreaElement>(null);
     const highlightRef = useRef<HTMLDivElement>(null);
-    const heightRef = useRef<string>(`${heightInitPx}px`);
 
     // Single source of truth for content - shared between both modes
     const contentRef = useRef<string>(getValues(formFieldName));
@@ -143,10 +139,6 @@ export function TemplateTextEditorFull({
 
     const handleMode = (mode: EditorMode) => {
         if (editorMode === mode) return;
-        heightRef.current =
-            textAreaRef.current?.style.height ||
-            editor?.view.dom.style.height ||
-            `${heightInitPx}px`;
         if (isModeFormatted) {
             // Switching from MD to Text - sync contentRef from editor
             contentRef.current = editor?.getMarkdown() || contentRef.current;
@@ -157,7 +149,6 @@ export function TemplateTextEditorFull({
             editor?.commands.setContent(normalizeLaTeXDelimiters(contentRef.current), {
                 contentType: 'markdown',
             });
-            editor?.setOptions(getEditorProps(heightRef.current));
         }
         setEditorMode(isModeFormatted ? 'raw' : 'formatted');
     };
@@ -183,7 +174,7 @@ export function TemplateTextEditorFull({
                 ...templateExtensions,
             ],
             editable: !disabled,
-            ...getEditorProps(heightRef.current),
+            ...editorProps,
             onCreate: ({ editor }) => {
                 if (contentRef.current) {
                     editor.commands.setContent(normalizeLaTeXDelimiters(contentRef.current), {
@@ -217,8 +208,8 @@ export function TemplateTextEditorFull({
     };
 
     return (
-        <Box className={classes.wrapper}>
-            <Box style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+        <Box className={classes.wrapper} style={{ height: '100%' }}>
+            <Box style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, height: '100%' }}>
                 <Group
                     gap="xs"
                     p={12}
@@ -230,17 +221,19 @@ export function TemplateTextEditorFull({
                     <Button.Group>
                         <Button
                             size="xs"
+                            title='Switch mode'
                             variant={isModeFormatted ? 'filled' : 'default'}
                             onClick={() => handleMode('formatted')}
                         >
-                            MD
+                            Markdown
                         </Button>
                         <Button
                             size="xs"
+                            title='Switch mode'
                             variant={!isModeFormatted ? 'filled' : 'default'}
                             onClick={() => handleMode('raw')}
                         >
-                            Text
+                            Raw
                         </Button>
                     </Button.Group>
                     {!!toolbarFormatBtns && isModeFormatted && editor && (
@@ -276,11 +269,16 @@ export function TemplateTextEditorFull({
                         minHeight: 0,
                         display: 'flex',
                         flexDirection: 'column',
-                        padding: '4px',
+                        paddingLeft: '8px',
+                        overflow: 'hidden',
                     }}
                 >
                     {isModeFormatted ? (
-                        <EditorContent editor={editor} className={classes.tiptapContent} />
+                        <EditorContent
+                            editor={editor}
+                            className={classes.tiptapContent}
+                            style={{ flex: 1, minHeight: 0, height: '100%' }}
+                            />
                     ) : (
                         <TemplateInputWrapper
                             key={rawModeKey}
@@ -296,7 +294,7 @@ export function TemplateTextEditorFull({
                                 left: 0,
                                 right: 0,
                                 bottom: 0,
-                                padding: '8px 12px',
+                                padding: '8px 0',
                                 fontSize: 'var(--mantine-font-size-sm)',
                                 lineHeight: 1.55,
                                 whiteSpace: 'pre-wrap',
@@ -323,7 +321,7 @@ export function TemplateTextEditorFull({
                                             border: 'none',
                                             borderRadius: 0,
                                             backgroundColor: 'transparent',
-                                            padding: '8px 12px',
+                                            padding: '8px 0',
                                             lineHeight: 1.55,
                                         },
                                     }}
