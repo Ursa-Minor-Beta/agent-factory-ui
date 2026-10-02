@@ -208,14 +208,14 @@ export function useAgentCreate({ opened, onClose, onSave, agent, defaultWorkspac
           await agentsApi.update(agent.id, {
             name: data.name,
             description: data.description || undefined,
-            workspaceId: data.workspaceId || undefined,
+            workspaceId: data.workspaceId ? data.workspaceId : null,
             nodes,
           });
         } else {
           await agentsApi.create({
             name: data.name,
             description: data.description || undefined,
-            workspaceId: data.workspaceId || undefined,
+            workspaceId: data.workspaceId ? data.workspaceId : null,
             nodes,
           });
         }
