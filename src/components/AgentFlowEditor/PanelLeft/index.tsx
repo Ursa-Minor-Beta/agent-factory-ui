@@ -6,7 +6,6 @@ import type { Agent } from '../../../types/agent';
 import type { LayoutDirection } from '../utils/converters';
 import { NodesTab } from './NodesTab';
 import { SettingsTab } from './SettingsTab';
-import { CanvasTab } from './CanvasTab';
 import { RunTab } from './RunTab';
 
 const MIN_WIDTH = 120;
@@ -146,26 +145,9 @@ export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, layoutDirect
 
           <Tabs value={activeTab} onChange={setActiveTab} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
             <Tabs.List px="xs" pt="xs">
-              <Tabs.Tab 
-                  value="nodes" 
-                  >
-                  Nodes
-              </Tabs.Tab>
-              <Tabs.Tab 
-                  value="settings" 
-                  >
-                  Settings
-              </Tabs.Tab>
-              <Tabs.Tab 
-                  value="canvas" 
-                  >
-                  Canvas
-              </Tabs.Tab>
-              <Tabs.Tab 
-                  value="run" 
-                  >
-                  Run
-              </Tabs.Tab>
+              <Tabs.Tab value="nodes">Nodes</Tabs.Tab>
+              <Tabs.Tab value="settings">Settings</Tabs.Tab>
+              <Tabs.Tab value="run">Run</Tabs.Tab>
             </Tabs.List>
 
             <Tabs.Panel value="nodes" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
@@ -183,17 +165,15 @@ export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, layoutDirect
               <RunTab agent={agent} />
             </Tabs.Panel>
 
-            <Tabs.Panel value="canvas" style={{ flex: 1, minHeight: 0 }} p="xs">
-              <CanvasTab
+            <Tabs.Panel value="settings" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }} p="xs">
+              <SettingsTab
+                agent={agent}
                 edgeType={edgeType}
-                onEdgeTypeChange={onEdgeTypeChange}
                 layoutDirection={layoutDirection}
+                onAgentInfoChange={onAgentInfoChange}
+                onEdgeTypeChange={onEdgeTypeChange}
                 onLayoutDirectionChange={onLayoutDirectionChange}
               />
-            </Tabs.Panel>
-
-            <Tabs.Panel value="settings" style={{ flex: 1, minHeight: 0 }} p="xs">
-              <SettingsTab agent={agent} onAgentInfoChange={onAgentInfoChange} />
             </Tabs.Panel>
           </Tabs>
         </>

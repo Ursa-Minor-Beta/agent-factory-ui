@@ -9,8 +9,11 @@ import {
   type Connection,
 } from '@xyflow/react';
 import { agentsApi, nodesApi, type NodeType } from '../../../api';
-import type { Agent } from '../../../types/agent';
-import { toFlowNode, toAgentNode, extractEdges, generateNodeId, autoLayoutNodes, extractReferencedNodeIds } from '../utils/converters';
+import type { Agent, CanvasSettings } from '../../../types/agent';
+import { toFlowNode, toAgentNode, extractEdges, generateNodeId, autoLayoutNodes, extractReferencedNodeIds, type LayoutDirection } from '../utils/converters';
+
+const DEFAULT_EDGE_TYPE_KEY = 'agent-editor-default-edge-type';
+const DEFAULT_LAYOUT_DIRECTION_KEY = 'agent-editor-default-layout-direction';
 
 interface UseAgentEditorOptions {
   agentId?: string;
@@ -62,14 +65,25 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
         // Extract edges from node data
         const flowEdges = extractEdges(flowNodes);
 
+        // Get layout direction from agent or localStorage fallback
+        const savedDirection = data.editorData?.canvasSettings?.layoutDirection
+          ?? localStorage.getItem(DEFAULT_LAYOUT_DIRECTION_KEY);
+        const direction: LayoutDirection = (savedDirection === 'LR' || savedDirection === 'TB') ? savedDirection : 'LR';
+
+        // Determine handle positions based on direction
+        const sourcePosition = direction === 'LR' ? Position.Right : Position.Bottom;
+        const targetPosition = direction === 'LR' ? Position.Left : Position.Top;
+
         // Apply saved positions from editorData if available, otherwise use auto-layout
         const nodePositions = data.editorData?.nodePositions;
         const positionedNodes = nodePositions
           ? flowNodes.map((node) => ({
               ...node,
+              sourcePosition,
+              targetPosition,
               position: nodePositions[node.id] || node.position,
             }))
-          : autoLayoutNodes(flowNodes, flowEdges);
+          : autoLayoutNodes(flowNodes, flowEdges, direction);
 
         setNodes(positionedNodes);
         setEdges(flowEdges);
@@ -132,6 +146,31 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
         console.error('Failed to update agent info:', err);
       } finally {
         setSaving(false);
+      }
+    },
+    [agent]
+  );
+
+  // Update canvas settings (layout direction, edge type)
+  const updateCanvasSettings = useCallback(
+    async (settings: CanvasSettings) => {
+      if (!agent) return;
+
+      // Optimistically update local state
+      const updatedEditorData = {
+        ...agent.editorData,
+        canvasSettings: {
+          ...agent.editorData?.canvasSettings,
+          ...settings,
+        },
+      };
+      setAgent({ ...agent, editorData: updatedEditorData });
+
+      // Persist to backend
+      try {
+        await agentsApi.update(agent.id, { editorData: updatedEditorData });
+      } catch (err) {
+        console.error('Failed to save canvas settings:', err);
       }
     },
     [agent]
@@ -294,6 +333,33 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
     setSelectedNodeId(null);
   }, []);
 
+  // Derive canvas settings from agent (with localStorage fallback)
+  const edgeType = useMemo(() => {
+    return agent?.editorData?.canvasSettings?.edgeType
+      ?? localStorage.getItem(DEFAULT_EDGE_TYPE_KEY)
+      ?? 'smart';
+  }, [agent?.editorData?.canvasSettings?.edgeType]);
+
+  const layoutDirection = useMemo((): LayoutDirection => {
+    const saved = agent?.editorData?.canvasSettings?.layoutDirection
+      ?? localStorage.getItem(DEFAULT_LAYOUT_DIRECTION_KEY);
+    return (saved === 'LR' || saved === 'TB') ? saved : 'LR';
+  }, [agent?.editorData?.canvasSettings?.layoutDirection]);
+
+  // Change layout direction and re-layout nodes
+  const changeLayoutDirection = useCallback((direction: LayoutDirection) => {
+    const layoutedNodes = autoLayoutNodes(nodes, edges, direction);
+    setNodes(layoutedNodes);
+    updateCanvasSettings({ layoutDirection: direction });
+    localStorage.setItem(DEFAULT_LAYOUT_DIRECTION_KEY, direction);
+  }, [nodes, edges, setNodes, updateCanvasSettings]);
+
+  // Change edge type
+  const changeEdgeType = useCallback((value: string) => {
+    updateCanvasSettings({ edgeType: value });
+    localStorage.setItem(DEFAULT_EDGE_TYPE_KEY, value);
+  }, [updateCanvasSettings]);
+
   return {
     // State
     agent,
@@ -304,9 +370,10 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
     saving,
     running,
     selectedNode,
+    edgeType,
+    layoutDirection,
 
     // Actions
-    setNodes,
     onNodesChange,
     onEdgesChange,
     onConnect,
@@ -320,5 +387,7 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
     updateNodeData,
     replaceNodeData,
     updateAgentInfo,
+    changeLayoutDirection,
+    changeEdgeType,
   };
 }

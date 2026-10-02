@@ -11,12 +11,9 @@ import type { AgentFlowEditorProps } from './types';
 import type { NodeType } from '../../api';
 import { PanelLeft } from './PanelLeft';
 import { PanelRight } from './PanelRight';
-import { type LayoutDirection, autoLayoutNodes } from './utils/converters';
 
 const PALETTE_STORAGE_KEY = 'agent-editor-palette-open';
-const EDGE_TYPE_STORAGE_KEY = 'agent-editor-edge-type';
 const TAB_STORAGE_KEY = 'agent-editor-active-tab';
-const LAYOUT_DIRECTION_STORAGE_KEY = 'agent-editor-layout-direction';
 
 export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
@@ -24,16 +21,9 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
     const saved = localStorage.getItem(PALETTE_STORAGE_KEY);
     return saved !== null ? saved === 'true' : true;
   });
-  const [edgeType, setEdgeType] = useState(() => {
-    return localStorage.getItem(EDGE_TYPE_STORAGE_KEY) || 'smart';
-  });
   const [activeTab, setActiveTab] = useState<string | null>(() => {
     const saved = localStorage.getItem(TAB_STORAGE_KEY);
     return saved || 'nodes';
-  });
-  const [layoutDirection, setLayoutDirection] = useState<LayoutDirection>(() => {
-    const saved = localStorage.getItem(LAYOUT_DIRECTION_STORAGE_KEY);
-    return (saved === 'LR' || saved === 'TB') ? saved : 'LR';
   });
 
   const handleActiveTabChange = useCallback((tab: string | null) => {
@@ -60,11 +50,6 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
     handleActiveTabChange('run');
   }, [isPaletteOpen, handleActiveTabChange]);
 
-  const handleEdgeTypeChange = useCallback((value: string) => {
-    setEdgeType(value);
-    localStorage.setItem(EDGE_TYPE_STORAGE_KEY, value);
-  }, []);
-
   const {
     agent,
     nodes,
@@ -74,7 +59,8 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
     saving,
     running,
     selectedNode,
-    setNodes,
+    edgeType,
+    layoutDirection,
     onNodesChange,
     onEdgesChange,
     onConnect,
@@ -85,16 +71,10 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
     updateNodeData,
     replaceNodeData,
     updateAgentInfo,
+    changeLayoutDirection,
+    changeEdgeType,
     addNode,
   } = useAgentEditor({ agentId });
-
-  const handleLayoutDirectionChange = useCallback((direction: LayoutDirection) => {
-    setLayoutDirection(direction);
-    localStorage.setItem(LAYOUT_DIRECTION_STORAGE_KEY, direction);
-    // Re-layout nodes with new direction
-    const layoutedNodes = autoLayoutNodes(nodes, edges, direction);
-    setNodes(layoutedNodes);
-  }, [nodes, edges, setNodes]);
 
   // Compute set of node types already on the canvas
   const existingNodeTypes = useMemo(() => {
@@ -198,8 +178,8 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
           activeTab={activeTab}
           onActiveTabChange={handleActiveTabChange}
           onAddNode={handleAddNode}
-          onEdgeTypeChange={handleEdgeTypeChange}
-          onLayoutDirectionChange={handleLayoutDirectionChange}
+          onEdgeTypeChange={changeEdgeType}
+          onLayoutDirectionChange={changeLayoutDirection}
           onAgentInfoChange={updateAgentInfo}
           onClose={togglePalette}
           />

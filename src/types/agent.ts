@@ -20,8 +20,14 @@ export interface AgentNode {
   };
 }
 
+export interface CanvasSettings {
+  layoutDirection?: 'LR' | 'TB';
+  edgeType?: string;
+}
+
 export interface EditorData {
   nodePositions?: Record<string, { x: number; y: number }>;
+  canvasSettings?: CanvasSettings;
   [key: string]: unknown;
 }
 

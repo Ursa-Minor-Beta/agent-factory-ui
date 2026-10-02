@@ -1,12 +1,30 @@
 import { useEffect } from 'react';
-import { Stack, TextInput, Textarea, Group, Code, ActionIcon, Tooltip, CopyButton, Center, Text } from '@mantine/core';
+import { Stack, TextInput, Textarea, Group, Code, ActionIcon, Tooltip, CopyButton, Center, Text, Select, Divider } from '@mantine/core';
 import { IconCheck, IconCopy } from '@tabler/icons-react';
 import { useForm } from 'react-hook-form';
 import type { Agent } from '../../../types/agent';
+import type { LayoutDirection } from '../utils/converters';
+
+const EDGE_TYPE_OPTIONS = [
+  { value: 'default', label: 'Bezier' },
+  { value: 'smart', label: 'Smart' },
+  { value: 'smoothstep', label: 'Smooth Step' },
+  { value: 'step', label: 'Step' },
+  { value: 'straight', label: 'Straight' },
+];
+
+const LAYOUT_DIRECTION_OPTIONS = [
+  { value: 'LR', label: 'Left → Right' },
+  { value: 'TB', label: 'Top → Bottom' },
+];
 
 interface SettingsTabProps {
   agent: Agent | null;
+  edgeType: string;
+  layoutDirection: LayoutDirection;
   onAgentInfoChange: (data: { name?: string; description?: string }) => Promise<void>;
+  onEdgeTypeChange: (value: string) => void;
+  onLayoutDirectionChange: (value: LayoutDirection) => void;
 }
 
 interface SettingsForm {
@@ -14,7 +32,7 @@ interface SettingsForm {
   description: string;
 }
 
-export function SettingsTab({ agent, onAgentInfoChange }: SettingsTabProps) {
+export function SettingsTab({ agent, edgeType, layoutDirection, onAgentInfoChange, onEdgeTypeChange, onLayoutDirectionChange }: SettingsTabProps) {
   const {
     register,
     handleSubmit,
@@ -53,20 +71,11 @@ export function SettingsTab({ agent, onAgentInfoChange }: SettingsTabProps) {
 
   return (
     <Stack gap="md">
-      <TextInput
+     <TextInput
         label="Name"
         placeholder="Enter agent name"
         error={errors.name?.message}
         {...register('name', { required: 'Name is required' })}
-        onBlur={onBlur}
-      />
-      <Textarea
-        label="Description"
-        placeholder="Enter description (optional)"
-        autosize
-        minRows={3}
-        maxRows={8}
-        {...register('description')}
         onBlur={onBlur}
       />
       <Group gap="xs">
@@ -81,6 +90,29 @@ export function SettingsTab({ agent, onAgentInfoChange }: SettingsTabProps) {
           )}
         </CopyButton>
       </Group>
+      <Textarea
+        label="Description"
+        placeholder="Enter description (optional)"
+        autosize
+        minRows={3}
+        maxRows={8}
+        {...register('description')}
+        onBlur={onBlur}
+      />
+      <Select
+        label="Layout Direction"
+        size="xs"
+        value={layoutDirection}
+        onChange={(value) => value && onLayoutDirectionChange(value as LayoutDirection)}
+        data={LAYOUT_DIRECTION_OPTIONS}
+      />
+      <Select
+        label="Edge Style"
+        size="xs"
+        value={edgeType}
+        onChange={(value) => value && onEdgeTypeChange(value)}
+        data={EDGE_TYPE_OPTIONS}
+      />
     </Stack>
   );
 }
