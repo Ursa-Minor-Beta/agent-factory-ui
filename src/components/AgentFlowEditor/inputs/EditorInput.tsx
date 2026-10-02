@@ -10,13 +10,14 @@ const STORAGE_KEY_PREFIX = 'agent-editor-editor-height-';
 const DEBOUNCE_MS = 300;
 
 interface EditorInputProps {
+  nodeId: string;
   name: string;
   nodeLabel?: string;
   value: unknown;
   onChange: (value: unknown) => void;
 }
 
-export const EditorInput = memo(function EditorInput({ name, nodeLabel, value, onChange }: EditorInputProps) {
+export const EditorInput = memo(function EditorInput({ nodeId, name, nodeLabel, value, onChange }: EditorInputProps) {
   const storageKey = STORAGE_KEY_PREFIX + name;
   const [height, setHeight] = useState(() => {
     const saved = localStorage.getItem(storageKey);
@@ -49,6 +50,10 @@ export const EditorInput = memo(function EditorInput({ name, nodeLabel, value, o
       setEditorKey((prev) => prev + 1);
     }, 0);
   }, [closeModal]);
+
+  useEffect( () => {
+    setEditorKey( p => p+1 )
+  }, [nodeId])
 
   // Keep heightRef in sync with height state
   useEffect(() => {

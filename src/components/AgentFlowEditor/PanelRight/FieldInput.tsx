@@ -110,6 +110,7 @@ export const FieldInput = memo(function FieldInput({
   if (fieldType === 'code') {
     return (
       <EditorInput
+        nodeId={nodeId}
         name={fieldKey}
         nodeLabel={nodeLabel}
         value={String(value ?? option?.default ?? '')}
@@ -125,6 +126,7 @@ export const FieldInput = memo(function FieldInput({
   if (isObject) {
     return (
       <EditorInput
+        nodeId={nodeId}
         name={fieldKey}
         nodeLabel={nodeLabel}
         value={value ?? (fieldType === 'array' ? [] : {})}
