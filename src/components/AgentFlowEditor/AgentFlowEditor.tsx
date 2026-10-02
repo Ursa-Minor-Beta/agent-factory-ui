@@ -14,6 +14,7 @@ import { PanelRight } from './PanelRight';
 
 const PALETTE_STORAGE_KEY = 'agent-editor-palette-open';
 const EDGE_TYPE_STORAGE_KEY = 'agent-editor-edge-type';
+const TAB_STORAGE_KEY = 'agent-editor-active-tab';
 
 export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
@@ -24,6 +25,17 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
   const [edgeType, setEdgeType] = useState(() => {
     return localStorage.getItem(EDGE_TYPE_STORAGE_KEY) || 'smart';
   });
+  const [activeTab, setActiveTab] = useState<string | null>(() => {
+    const saved = localStorage.getItem(TAB_STORAGE_KEY);
+    return saved || 'nodes';
+  });
+
+  const handleActiveTabChange = useCallback((tab: string | null) => {
+    setActiveTab(tab);
+    if (tab) {
+      localStorage.setItem(TAB_STORAGE_KEY, tab);
+    }
+  }, []);
 
   const togglePalette = useCallback(() => {
     setIsPaletteOpen((prev) => {
@@ -32,6 +44,15 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
       return newValue;
     });
   }, []);
+
+  // Handle Run button - open panel and switch to Run tab
+  const handleRunClick = useCallback(() => {
+    if (!isPaletteOpen) {
+      setIsPaletteOpen(true);
+      localStorage.setItem(PALETTE_STORAGE_KEY, 'true');
+    }
+    handleActiveTabChange('run');
+  }, [isPaletteOpen, handleActiveTabChange]);
 
   const handleEdgeTypeChange = useCallback((value: string) => {
     setEdgeType(value);
@@ -53,7 +74,6 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
     onNodeClick,
     onPaneClick,
     saveAgent,
-    runAgent,
     stopAgent,
     updateNodeData,
     replaceNodeData,
@@ -120,7 +140,7 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
           running={running}
           isPaletteOpen={isPaletteOpen}
           onSave={saveAgent}
-          onRun={runAgent}
+          onRun={handleRunClick}
           onStop={stopAgent}
           onTogglePalette={togglePalette}
         />
@@ -159,6 +179,8 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
           existingNodeTypes={existingNodeTypes}
           edgeType={edgeType}
           agent={agent}
+          activeTab={activeTab}
+          onActiveTabChange={handleActiveTabChange}
           onAddNode={handleAddNode}
           onEdgeTypeChange={handleEdgeTypeChange}
           onAgentInfoChange={updateAgentInfo}

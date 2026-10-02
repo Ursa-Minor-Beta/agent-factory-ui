@@ -1,11 +1,12 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Box, Text, Group, ActionIcon, Divider, Tabs } from '@mantine/core';
-import { IconLayoutSidebar, IconSettings, IconNote, IconBrush } from '@tabler/icons-react';
+import { IconLayoutSidebar } from '@tabler/icons-react';
 import type { NodeType } from '../../../api';
 import type { Agent } from '../../../types/agent';
 import { NodesTab } from './NodesTab';
 import { SettingsTab } from './SettingsTab';
 import { CanvasTab } from './CanvasTab';
+import { RunTab } from './RunTab';
 
 const MIN_WIDTH = 120;
 const MAX_WIDTH_RATIO = 0.4; // 40% of viewport
@@ -17,18 +18,30 @@ interface PanelLeftProps {
   existingNodeTypes: Set<string>;
   edgeType: string;
   agent: Agent | null;
+  activeTab?: string | null;
+  onActiveTabChange?: (tab: string | null) => void;
   onAddNode: (nodeType: NodeType, exampleIndex?: number) => void;
   onEdgeTypeChange: (value: string) => void;
   onAgentInfoChange: (data: { name?: string; description?: string }) => Promise<void>;
   onClose: () => void;
 }
 
-export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, agent, onAddNode, onEdgeTypeChange, onAgentInfoChange, onClose }: PanelLeftProps) {
+export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, agent, activeTab: externalActiveTab, onActiveTabChange, onAddNode, onEdgeTypeChange, onAgentInfoChange, onClose }: PanelLeftProps) {
   const [viewingNodeType, setViewingNodeType] = useState<NodeType | null>(null);
-  const [activeTab, setActiveTab] = useState<string | null>(() => {
+  const [internalActiveTab, setInternalActiveTab] = useState<string | null>(() => {
     const saved = localStorage.getItem(TAB_STORAGE_KEY);
     return saved || 'nodes';
   });
+
+  // Use external tab if provided, otherwise internal
+  const activeTab = externalActiveTab ?? internalActiveTab;
+  const setActiveTab = (tab: string | null) => {
+    if (onActiveTabChange) {
+      onActiveTabChange(tab);
+    } else {
+      setInternalActiveTab(tab);
+    }
+  };
   const [width, setWidth] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     return saved ? parseInt(saved, 10) : 180;
@@ -130,14 +143,25 @@ export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, agent, onAdd
 
           <Tabs value={activeTab} onChange={setActiveTab} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
             <Tabs.List px="xs" pt="xs">
-              <Tabs.Tab value="nodes" leftSection={<IconNote size={14} />}>
-                Nodes
+              <Tabs.Tab 
+                  value="nodes" 
+                  >
+                  Nodes
               </Tabs.Tab>
-              <Tabs.Tab value="settings" leftSection={<IconSettings size={14} />}>
-                Settings
+              <Tabs.Tab 
+                  value="settings" 
+                  >
+                  Settings
               </Tabs.Tab>
-              <Tabs.Tab value="canvas" leftSection={<IconBrush size={14} />}>
-                Canvas
+              <Tabs.Tab 
+                  value="canvas" 
+                  >
+                  Canvas
+              </Tabs.Tab>
+              <Tabs.Tab 
+                  value="run" 
+                  >
+                  Run
               </Tabs.Tab>
             </Tabs.List>
 
@@ -150,6 +174,10 @@ export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, agent, onAdd
                 onNodeClick={setViewingNodeType}
                 onBack={() => setViewingNodeType(null)}
               />
+            </Tabs.Panel>
+
+            <Tabs.Panel value="run" style={{ flex: 1, minHeight: 0 }} p="xs">
+              <RunTab agent={agent} />
             </Tabs.Panel>
 
             <Tabs.Panel value="canvas" style={{ flex: 1, minHeight: 0 }} p="xs">
