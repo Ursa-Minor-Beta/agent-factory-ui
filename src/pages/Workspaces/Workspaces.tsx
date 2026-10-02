@@ -310,7 +310,7 @@ export function WorkspacesPage() {
                   {workspaces.map((workspace) => (
                     <Table.Tr key={workspace.id}>
                       <Table.Td>
-                        <Text fw={500}>{workspace.name}</Text>
+                        <Text>{workspace.name}</Text>
                       </Table.Td>
                       <Table.Td>
                         <Text size="sm" c="dimmed" lineClamp={2}>
