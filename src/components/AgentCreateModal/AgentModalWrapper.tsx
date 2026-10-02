@@ -10,7 +10,7 @@ import { useAgentModal } from './useAgentModal';
  * This is the component that should be added to Layout.tsx.
  */
 export function AgentModalWrapper() {
-  const { agentId, isOpen, isNewMode, closeAgent } = useAgentModal();
+  const { agentId, defaultWorkspaceId, isOpen, isNewMode, closeAgent } = useAgentModal();
   const [agent, setAgent] = useState<Agent | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -58,6 +58,7 @@ export function AgentModalWrapper() {
       onClose={closeAgent}
       onSave={handleSave}
       agent={agent}
+      defaultWorkspaceId={defaultWorkspaceId}
     />
   );
 }

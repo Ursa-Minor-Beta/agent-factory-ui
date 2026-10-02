@@ -15,6 +15,7 @@ Visual platform for building and managing AI agents through a no-code/low-code i
 - **Secrets & Files** - Secure credential storage and file management
 - **API Keys** - Generate keys with granular permissions for programmatic access
 - **User Management** - Role-based access control (Admin/User)
+- **Workspaces** - Organize agents into workspaces with flexible deletion options
 - **Dark/Light Theme** - Responsive design for desktop, tablet, and mobile
 
 ## Getting Started

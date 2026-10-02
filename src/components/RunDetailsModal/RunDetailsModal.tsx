@@ -332,7 +332,7 @@ export function RunDetailsModal() {
                         {state.input !== undefined && (
                           <Paper p="xs" radius="sm" withBorder>
                             <Group justify="space-between" mb={4}>
-                              <Text size="xs" c="dimmed" fw={500}>INPUT</Text>
+                              <Text size="xs" c="dimmed" fw={500}>INPUT SCHEMA</Text>
                               <CopyButton value={JSON.stringify(state.input, null, 2)}>
                                 {({ copied, copy }) => (
                                   <Tooltip label={copied ? 'Copied' : 'Copy'}>

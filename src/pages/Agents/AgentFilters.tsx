@@ -1,10 +1,14 @@
-import { Card, Group, TextInput, Button, Box } from '@mantine/core';
+import { Card, Group, TextInput, Button, Box, Select } from '@mantine/core';
 import { IconX } from '@tabler/icons-react';
 import type { AgentFiltersProps } from './types';
 
 export function AgentFilters({
   descriptionFilter,
   onDescriptionChange,
+  workspaceId,
+  onWorkspaceChange,
+  workspaces,
+  workspacesLoading,
   createdAfter,
   onCreatedAfterChange,
   createdBefore,
@@ -20,6 +24,17 @@ export function AgentFilters({
           placeholder="Filter by description..."
           value={descriptionFilter}
           onChange={(e) => onDescriptionChange(e.currentTarget.value)}
+          style={{ minWidth: 200 }}
+        />
+        <Select
+          label="Workspace"
+          placeholder={workspacesLoading ? 'Loading...' : 'All workspaces'}
+          value={workspaceId}
+          onChange={(val) => onWorkspaceChange(val || '')}
+          data={workspaces.map((ws) => ({ value: ws.id, label: ws.name }))}
+          disabled={workspacesLoading}
+          searchable
+          clearable
           style={{ minWidth: 200 }}
         />
         <TextInput

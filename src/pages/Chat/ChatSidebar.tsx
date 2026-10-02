@@ -260,6 +260,8 @@ export function ChatSidebar({
           flexShrink: 0,
           display: 'flex',
           flexDirection: 'column',
+          marginTop: 'var(--app-shell-padding)',
+          marginBottom: 'var(--app-shell-padding)'
         }}
       >
         {sidebarContent}

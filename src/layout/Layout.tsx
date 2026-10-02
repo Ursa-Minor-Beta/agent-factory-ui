@@ -1,4 +1,4 @@
-import { Suspense, useEffect, lazy } from 'react';
+import { Suspense, useEffect, useState, lazy } from 'react';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   AppShell,
@@ -33,8 +33,13 @@ import {
   IconMoon,
   IconTool,
   IconDatabase,
+  IconFolders,
+  IconFolder,
+  IconPlus,
 } from '@tabler/icons-react';
 import { useAuth } from '../contexts/AuthContext';
+import { workspacesApi } from '../api/workspaces';
+import type { Workspace } from '../types/workspace';
 
 // Lazy load global modals
 const RunDetailsModal = lazy(() =>
@@ -57,7 +62,8 @@ interface NavItem {
   children?: NavItem[];
 }
 
-const navItems: NavItem[] = [
+const getBaseNavItems = (): NavItem[] => [
+  { label: 'Workspaces', path: '/workspaces', icon: <IconFolders size={20} /> }, // Will be populated dynamically
   { label: 'Agents', path: '/agents', icon: <IconRobot size={20} /> },
   { label: 'Providers', path: '/providers', icon: <IconSettings size={20} /> },
   { label: 'Secrets', path: '/secrets', icon: <IconLock size={20} /> },
@@ -87,6 +93,105 @@ export function Layout() {
     defaultValue: true,
   });
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
+  const [navItems, setNavItems] = useState<NavItem[]>(getBaseNavItems());
+
+  // Helper to update workspace children in nav
+  const updateWorkspaceNav = (workspaces: Workspace[]) => {
+    const baseItems = getBaseNavItems();
+    const workspacesIndex = baseItems.findIndex(item => item.path === '/workspaces');
+
+    if (workspacesIndex !== -1 && workspaces.length > 0) {
+      const workspaceChildren: NavItem[] = workspaces.map(ws => ({
+        label: ws.name,
+        path: `/workspaces/${ws.id}`,
+        icon: <IconFolder size={18} />,
+      }));
+
+      baseItems[workspacesIndex] = {
+        ...baseItems[workspacesIndex],
+        children: workspaceChildren,
+      };
+    }
+
+    setNavItems(baseItems);
+  };
+
+  // Load workspaces for navigation
+  useEffect(() => {
+    const loadWorkspaces = async () => {
+      try {
+        const data = await workspacesApi.list({ limit: 10, sortBy: 'name', sortOrder: 'asc' });
+        updateWorkspaceNav(data.workspaces);
+      } catch (err) {
+        console.error('Failed to load workspaces for navigation:', err);
+      }
+    };
+
+    loadWorkspaces();
+  }, []);
+
+  // Listen for workspace changes and update nav without refetching
+  useEffect(() => {
+    const handleWorkspaceCreated = (event: Event) => {
+      const { workspace } = (event as CustomEvent).detail;
+      const currentWorkspacesItem = navItems.find(item => item.path === '/workspaces');
+      const currentWorkspaces = currentWorkspacesItem?.children?.map(child => ({
+        id: child.path.split('/').pop()!,
+        name: child.label,
+      })) || [];
+
+      // Add new workspace and sort by name
+      const updatedWorkspaces = [...currentWorkspaces, workspace]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .slice(0, 10); // Keep only top 10
+
+      updateWorkspaceNav(updatedWorkspaces as Workspace[]);
+    };
+
+    const handleWorkspaceUpdated = (event: Event) => {
+      const { workspace } = (event as CustomEvent).detail;
+      const currentWorkspacesItem = navItems.find(item => item.path === '/workspaces');
+
+      if (currentWorkspacesItem?.children) {
+        const updatedWorkspaces = currentWorkspacesItem.children
+          .map(child => {
+            const wsId = child.path.split('/').pop();
+            return wsId === workspace.id
+              ? { id: workspace.id, name: workspace.name }
+              : { id: wsId!, name: child.label };
+          })
+          .sort((a, b) => a.name.localeCompare(b.name));
+
+        updateWorkspaceNav(updatedWorkspaces as Workspace[]);
+      }
+    };
+
+    const handleWorkspaceDeleted = (event: Event) => {
+      const { workspaceId } = (event as CustomEvent).detail;
+      const currentWorkspacesItem = navItems.find(item => item.path === '/workspaces');
+
+      if (currentWorkspacesItem?.children) {
+        const updatedWorkspaces = currentWorkspacesItem.children
+          .filter(child => child.path !== `/workspaces/${workspaceId}`)
+          .map(child => ({
+            id: child.path.split('/').pop()!,
+            name: child.label,
+          }));
+
+        updateWorkspaceNav(updatedWorkspaces as Workspace[]);
+      }
+    };
+
+    window.addEventListener('workspace-created', handleWorkspaceCreated);
+    window.addEventListener('workspace-updated', handleWorkspaceUpdated);
+    window.addEventListener('workspace-deleted', handleWorkspaceDeleted);
+
+    return () => {
+      window.removeEventListener('workspace-created', handleWorkspaceCreated);
+      window.removeEventListener('workspace-updated', handleWorkspaceUpdated);
+      window.removeEventListener('workspace-deleted', handleWorkspaceDeleted);
+    };
+  }, [navItems]);
 
   // Update browser tab title based on current page
   useEffect(() => {
@@ -181,6 +286,24 @@ export function Layout() {
                 key={item.path}
                 label={collapsed ? '' : item.label}
                 leftSection={item.icon}
+                rightSection={
+                  !collapsed && item.path === '/workspaces' ? (
+                    <Tooltip label="Create workspace" position="right">
+                      <ActionIcon
+                        size="xs"
+                        variant="subtle"
+                        color="cyan"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate('/workspaces?create=true');
+                          closeMobile();
+                        }}
+                      >
+                        <IconPlus size={14} />
+                      </ActionIcon>
+                    </Tooltip>
+                  ) : undefined
+                }
                 defaultOpened={location.pathname.startsWith(item.path)}
                 style={{
                   borderRadius: 'var(--mantine-radius-md)',

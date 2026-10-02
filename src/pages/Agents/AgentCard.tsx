@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Card, Text, Group, Stack, ActionIcon, Badge } from '@mantine/core';
+import { Card, Text, Group, Stack, ActionIcon, Badge, Tooltip } from '@mantine/core';
 import {
   IconTrash,
   IconMessageCircle,
@@ -7,10 +7,11 @@ import {
   IconCopy,
   IconSchema,
   IconCode,
+  IconFolder,
 } from '@tabler/icons-react';
 import type { AgentCardProps } from './types';
 
-export function AgentCard({ agent, onEdit, onDelete, onClone }: AgentCardProps) {
+export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace }: AgentCardProps) {
   return (
     <Card
       withBorder
@@ -75,7 +76,8 @@ export function AgentCard({ agent, onEdit, onDelete, onClone }: AgentCardProps) 
           </Link>
         </Group>
         <Group gap="xs">
-          <Link
+          <Tooltip label="Visual Editor">
+            <Link
             to={`/agents/${agent.id}/editor`}
             title='Visual editor'
             style={{
@@ -89,26 +91,39 @@ export function AgentCard({ agent, onEdit, onDelete, onClone }: AgentCardProps) 
             <IconSchema size={16} />
           </Link>
           <ActionIcon
-            variant="subtle"
-            title='JSON editor'
+              variant="subtle"
+              title='JSON Editor'
             onClick={() => onEdit(agent)}
-          >
-            <IconCode size={18} />
-          </ActionIcon>
-          <ActionIcon
-            variant="subtle"
-            onClick={() => onClone(agent)}
-            title="Clone agent"
-          >
-            <IconCopy size={18} />
-          </ActionIcon>
-          <ActionIcon
-            variant="subtle"
-            color="red"
-            onClick={() => onDelete(agent)}
-          >
-            <IconTrash size={18} />
-          </ActionIcon>
+            >
+              <IconCode size={18} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Clone">
+            <ActionIcon
+              variant="subtle"
+              onClick={() => onClone(agent)}
+            >
+              <IconCopy size={18} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Manage workspace">
+            <ActionIcon
+              variant="subtle"
+              color="cyan"
+              onClick={() => onWorkspace(agent)}
+            >
+              <IconFolder size={18} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Delete">
+            <ActionIcon
+              variant="subtle"
+              color="red"
+              onClick={() => onDelete(agent)}
+            >
+              <IconTrash size={18} />
+            </ActionIcon>
+          </Tooltip>
         </Group>
       </Group>
     </Card>

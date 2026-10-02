@@ -182,7 +182,7 @@ export function ChatMessages({
                     </Paper>
                   </Box>
                 )}
-                <Box style={{ height: inputHeight + 16 }} />
+                <Box style={{ height: inputHeight + 32 }} />
               </>
             ),
         }}

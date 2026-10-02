@@ -20,6 +20,10 @@ const ApiKeysSettings = lazy(() => import('./pages/Settings').then(m => ({ defau
 const CollectionsPage = lazy(() => import('./pages/Collections').then(m => ({ default: m.CollectionsPage })));
 const CollectionRecordsPage = lazy(() => import('./pages/Collections').then(m => ({ default: m.CollectionRecordsPage })));
 const AgentEditorPage = lazy(() => import('./pages/AgentEditor').then(m => ({ default: m.AgentEditorPage })));
+const NotFoundPage = lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFoundPage })));
+const ErrorPage = lazy(() => import('./pages/ErrorPage').then(m => ({ default: m.ErrorPage })));
+const WorkspacesPage = lazy(() => import('./pages/Workspaces/Workspaces').then(m => ({ default: m.WorkspacesPage })));
+const WorkspaceDetailPage = lazy(() => import('./pages/Workspaces/WorkspaceDetailPage').then(m => ({ default: m.WorkspaceDetailPage })));
 
 const PageLoader = () => (
   <Center style={{ height: '100%', minHeight: 400 }}>
@@ -37,6 +41,11 @@ export const router = createBrowserRouter([
         </Suspense>
       </PublicRoute>
     ),
+    errorElement: (
+      <Suspense fallback={<PageLoader />}>
+        <ErrorPage />
+      </Suspense>
+    ),
   },
   {
     path: '/',
@@ -44,6 +53,11 @@ export const router = createBrowserRouter([
       <ProtectedRoute>
         <Layout />
       </ProtectedRoute>
+    ),
+    errorElement: (
+      <Suspense fallback={<PageLoader />}>
+        <ErrorPage />
+      </Suspense>
     ),
     children: [
       {
@@ -91,6 +105,19 @@ export const router = createBrowserRouter([
         element: <CollectionRecordsPage />,
       },
       {
+        path: 'workspaces',
+        children: [
+          {
+            index: true,
+            element: <WorkspacesPage />,
+          },
+          {
+            path: ':workspaceId',
+            element: <WorkspaceDetailPage />,
+          },
+        ],
+      },
+      {
         path: 'runs',
         element: <RunsPage />,
       },
@@ -136,5 +163,18 @@ export const router = createBrowserRouter([
         ],
       },
     ],
+  },
+  {
+    path: '*',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <NotFoundPage />
+      </Suspense>
+    ),
+    errorElement: (
+      <Suspense fallback={<PageLoader />}>
+        <ErrorPage />
+      </Suspense>
+    ),
   },
 ]);
