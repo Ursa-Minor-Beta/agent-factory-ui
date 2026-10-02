@@ -44,7 +44,7 @@ export function AgentWorkspaceModal({ agent, onClose, onSaved }: AgentWorkspaceM
     setSaving(true);
     try {
       await agentsApi.update(agent.id, {
-        workspaceId: selectedWorkspaceId || undefined,
+        workspaceId: selectedWorkspaceId || null,
       });
       onSaved();
       onClose();
