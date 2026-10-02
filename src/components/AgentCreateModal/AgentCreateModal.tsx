@@ -24,7 +24,7 @@ import { NodeTypesPanel } from './NodeTypesPanel';
 import { useAgentCreate } from './useAgentCreate';
 import type { AgentCreateModalProps } from './agentCreate.types';
 
-export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreateModalProps) {
+export function AgentCreateModal({ opened, onClose, onSave, agent, defaultWorkspaceId }: AgentCreateModalProps) {
   const {
     isEditMode,
     register,
@@ -60,7 +60,7 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
     editorContainerRef,
     handleSplitResizeStart,
     handleClose,
-  } = useAgentCreate({ opened, onClose, onSave, agent });
+  } = useAgentCreate({ opened, onClose, onSave, agent, defaultWorkspaceId });
 
   return (
     <Modal

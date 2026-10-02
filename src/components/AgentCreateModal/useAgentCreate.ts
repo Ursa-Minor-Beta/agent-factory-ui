@@ -23,9 +23,10 @@ interface UseAgentCreateOptions {
   onClose: () => void;
   onSave: () => void;
   agent?: Agent | null;
+  defaultWorkspaceId?: string | null;
 }
 
-export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreateOptions) {
+export function useAgentCreate({ opened, onClose, onSave, agent, defaultWorkspaceId }: UseAgentCreateOptions) {
   const isEditMode = Boolean(agent);
   // Form state
   const [saving, setSaving] = useState(false);
@@ -104,7 +105,7 @@ export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreat
         setNodes(agentNodes);
         setNodesText(JSON.stringify(agentNodes, null, 2));
       } else {
-        reset({ name: '', description: '', workspaceId: '' });
+        reset({ name: '', description: '', workspaceId: defaultWorkspaceId || '' });
         setNodes(DEFAULT_NODES);
         setNodesText(JSON.stringify(DEFAULT_NODES, null, 2));
       }
@@ -113,7 +114,7 @@ export function useAgentCreate({ opened, onClose, onSave, agent }: UseAgentCreat
       loadNodeTypes();
       loadWorkspaces();
     }
-  }, [opened, agent, reset, loadNodeTypes, loadWorkspaces]);
+  }, [opened, agent, defaultWorkspaceId, reset, loadNodeTypes, loadWorkspaces]);
 
   const handleClose = useCallback(() => {
     reset({ name: '', description: '', workspaceId: '' });

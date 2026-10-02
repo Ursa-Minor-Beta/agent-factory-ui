@@ -1,6 +1,7 @@
 import { useSearchParams } from 'react-router';
 
 const AGENT_PARAM = 'agent';
+const WORKSPACE_PARAM = 'workspace';
 const NEW_AGENT = 'new';
 
 /**
@@ -26,15 +27,21 @@ export function useAgentModal() {
 
   // Get current agent ID from URL
   const agentId = searchParams.get(AGENT_PARAM);
+  const defaultWorkspaceId = searchParams.get(WORKSPACE_PARAM);
   const isOpen = !!agentId;
   const isNewMode = agentId === NEW_AGENT;
 
   /**
    * Open modal in create mode.
    * Sets ?agent=new in URL.
+   * Optionally sets ?workspace=<id> to pre-select a workspace.
    */
-  const openCreateAgent = () => {
-    setSearchParams({ [AGENT_PARAM]: NEW_AGENT });
+  const openCreateAgent = (workspaceId?: string) => {
+    const params: Record<string, string> = { [AGENT_PARAM]: NEW_AGENT };
+    if (workspaceId) {
+      params[WORKSPACE_PARAM] = workspaceId;
+    }
+    setSearchParams(params);
   };
 
   /**
@@ -56,11 +63,13 @@ export function useAgentModal() {
   return {
     /** Current agent ID from URL ('new' for create mode, null if modal closed) */
     agentId,
+    /** Default workspace ID from URL (for pre-selecting workspace in create mode) */
+    defaultWorkspaceId,
     /** Whether the modal is open */
     isOpen,
     /** Whether in create mode (true) or edit mode (false) */
     isNewMode,
-    /** Open modal in create mode */
+    /** Open modal in create mode, optionally with a pre-selected workspace */
     openCreateAgent,
     /** Open modal in edit mode with specified agent ID */
     openEditAgent,

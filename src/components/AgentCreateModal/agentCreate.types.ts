@@ -19,6 +19,7 @@ export interface AgentCreateModalProps {
   onSave: () => void;
   isMobile?: boolean;
   agent?: Agent | null;
+  defaultWorkspaceId?: string | null;
 }
 
 export interface TipsPosition {

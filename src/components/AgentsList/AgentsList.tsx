@@ -269,7 +269,7 @@ export function AgentsList({
         />
         <Box style={{ flex: 1 }} />
         {showCreateButton && (
-          <Button leftSection={<IconPlus size={16} />} onClick={openCreateAgent}>
+          <Button leftSection={<IconPlus size={16} />} onClick={() => openCreateAgent(workspaceId)}>
             New Agent
           </Button>
         )}

@@ -161,7 +161,7 @@ export function WorkspaceDetailPage() {
         workspaceId={workspaceId}
         showFilters={false}
         showPagination={false}
-        showCreateButton={false}
+        showCreateButton={true}
       />
 
       <WorkspaceModal
