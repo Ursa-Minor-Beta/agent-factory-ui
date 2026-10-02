@@ -165,19 +165,15 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
     [setNodes, setEdges]
   );
 
-  // Run agent
+  // Run agent - opens chat in new tab
   const runAgent = useCallback(() => {
     if (!agent) return;
-    setRunning(true);
-    // TODO: Implement agent execution via API
-    console.log('Running agent:', agent.id);
+    window.open(`/agents/${agent.id}/chat`, '_blank');
   }, [agent]);
 
-  // Stop agent
+  // Stop agent - not used since chat opens in new tab
   const stopAgent = useCallback(() => {
-    setRunning(false);
-    // TODO: Implement agent stop via API
-    console.log('Stopping agent');
+    // No-op
   }, []);
 
   // Handle node click
