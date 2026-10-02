@@ -22,3 +22,4 @@ export type {
   ListSchemasOptions,
   ListRecordsOptions,
 } from './memory';
+export { workspacesApi } from './workspaces';

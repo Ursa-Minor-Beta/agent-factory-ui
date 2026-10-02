@@ -14,7 +14,9 @@ import {
   Textarea,
   Tabs,
   Stack,
+  Select,
 } from '@mantine/core';
+import { Controller } from 'react-hook-form';
 import { IconAlertCircle, IconBulb, IconCopy, IconCheck, IconLayoutColumns } from '@tabler/icons-react';
 import { JsonEditor } from '../JsonEditor';
 import { TipsPanel } from './TipsPanel';
@@ -27,6 +29,7 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
     isEditMode,
     register,
     handleSubmit,
+    control,
     errors,
     saving,
     error,
@@ -42,6 +45,8 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
     nodeTypes,
     nodeTypesLoading,
     nodeTypesError,
+    workspaces,
+    workspacesLoading,
     tipsOpen,
     setTipsOpen,
     tipsPosition,
@@ -253,6 +258,21 @@ export function AgentCreateModal({ opened, onClose, onSave, agent }: AgentCreate
                       minRows={3}
                       maxRows={8}
                       {...register('description')}
+                    />
+                    <Controller
+                      name="workspaceId"
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          label="Workspace"
+                          placeholder="Select workspace (optional)"
+                          data={workspaces.map((ws) => ({ value: ws.id, label: ws.name }))}
+                          disabled={workspacesLoading}
+                          clearable
+                          searchable
+                          {...field}
+                        />
+                      )}
                     />
                     {isEditMode && agent && (
                       <Group gap="xs">
