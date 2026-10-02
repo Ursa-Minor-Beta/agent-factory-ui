@@ -216,11 +216,9 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, nodeIds, onUpdate, on
           disabled={!idEditEnabled}
         />
 
-        <Group gap="xs">
-          <Text size="xs" c="dimmed" mb={4}>Type</Text>
-          <Badge size="sm" variant="light">
-            {node.type}
-          </Badge>
+        <Group gap="xs" align="flex-start">
+          <Text size="xs" c="dimmed" mb={4}>Type: {node.type?.toUpperCase()}</Text>
+          <Text size="xs" c="dimmed" mb={4}>Index: {nodes?.findIndex( n => n.id === node.id )}</Text>
         </Group>
 
         <Divider />

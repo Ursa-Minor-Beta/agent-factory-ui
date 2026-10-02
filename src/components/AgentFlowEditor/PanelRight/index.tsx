@@ -107,7 +107,14 @@ export function PanelRight({ node, nodes, nodeTypes, nodeIds, onUpdate, onReplac
           </ActionIcon>
         </Group>
 
-        <NodeSettingsForm node={node} nodes={nodes} nodeTypes={nodeTypes} nodeIds={nodeIds} onUpdate={onUpdate} onReplace={onReplace} />
+        <NodeSettingsForm 
+            node={node} 
+            nodes={nodes} 
+            nodeTypes={nodeTypes} 
+            nodeIds={nodeIds} 
+            onUpdate={onUpdate} 
+            onReplace={onReplace} 
+            />
       </Box>
     </Box>
   );
