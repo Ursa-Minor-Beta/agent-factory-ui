@@ -3,6 +3,7 @@ import { Box, Text, Group, ActionIcon, Divider, Tabs } from '@mantine/core';
 import { IconLayoutSidebar } from '@tabler/icons-react';
 import type { NodeType } from '../../../api';
 import type { Agent } from '../../../types/agent';
+import type { LayoutDirection } from '../utils/converters';
 import { NodesTab } from './NodesTab';
 import { SettingsTab } from './SettingsTab';
 import { CanvasTab } from './CanvasTab';
@@ -17,16 +18,18 @@ interface PanelLeftProps {
   nodeTypes: NodeType[];
   existingNodeTypes: Set<string>;
   edgeType: string;
+  layoutDirection: LayoutDirection;
   agent: Agent | null;
   activeTab?: string | null;
   onActiveTabChange?: (tab: string | null) => void;
   onAddNode: (nodeType: NodeType, exampleIndex?: number) => void;
   onEdgeTypeChange: (value: string) => void;
+  onLayoutDirectionChange: (value: LayoutDirection) => void;
   onAgentInfoChange: (data: { name?: string; description?: string }) => Promise<void>;
   onClose: () => void;
 }
 
-export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, agent, activeTab: externalActiveTab, onActiveTabChange, onAddNode, onEdgeTypeChange, onAgentInfoChange, onClose }: PanelLeftProps) {
+export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, activeTab: externalActiveTab, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onClose }: PanelLeftProps) {
   const [viewingNodeType, setViewingNodeType] = useState<NodeType | null>(null);
   const [internalActiveTab, setInternalActiveTab] = useState<string | null>(() => {
     const saved = localStorage.getItem(TAB_STORAGE_KEY);
@@ -181,7 +184,12 @@ export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, agent, activ
             </Tabs.Panel>
 
             <Tabs.Panel value="canvas" style={{ flex: 1, minHeight: 0 }} p="xs">
-              <CanvasTab edgeType={edgeType} onEdgeTypeChange={onEdgeTypeChange} />
+              <CanvasTab
+                edgeType={edgeType}
+                onEdgeTypeChange={onEdgeTypeChange}
+                layoutDirection={layoutDirection}
+                onLayoutDirectionChange={onLayoutDirectionChange}
+              />
             </Tabs.Panel>
 
             <Tabs.Panel value="settings" style={{ flex: 1, minHeight: 0 }} p="xs">

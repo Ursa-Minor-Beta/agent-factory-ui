@@ -306,6 +306,7 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
     selectedNode,
 
     // Actions
+    setNodes,
     onNodesChange,
     onEdgesChange,
     onConnect,

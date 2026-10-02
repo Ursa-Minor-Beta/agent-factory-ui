@@ -78,8 +78,11 @@ export function generateNodeId(type: string, existingNodes: Node[]): string {
   return `${type}-${typeNodes.length + 1}`;
 }
 
+export type LayoutDirection = 'LR' | 'TB';
+
 // Auto-layout nodes with parallel branches support
-export function autoLayoutNodes(nodes: Node[], edges: Edge[]): Node[] {
+// direction: 'LR' = Left to Right, 'TB' = Top to Bottom
+export function autoLayoutNodes(nodes: Node[], edges: Edge[], direction: LayoutDirection = 'LR'): Node[] {
   if (nodes.length === 0) return nodes;
 
   const NODE_WIDTH = 150;
@@ -101,7 +104,7 @@ export function autoLayoutNodes(nodes: Node[], edges: Edge[]): Node[] {
   // Find start nodes (no incoming edges)
   const startNodes = nodes.filter((n) => !incoming.has(n.id) || incoming.get(n.id)!.length === 0);
 
-  // BFS to assign depth (column)
+  // BFS to assign depth (column for LR, row for TB)
   const depth = new Map<string, number>();
   const queue: string[] = startNodes.map((n) => n.id);
   startNodes.forEach((n) => depth.set(n.id, 0));
@@ -133,19 +136,35 @@ export function autoLayoutNodes(nodes: Node[], edges: Edge[]): Node[] {
     columns.get(d)!.push(n);
   });
 
+  // Determine handle positions based on direction
+  const sourcePosition = direction === 'LR' ? Position.Right : Position.Bottom;
+  const targetPosition = direction === 'LR' ? Position.Left : Position.Top;
+
   // Assign positions
   return nodes.map((n) => {
     const d = depth.get(n.id)!;
     const col = columns.get(d)!;
     const rowIndex = col.indexOf(n);
-    const colHeight = col.length * (NODE_HEIGHT + V_GAP) - V_GAP;
+
+    let x: number, y: number;
+
+    if (direction === 'LR') {
+      // Left to Right: depth = x, rowIndex = y
+      const colHeight = col.length * (NODE_HEIGHT + V_GAP) - V_GAP;
+      x = d * (NODE_WIDTH + H_GAP);
+      y = rowIndex * (NODE_HEIGHT + V_GAP) - colHeight / 2 + 200;
+    } else {
+      // Top to Bottom: depth = y, rowIndex = x
+      const rowWidth = col.length * (NODE_WIDTH + H_GAP) - H_GAP;
+      x = rowIndex * (NODE_WIDTH + H_GAP) - rowWidth / 2 + 300;
+      y = d * (NODE_HEIGHT + V_GAP);
+    }
 
     return {
       ...n,
-      position: {
-        x: d * (NODE_WIDTH + H_GAP),
-        y: rowIndex * (NODE_HEIGHT + V_GAP) - colHeight / 2 + 200,
-      },
+      sourcePosition,
+      targetPosition,
+      position: { x, y },
     };
   });
 }

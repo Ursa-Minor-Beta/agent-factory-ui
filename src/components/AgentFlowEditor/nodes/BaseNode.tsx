@@ -30,17 +30,28 @@ const nodeIcons: Record<string, Icon> = {
   'memory-delete': IconDatabaseMinus,
 };
 
-export const BaseNode = memo(function BaseNode({ id, type }: NodeProps) {
+export const BaseNode = memo(function BaseNode({ id, type, sourcePosition, targetPosition }: NodeProps) {
   const IconComponent = nodeIcons[type];
 
   return (
     <>
-      <Handle type="target" position={Position.Left} />
-      <Box style={{ textAlign: 'center', minWidth: '80px' }}>
+      <Handle 
+          type="target" 
+          position={targetPosition ?? Position.Left} 
+          hidden={type === 'input'} 
+          />
+      <Box 
+          style={{ textAlign: 
+          'center', minWidth: '80px' }}
+          >
         {IconComponent && <IconComponent size={36} stroke={1} />}
         <Box fz="xs" c="cyan">{id || ''}</Box>
       </Box>
-      <Handle type="source" position={Position.Right} />
+      <Handle 
+          type="source" 
+          position={sourcePosition ?? Position.Right} 
+          hidden={type === 'output'}
+          />
     </>
   );
 });
