@@ -756,7 +756,15 @@ export function ChatPage() {
   }
 
   return (
-    <Box style={{ display: 'flex', height: 'calc(100vh - 40px)', gap: 16 }}>
+    <Box
+      style={{
+        display: 'flex',
+        height: '100vh',
+        marginTop: 'calc(var(--app-shell-padding) * -1)',
+        marginRight: 'calc(var(--app-shell-padding) * -1)',
+        marginBottom: 'calc(var(--app-shell-padding) * -1)',
+      }}
+    >
       <Modal
         opened={!!sessionToDelete}
         onClose={() => setSessionToDelete(null)}
@@ -808,22 +816,23 @@ export function ChatPage() {
           isIncognito={startIncognito}
           error={error}
           errorRunId={errorRunId}
-          onClearError={() => { setError(''); setErrorRunId(undefined); }}
-          onRetry={handleRetry}
           hasMore={hasMoreMessages}
           loadingMore={loadingMoreMessages}
+          statusText={statusText}
+          inputHeight={inputHeight}
+          onClearError={() => { setError(''); setErrorRunId(undefined); }}
+          onRetry={handleRetry}
           onLoadMore={handleLoadMoreMessages}
           onViewRun={handleViewRun}
           onRepeat={handleRepeat}
-          statusText={statusText}
-          inputHeight={inputHeight}
         />
 
         <ChatInput
-          onSend={handleSend}
+          isMobile={isMobile}
           sending={sending}
           inputSchema={inputSchema}
           draftKey={`chat-draft-${agentId}-${currentSessionId || 'new'}`}
+          onSend={handleSend}
           onCancel={handleCancelRun}
           onHeightChange={setInputHeight}
         />
