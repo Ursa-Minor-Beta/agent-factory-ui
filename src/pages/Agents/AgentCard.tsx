@@ -78,26 +78,26 @@ export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace }: Age
         <Group gap="xs">
           <Tooltip label="Visual Editor">
             <Link
-            to={`/agents/${agent.id}/editor`}
-            title='Visual editor'
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              color: 'var(--mantine-color-violet-5)',
-              textDecoration: 'none',
-            }}
-          >
-            <IconSchema size={16} />
-          </Link>
+              to={`/agents/${agent.id}/editor`}
+              title='Visual editor'
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                color: 'var(--mantine-color-violet-5)',
+                textDecoration: 'none',
+              }}
+            >
+              <IconSchema size={16} />
+            </Link>
+          </Tooltip>
           <ActionIcon
               variant="subtle"
               title='JSON Editor'
-            onClick={() => onEdit(agent)}
-            >
+              onClick={() => onEdit(agent)}
+              >
               <IconCode size={18} />
             </ActionIcon>
-          </Tooltip>
           <Tooltip label="Clone">
             <ActionIcon
               variant="subtle"
