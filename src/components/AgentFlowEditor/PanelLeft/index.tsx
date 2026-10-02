@@ -95,7 +95,7 @@ export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, agent, onAdd
         left: 0,
         bottom: 0,
         display: 'flex',
-        zIndex: 5,
+        zIndex: 100,
       }}
     >
       <Box

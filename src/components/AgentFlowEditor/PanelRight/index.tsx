@@ -63,7 +63,7 @@ export function PanelRight({ node, nodes, nodeTypes, nodeIds, onUpdate, onReplac
         right: 0,
         bottom: 0,
         display: 'flex',
-        zIndex: 5,
+        zIndex: 100,
       }}
     >
       {/* Resize handle */}
