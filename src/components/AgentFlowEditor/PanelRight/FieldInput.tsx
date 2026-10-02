@@ -110,6 +110,7 @@ export const FieldInput = memo(function FieldInput({
   if (fieldType === 'code') {
     return (
       <EditorInput
+        mode='javascript'
         nodeId={nodeId}
         name={fieldKey}
         nodeLabel={nodeLabel}
@@ -126,6 +127,7 @@ export const FieldInput = memo(function FieldInput({
   if (isObject) {
     return (
       <EditorInput
+        mode='json'
         nodeId={nodeId}
         name={fieldKey}
         nodeLabel={nodeLabel}

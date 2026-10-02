@@ -14,10 +14,11 @@ interface EditorInputProps {
   name: string;
   nodeLabel?: string;
   value: unknown;
+  mode: "javascript" | "json";
   onChange: (value: unknown) => void;
 }
 
-export const EditorInput = memo(function EditorInput({ nodeId, name, nodeLabel, value, onChange }: EditorInputProps) {
+export const EditorInput = memo(function EditorInput({ nodeId, name, nodeLabel, value, mode, onChange }: EditorInputProps) {
   const storageKey = STORAGE_KEY_PREFIX + name;
   const [height, setHeight] = useState(() => {
     const saved = localStorage.getItem(storageKey);
@@ -51,9 +52,9 @@ export const EditorInput = memo(function EditorInput({ nodeId, name, nodeLabel, 
     }, 0);
   }, [closeModal]);
 
-  useEffect( () => {
-    setEditorKey( p => p+1 )
-  }, [nodeId])
+  useEffect(() => {
+    setEditorKey((p) => p + 1);
+  }, [nodeId]);
 
   // Keep heightRef in sync with height state
   useEffect(() => {
@@ -74,8 +75,8 @@ export const EditorInput = memo(function EditorInput({ nodeId, name, nodeLabel, 
     };
   }, []);
 
-  const handleEditorChange = useCallback((newValue: unknown, isValid: boolean) => {
-    if (!isValid) return;
+  const handleEditorChange = useCallback((newValue: unknown, valid: boolean) => {
+    if (!valid) return;
 
     pendingValueRef.current = newValue;
 
@@ -121,7 +122,9 @@ export const EditorInput = memo(function EditorInput({ nodeId, name, nodeLabel, 
   return (
     <Box>
       <Group justify="space-between" mb={4}>
-        <Text size="xs" c="dimmed">{name}</Text>
+        <Group gap={6}>
+          <Text size="xs" c="dimmed">{name}</Text>
+        </Group>
         <ActionIcon size="xs" variant="subtle" onClick={openModal} title="Edit in modal">
           <IconArrowsMaximize size={12} />
         </ActionIcon>
@@ -131,7 +134,7 @@ export const EditorInput = memo(function EditorInput({ nodeId, name, nodeLabel, 
           key={editorKey}
           value={value}
           height={height}
-          mode="javascript"
+          mode={mode}
           showLineNumbers={false}
           fontSize={12}
           onChange={handleEditorChange}
@@ -162,12 +165,18 @@ export const EditorInput = memo(function EditorInput({ nodeId, name, nodeLabel, 
         </Box>
       </Box>
 
-      <Modal opened={modalOpened} onClose={handleCloseModal} title={`${nodeLabel || 'Node'} / ${name}`} size="xl" fullScreen centered>
+      <Modal 
+        opened={modalOpened} 
+        onClose={handleCloseModal} 
+        title={`${nodeLabel || 'Node'} / ${name}`} size="xl" 
+        fullScreen 
+        centered
+        >
         <Box onKeyDown={(e) => e.stopPropagation()}>
           <JsonEditor
             value={value}
             height="calc(100vh - 100px)"
-            mode="javascript"
+            mode={mode}
             onChange={handleEditorChange}
           />
         </Box>

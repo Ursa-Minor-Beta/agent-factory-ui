@@ -38,6 +38,7 @@ export function JsonEditor({ value, onChange, readOnly = false, height = '100%',
 
   // Keep internal string state so edits persist even when JSON is invalid
   const [internalValue, setInternalValue] = useState(() => valueToString(value));
+  const [isValid, setIsValid] = useState(true);
 
   const handleChange = useCallback((newValue: string) => {
     if (isControlled) {
@@ -48,16 +49,30 @@ export function JsonEditor({ value, onChange, readOnly = false, height = '100%',
       setInternalValue(newValue);
       if (!onChange) return;
 
-      // In javascript mode, treat content as raw string (always valid)
+      // In javascript mode, try to parse as JSON first, fall back to raw string
       if (mode === 'javascript') {
-        onChange(newValue, true);
+        const trimmed = newValue.trim();
+        const looksLikeJson = trimmed.startsWith('{') || trimmed.startsWith('[');
+
+        try {
+          const parsed = JSON.parse(newValue);
+          setIsValid(true);
+          onChange(parsed, true);
+        } catch {
+          // If it looks like JSON but failed to parse, report as invalid
+          const valid = !looksLikeJson;
+          setIsValid(valid);
+          onChange(newValue, valid);
+        }
         return;
       }
 
       try {
         const parsed = JSON.parse(newValue);
+        setIsValid(true);
         onChange(parsed, true);
       } catch {
+        setIsValid(false);
         onChange(newValue, false);
       }
     }
@@ -74,9 +89,27 @@ export function JsonEditor({ value, onChange, readOnly = false, height = '100%',
           minHeight: 0,
           borderRadius: 8,
           overflow: 'hidden',
-          border: '1px solid var(--mantine-color-default-border)',
+          border: `1px solid ${isValid ? 'var(--mantine-color-default-border)' : 'var(--mantine-color-red-6)'}`,
+          position: 'relative',
         }}
       >
+        {!isValid && (
+          <Text
+            size="xs"
+            c="white"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              zIndex: 10,
+              backgroundColor: 'var(--mantine-color-red-6)',
+              padding: '2px 8px',
+              borderBottomRightRadius: 4,
+            }}
+          >
+            Invalid JSON
+          </Text>
+        )}
         <AceEditor
           mode={mode}
           theme={colorScheme === 'dark' ? 'one_dark' : 'chrome'}
