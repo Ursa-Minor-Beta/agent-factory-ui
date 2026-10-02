@@ -158,12 +158,14 @@ export const EditorInput = memo(function EditorInput({ name, nodeLabel, value, o
       </Box>
 
       <Modal opened={modalOpened} onClose={handleCloseModal} title={`${nodeLabel || 'Node'} / ${name}`} size="xl" fullScreen centered>
-        <JsonEditor
-          value={value}
-          height="calc(100vh - 100px)"
-          mode="javascript"
-          onChange={handleEditorChange}
-        />
+        <Box onKeyDown={(e) => e.stopPropagation()}>
+          <JsonEditor
+            value={value}
+            height="calc(100vh - 100px)"
+            mode="javascript"
+            onChange={handleEditorChange}
+          />
+        </Box>
       </Modal>
     </Box>
   );
