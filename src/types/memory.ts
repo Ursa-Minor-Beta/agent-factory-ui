@@ -18,6 +18,8 @@ export interface MemorySchema {
   fields: MemorySchemaField[];
   enableEmbeddings: boolean;
   embeddingField?: string | null;
+  workspaceId?: string | null;
+  workspaceName?: string;
   recordCount?: number;
   createdAt: string;
   updatedAt: string;

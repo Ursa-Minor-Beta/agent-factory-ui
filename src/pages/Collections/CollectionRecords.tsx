@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, NavLink } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import {
   Box,
   Text,
@@ -26,6 +26,7 @@ import {
   IconPencil,
   IconSearch,
   IconAlertCircle,
+  IconList,
 } from '@tabler/icons-react';
 import { memoryApi } from '../../api';
 import type { MemorySchema, MemoryRecord } from '../../types';
@@ -258,7 +259,11 @@ export function CollectionRecordsPage() {
   return (
     <Box>
       <Breadcrumbs mb="md">
-        <Anchor component={NavLink} to="/collections">Collections</Anchor>
+        <Tooltip label="All Collections">
+          <ActionIcon variant="subtle" color="gray" size="md" component={Link} to="/collections">
+            <IconList size={18} />
+          </ActionIcon>
+        </Tooltip>
         <Text>{collection}</Text>
       </Breadcrumbs>
 

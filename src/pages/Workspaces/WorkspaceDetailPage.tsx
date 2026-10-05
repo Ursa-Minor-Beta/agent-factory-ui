@@ -8,6 +8,7 @@ import {
   Alert,
   ActionIcon,
   Tooltip,
+  Tabs,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
@@ -15,12 +16,19 @@ import {
   IconTrash,
   IconAlertCircle,
   IconList,
+  IconRobot,
+  IconCloud,
+  IconKey,
+  IconDatabase,
 } from '@tabler/icons-react';
 import { workspacesApi } from '../../api/workspaces';
 import type { Workspace, WorkspaceDeleteMode } from '../../types/workspace';
 import { WorkspaceModal } from './WorkspaceModal';
 import { WorkspaceDeleteModal } from './WorkspaceDeleteModal';
 import { AgentsList } from '../../components/AgentsList';
+import { WorkspaceProviders } from './WorkspaceProviders';
+import { WorkspaceSecrets } from './WorkspaceSecrets';
+import { WorkspaceCollections } from './WorkspaceCollections';
 
 export function WorkspaceDetailPage() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
@@ -127,7 +135,7 @@ export function WorkspaceDetailPage() {
         </Tooltip>
         <Box>
           <Text fw={500} size="lg" mb="xs">
-            Workspace {workspace.name}
+            Workspace: {workspace.name}
           </Text>
           <Text c="dimmed" size="sm" mb="md">
             {workspace.description}
@@ -159,13 +167,43 @@ export function WorkspaceDetailPage() {
         </Alert>
       )}
 
-      {/* Agents list for this workspace */}
-      <AgentsList
-        workspaceId={workspaceId}
-        showFilters={false}
-        showPagination={false}
-        showCreateButton={true}
-      />
+      <Tabs defaultValue="agents">
+        <Tabs.List mb="md">
+          <Tabs.Tab value="agents" leftSection={<IconRobot size={16} />}>
+            Agents
+          </Tabs.Tab>
+          <Tabs.Tab value="providers" leftSection={<IconCloud size={16} />}>
+            Providers
+          </Tabs.Tab>
+          <Tabs.Tab value="secrets" leftSection={<IconKey size={16} />}>
+            Secrets
+          </Tabs.Tab>
+          <Tabs.Tab value="collections" leftSection={<IconDatabase size={16} />}>
+            Collections
+          </Tabs.Tab>
+        </Tabs.List>
+
+        <Tabs.Panel value="agents">
+          <AgentsList
+            workspaceId={workspaceId}
+            showFilters={false}
+            showPagination={false}
+            showCreateButton={true}
+          />
+        </Tabs.Panel>
+
+        <Tabs.Panel value="providers">
+          <WorkspaceProviders workspaceId={workspaceId!} />
+        </Tabs.Panel>
+
+        <Tabs.Panel value="secrets">
+          <WorkspaceSecrets workspaceId={workspaceId!} />
+        </Tabs.Panel>
+
+        <Tabs.Panel value="collections">
+          <WorkspaceCollections workspaceId={workspaceId!} />
+        </Tabs.Panel>
+      </Tabs>
 
       <WorkspaceModal
         opened={editModalOpened}

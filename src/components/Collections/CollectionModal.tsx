@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useState, useEffect } from 'react';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import {
   Box,
   Text,
@@ -13,22 +13,26 @@ import {
   Textarea,
   Select,
   Checkbox,
+  Alert,
 } from '@mantine/core';
-import { IconPlus, IconTrash } from '@tabler/icons-react';
+import { IconPlus, IconTrash, IconAlertCircle } from '@tabler/icons-react';
+import { memoryApi, workspacesApi } from '../../api';
 import type { MemorySchema, MemorySchemaField, MemoryFieldType } from '../../types';
+import type { Workspace } from '../../types/workspace';
 
 interface SchemaForm {
   name: string;
   description: string;
   fields: MemorySchemaField[];
+  selectedWorkspaceId: string;
 }
 
 interface CollectionModalProps {
   opened: boolean;
   onClose: () => void;
   collection: MemorySchema | null;
-  onSave: (data: SchemaForm) => Promise<void>;
-  saving: boolean;
+  workspaceId?: string;
+  onSuccess: () => void;
 }
 
 const fieldTypes: { value: MemoryFieldType; label: string }[] = [
@@ -48,12 +52,18 @@ const defaultField: MemorySchemaField = {
   description: '',
 };
 
-export function CollectionModal({ opened, onClose, collection, onSave, saving }: CollectionModalProps) {
+export function CollectionModal({ opened, onClose, collection, workspaceId, onSuccess }: CollectionModalProps) {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [loadingWorkspaces, setLoadingWorkspaces] = useState(false);
+
   const { register, handleSubmit, reset, control, formState: { errors } } = useForm<SchemaForm>({
     defaultValues: {
       name: '',
       description: '',
       fields: [{ ...defaultField }],
+      selectedWorkspaceId: '',
     },
   });
 
@@ -69,28 +79,61 @@ export function CollectionModal({ opened, onClose, collection, onSave, saving }:
           name: collection.name,
           description: collection.description || '',
           fields: collection.fields.length > 0 ? collection.fields : [{ ...defaultField }],
+          selectedWorkspaceId: collection.workspaceId || '',
         });
       } else {
         reset({
           name: '',
           description: '',
           fields: [{ ...defaultField }],
+          selectedWorkspaceId: workspaceId || '',
         });
       }
+      setError('');
+
+      // Load workspaces
+      setLoadingWorkspaces(true);
+      workspacesApi.list()
+        .then((response) => setWorkspaces(response.workspaces))
+        .catch(() => setWorkspaces([]))
+        .finally(() => setLoadingWorkspaces(false));
     }
-  }, [opened, collection, reset]);
+  }, [opened, collection, workspaceId, reset]);
 
   const handleClose = () => {
     reset({
       name: '',
       description: '',
       fields: [{ ...defaultField }],
+      selectedWorkspaceId: '',
     });
+    setError('');
     onClose();
   };
 
   const onSubmit = async (data: SchemaForm) => {
-    await onSave(data);
+    setSaving(true);
+    setError('');
+    try {
+      const payload = {
+        name: data.name,
+        description: data.description || undefined,
+        fields: data.fields.filter((f) => f.name.trim()),
+        workspaceId: data.selectedWorkspaceId || undefined,
+      };
+
+      if (collection) {
+        await memoryApi.updateSchema(collection.id, payload);
+      } else {
+        await memoryApi.createSchema(payload);
+      }
+      handleClose();
+      onSuccess();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save collection');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -102,6 +145,11 @@ export function CollectionModal({ opened, onClose, collection, onSave, saving }:
     >
       <form onSubmit={handleSubmit(onSubmit)}>
         <Stack>
+          {error && (
+            <Alert icon={<IconAlertCircle size={16} />} color="red" onClose={() => setError('')} withCloseButton>
+              {error}
+            </Alert>
+          )}
           <TextInput
             label="Name"
             placeholder="e.g., user_memories"
@@ -121,6 +169,24 @@ export function CollectionModal({ opened, onClose, collection, onSave, saving }:
             rows={2}
             {...register('description')}
           />
+          {!collection && (
+            <Controller
+              name="selectedWorkspaceId"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  label="Workspace"
+                  placeholder="Select workspace"
+                  data={[
+                    { value: '', label: 'Global' },
+                    ...workspaces.map((ws) => ({ value: ws.id, label: ws.name })),
+                  ]}
+                  disabled={loadingWorkspaces}
+                  {...field}
+                />
+              )}
+            />
+          )}
 
           <Box>
             <Group justify="space-between" mb="xs">

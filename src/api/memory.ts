@@ -8,6 +8,7 @@ export interface CreateMemorySchemaInput {
   fields: MemorySchemaField[];
   enableEmbeddings?: boolean;
   embeddingField?: string;
+  workspaceId?: string;
 }
 
 export interface UpdateMemorySchemaInput {
@@ -16,6 +17,7 @@ export interface UpdateMemorySchemaInput {
   fields?: MemorySchemaField[];
   enableEmbeddings?: boolean;
   embeddingField?: string;
+  workspaceId?: string | null;
 }
 
 // Record DTOs - user fields are sent flat at root level (not nested under data)
@@ -41,6 +43,7 @@ export interface ListSchemasOptions {
   limit?: number;
   offset?: number;
   search?: string;
+  workspaceId?: string | null; // string = specific workspace, null = global only, undefined = all
 }
 
 // List options for records
@@ -59,6 +62,9 @@ export const memoryApi = {
     if (options?.limit) params.append('limit', String(options.limit));
     if (options?.offset) params.append('offset', String(options.offset));
     if (options?.search) params.append('search', options.search);
+    if (options?.workspaceId !== undefined) {
+      params.append('workspaceId', options.workspaceId === null ? 'null' : options.workspaceId);
+    }
     const query = params.toString();
     return api.get<MemorySchema[]>(`/api/memory/schemas${query ? `?${query}` : ''}`);
   },
