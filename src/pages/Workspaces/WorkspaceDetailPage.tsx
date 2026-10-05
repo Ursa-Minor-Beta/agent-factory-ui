@@ -133,17 +133,18 @@ export function WorkspaceDetailPage() {
             {workspace.description}
           </Text>
         </Box>
-        <Box style={{ flex: 1 }} />
-        <Tooltip label="Edit workspace">
-          <ActionIcon variant="subtle" color="cyan" size="lg" onClick={openEditModal}>
-            <IconEdit size={18} />
-          </ActionIcon>
-        </Tooltip>
-        <Tooltip label="Delete workspace">
-          <ActionIcon variant="subtle" color="red" size="lg" onClick={openDeleteModal}>
-            <IconTrash size={18} />
-          </ActionIcon>
-        </Tooltip>
+        <Group ms='xs' gap="xs">
+            <Tooltip label="Edit workspace">
+              <ActionIcon variant="subtle" color="cyan" size="md" onClick={openEditModal}>
+                <IconEdit size={18} />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label="Delete workspace">
+              <ActionIcon variant="subtle" color="red" size="md" onClick={openDeleteModal}>
+                <IconTrash size={18} />
+              </ActionIcon>
+            </Tooltip>
+        </Group>
       </Group>
 
       {error && (
