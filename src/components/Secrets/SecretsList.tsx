@@ -27,19 +27,24 @@ import type { Secret } from '../../types';
 import { SecretModal } from './SecretModal';
 import { SecretDeleteModal } from './SecretDeleteModal';
 
+export type SecretColumn = 'workspace' | 'name' | 'value' | 'description' | 'created' | 'actions';
+
+const DEFAULT_COLUMNS: SecretColumn[] = ['workspace', 'name', 'value', 'description', 'created', 'actions'];
+
 interface SecretsListProps {
   workspaceId?: string;
   description?: string;
   showSearch?: boolean;
-  compact?: boolean;
+  columns?: SecretColumn[];
 }
 
 export function SecretsList({
   workspaceId,
   description = '',
   showSearch = true,
-  compact = false,
+  columns = DEFAULT_COLUMNS,
 }: SecretsListProps) {
+  const showColumn = (col: SecretColumn) => columns.includes(col);
   const [secrets, setSecrets] = useState<Secret[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -115,9 +120,6 @@ export function SecretsList({
     );
   }
 
-  const buttonSize = compact ? 'xs' : 'sm';
-  const iconSize = compact ? 14 : 16;
-  const tableIconSize = compact ? 16 : 18;
 
   return (
     <Box>
@@ -130,12 +132,11 @@ export function SecretsList({
             placeholder="Search secrets..."
             value={search}
             onChange={(e) => setSearch(e.currentTarget.value)}
-            leftSection={<IconSearch size={iconSize} />}
-            size={buttonSize}
+            leftSection={<IconSearch size={16} />}
             style={{ flex: 1, maxWidth: 300 }}
           />
         )}
-        <Button size={buttonSize} leftSection={<IconPlus size={iconSize} />} onClick={handleOpenCreateModal}>
+        <Button leftSection={<IconPlus size={16} />} onClick={handleOpenCreateModal}>
           Add Secret
         </Button>
       </Group>
@@ -156,66 +157,74 @@ export function SecretsList({
         <Table striped highlightOnHover>
           <Table.Thead>
             <Table.Tr>
-              <Table.Th>Workspace</Table.Th>
-              <Table.Th>Name</Table.Th>
-              <Table.Th>Value</Table.Th>
-              <Table.Th>Description</Table.Th>
-              {!compact && <Table.Th>Created</Table.Th>}
-              <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
+              {showColumn('workspace') && <Table.Th>Workspace</Table.Th>}
+              {showColumn('name') && <Table.Th>Name</Table.Th>}
+              {showColumn('value') && <Table.Th>Value</Table.Th>}
+              {showColumn('description') && <Table.Th>Description</Table.Th>}
+              {showColumn('created') && <Table.Th>Created</Table.Th>}
+              {showColumn('actions') && <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>}
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
             {secrets.map((secret) => (
               <Table.Tr key={secret.id}>
-                <Table.Td>
-                  <Badge variant="light" color={secret.workspaceName ? 'cyan' : 'gray'} size="sm">
-                    {secret.workspaceName ? secret.workspaceName.slice(0, 8) : 'Global'}
-                  </Badge>
-                </Table.Td>
-                <Table.Td>
-                  <Code>{secret.name}</Code>
-                </Table.Td>
-                <Table.Td>
-                  <Text size="sm" c="dimmed">
-                    {secret.maskedValue}
-                  </Text>
-                </Table.Td>
-                <Table.Td>
-                  <Text size="sm" c="dimmed" lineClamp={1}>
-                    {secret.description || '-'}
-                  </Text>
-                </Table.Td>
-                {!compact && (
+                {showColumn('workspace') && (
+                  <Table.Td>
+                    <Badge variant="light" color={secret.workspaceName ? 'cyan' : 'gray'} size="sm">
+                      {secret.workspaceName ? secret.workspaceName.slice(0, 8) : 'Global'}
+                    </Badge>
+                  </Table.Td>
+                )}
+                {showColumn('name') && (
+                  <Table.Td>
+                    <Code>{secret.name}</Code>
+                  </Table.Td>
+                )}
+                {showColumn('value') && (
+                  <Table.Td>
+                    <Text size="sm" c="dimmed">
+                      {secret.maskedValue}
+                    </Text>
+                  </Table.Td>
+                )}
+                {showColumn('description') && (
+                  <Table.Td>
+                    <Text size="sm" c="dimmed" lineClamp={1}>
+                      {secret.description || '-'}
+                    </Text>
+                  </Table.Td>
+                )}
+                {showColumn('created') && (
                   <Table.Td>
                     <Text size="sm" c="dimmed">
                       {new Date(secret.createdAt).toLocaleDateString()}
                     </Text>
                   </Table.Td>
                 )}
-                <Table.Td style={{ textAlign: 'right' }}>
-                  <Group gap="xs" justify="flex-end">
-                    <ActionIcon
-                      variant="subtle"
-                      size={compact ? 'sm' : 'md'}
-                      onClick={() => handleOpenEditModal(secret)}
-                    >
-                      <IconPencil size={tableIconSize} />
-                    </ActionIcon>
-                    <ActionIcon
-                      variant="subtle"
-                      size={compact ? 'sm' : 'md'}
-                      color="red"
-                      onClick={() => handleOpenDeleteModal(secret)}
-                    >
-                      <IconTrash size={tableIconSize} />
-                    </ActionIcon>
-                  </Group>
-                </Table.Td>
+                {showColumn('actions') && (
+                  <Table.Td style={{ textAlign: 'right' }}>
+                    <Group gap="xs" justify="flex-end">
+                      <ActionIcon
+                        variant="subtle"
+                        onClick={() => handleOpenEditModal(secret)}
+                      >
+                        <IconPencil size={18} />
+                      </ActionIcon>
+                      <ActionIcon
+                        variant="subtle"
+                        color="red"
+                        onClick={() => handleOpenDeleteModal(secret)}
+                      >
+                        <IconTrash size={18} />
+                      </ActionIcon>
+                    </Group>
+                  </Table.Td>
+                )}
               </Table.Tr>
             ))}
             {secrets.length === 0 && (
               <Table.Tr>
-                <Table.Td colSpan={compact ? 5 : 6}>
+                <Table.Td colSpan={columns.filter((c) => showColumn(c)).length}>
                   <Text ta="center" c="dimmed" py="md" size="sm">
                     {secrets.length === 0
                       ? 'No secrets configured'

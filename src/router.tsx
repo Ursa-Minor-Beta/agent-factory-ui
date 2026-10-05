@@ -92,7 +92,7 @@ export const router = createBrowserRouter([
         element: <CollectionsPage />,
       },
       {
-        path: 'collections/:collection/records',
+        path: 'collections/:collectionId/records',
         element: <CollectionRecordsPage />,
       },
       {

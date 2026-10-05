@@ -22,7 +22,7 @@ import {
   IconDatabase,
 } from '@tabler/icons-react';
 import { workspacesApi } from '../../api/workspaces';
-import type { Workspace, WorkspaceDeleteMode } from '../../types/workspace';
+import type { Workspace } from '../../types/workspace';
 import { WorkspaceModal } from './WorkspaceModal';
 import { WorkspaceDeleteModal } from './WorkspaceDeleteModal';
 import { AgentsList } from '../../components/AgentsList';
@@ -45,7 +45,6 @@ export function WorkspaceDetailPage() {
   // Delete modal
   const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
   const [deleting, setDeleting] = useState(false);
-  const [agentCount, setAgentCount] = useState(0);
 
   // Load workspace data
   useEffect(() => {
@@ -54,12 +53,8 @@ export function WorkspaceDetailPage() {
     const loadWorkspace = async () => {
       try {
         setLoading(true);
-        const [workspaceData, countData] = await Promise.all([
-          workspacesApi.getById(workspaceId),
-          workspacesApi.getAgentCount(workspaceId),
-        ]);
+        const workspaceData = await workspacesApi.getById(workspaceId);
         setWorkspace(workspaceData);
-        setAgentCount(countData.count);
         setError('');
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load workspace');
@@ -89,12 +84,12 @@ export function WorkspaceDetailPage() {
     }
   };
 
-  const handleDelete = async (mode: WorkspaceDeleteMode) => {
+  const handleDelete = async () => {
     if (!workspace) return;
 
     try {
       setDeleting(true);
-      await workspacesApi.delete(workspace.id, mode);
+      await workspacesApi.delete(workspace.id);
 
       // Dispatch event to update sidebar
       window.dispatchEvent(new CustomEvent('workspace-deleted', { detail: { workspaceId: workspace.id } }));
@@ -217,7 +212,6 @@ export function WorkspaceDetailPage() {
         opened={deleteModalOpened}
         onClose={closeDeleteModal}
         workspace={workspace}
-        agentCount={agentCount}
         onDelete={handleDelete}
         deleting={deleting}
       />

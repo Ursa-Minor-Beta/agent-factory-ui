@@ -10,7 +10,7 @@ export function WorkspaceProviders({ workspaceId }: WorkspaceProvidersProps) {
       workspaceId={workspaceId}
       description="Workspace scoped LLM providers"
       showSearch={false}
-      compact
+      columns={['name', 'provider', 'apiKey', 'baseUrl', 'default', 'actions']}
     />
   );
 }

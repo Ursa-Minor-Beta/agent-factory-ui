@@ -27,19 +27,24 @@ import type { ProviderConfig } from '../../types';
 import { ProviderModal } from './ProviderModal';
 import { ProviderDeleteModal } from './ProviderDeleteModal';
 
+export type ProviderColumn = 'workspace' | 'name' | 'provider' | 'apiKey' | 'baseUrl' | 'default' | 'actions';
+
+const DEFAULT_COLUMNS: ProviderColumn[] = ['workspace', 'name', 'provider', 'apiKey', 'baseUrl', 'default', 'actions'];
+
 interface ProvidersListProps {
   workspaceId?: string;
   description?: string;
   showSearch?: boolean;
-  compact?: boolean;
+  columns?: ProviderColumn[];
 }
 
 export function ProvidersList({
   workspaceId,
   description = '',
   showSearch = true,
-  compact = false,
+  columns = DEFAULT_COLUMNS,
 }: ProvidersListProps) {
+  const showColumn = (col: ProviderColumn) => columns.includes(col);
   const [providers, setProviders] = useState<ProviderConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -103,10 +108,6 @@ export function ProvidersList({
     );
   }
 
-  const buttonSize = compact ? 'xs' : 'sm';
-  const iconSize = compact ? 14 : 16;
-  const tableIconSize = compact ? 16 : 18;
-
   return (
     <Box>
       <Group mb="md" justify="space-between" gap="sm">
@@ -118,12 +119,11 @@ export function ProvidersList({
             placeholder="Search providers..."
             value={search}
             onChange={(e) => setSearch(e.currentTarget.value)}
-            leftSection={<IconSearch size={iconSize} />}
-            size={buttonSize}
+            leftSection={<IconSearch size={16} />}
             style={{ flex: 1, maxWidth: 300 }}
           />
         )}
-        <Button size={buttonSize} leftSection={<IconPlus size={iconSize} />} onClick={openModal}>
+        <Button leftSection={<IconPlus size={16} />} onClick={openModal}>
           Add Provider
         </Button>
       </Group>
@@ -144,64 +144,72 @@ export function ProvidersList({
         <Table striped highlightOnHover>
           <Table.Thead>
             <Table.Tr>
-              <Table.Th>Workspace</Table.Th>
-              <Table.Th>Name</Table.Th>
-              <Table.Th>Provider</Table.Th>
-              <Table.Th>API Key</Table.Th>
-              {!compact && <Table.Th>Base URL</Table.Th>}
-              <Table.Th>Default</Table.Th>
-              <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
+              {showColumn('workspace') && <Table.Th>Workspace</Table.Th>}
+              {showColumn('name') && <Table.Th>Name</Table.Th>}
+              {showColumn('provider') && <Table.Th>Provider</Table.Th>}
+              {showColumn('apiKey') && <Table.Th>API Key</Table.Th>}
+              {showColumn('baseUrl') && <Table.Th>Base URL</Table.Th>}
+              {showColumn('default') && <Table.Th>Default</Table.Th>}
+              {showColumn('actions') && <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>}
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
             {providers.map((provider) => (
               <Table.Tr key={provider.id}>
-                <Table.Td>
-                  <Badge variant="light" color={provider.workspaceName ? 'cyan' : 'gray'} size="sm">
-                    {provider.workspaceName ? provider.workspaceName.slice(0, 8) : 'Global'}
-                  </Badge>
-                </Table.Td>
-                <Table.Td>{provider.name}</Table.Td>
-                <Table.Td>
-                  <Badge variant="light" size={compact ? 'sm' : 'md'}>{provider.provider}</Badge>
-                </Table.Td>
-                <Table.Td>
-                  <Text size="sm" c="dimmed">
-                    {provider.config.apiKey ? '••••••••' : '-'}
-                  </Text>
-                </Table.Td>
-                {!compact && (
+                {showColumn('workspace') && (
+                  <Table.Td>
+                    <Badge variant="light" color={provider.workspaceName ? 'cyan' : 'gray'} size="sm">
+                      {provider.workspaceName ? provider.workspaceName.slice(0, 8) : 'Global'}
+                    </Badge>
+                  </Table.Td>
+                )}
+                {showColumn('name') && <Table.Td>{provider.name}</Table.Td>}
+                {showColumn('provider') && (
+                  <Table.Td>
+                    <Badge variant="light">{provider.provider}</Badge>
+                  </Table.Td>
+                )}
+                {showColumn('apiKey') && (
+                  <Table.Td>
+                    <Text size="sm" c="dimmed">
+                      {provider.config.apiKey ? '••••••••' : '-'}
+                    </Text>
+                  </Table.Td>
+                )}
+                {showColumn('baseUrl') && (
                   <Table.Td>
                     <Text size="sm" c="dimmed">
                       {provider.config.baseUrl || '-'}
                     </Text>
                   </Table.Td>
                 )}
-                <Table.Td>
-                  <ActionIcon
-                    variant="subtle"
-                    size={compact ? 'sm' : 'md'}
-                    color={provider.isDefault ? 'yellow' : 'gray'}
-                    onClick={() => handleSetDefault(provider.id)}
-                  >
-                    {provider.isDefault ? <IconStarFilled size={tableIconSize} /> : <IconStar size={tableIconSize} />}
-                  </ActionIcon>
-                </Table.Td>
-                <Table.Td style={{ textAlign: 'right' }}>
-                  <ActionIcon
-                    variant="subtle"
-                    size={compact ? 'sm' : 'md'}
-                    color="red"
-                    onClick={() => handleOpenDeleteModal(provider)}
-                  >
-                    <IconTrash size={tableIconSize} />
-                  </ActionIcon>
-                </Table.Td>
+                {showColumn('default') && (
+                  <Table.Td>
+                    <ActionIcon
+                      variant="subtle"
+                      color={provider.isDefault ? 'yellow' : 'gray'}
+                      onClick={() => handleSetDefault(provider.id)}
+                    >
+                      {provider.isDefault ? <IconStarFilled size={18} /> : <IconStar size={18} />}
+                    </ActionIcon>
+                  </Table.Td>
+                )}
+                {showColumn('actions') && (
+                  <Table.Td style={{ textAlign: 'right' }}>
+                    <ActionIcon
+                      variant="subtle"
+                      color="red"
+                      onClick={() => handleOpenDeleteModal(provider)}
+                    >
+                      <IconTrash size={18} />
+                    </ActionIcon>
+                  </Table.Td>
+                )}
               </Table.Tr>
             ))}
             {providers.length === 0 && (
               <Table.Tr>
-                <Table.Td colSpan={compact ? 6 : 7}>
+                <Table.Td colSpan={columns.filter((c) => showColumn(c)).length}>
                   <Text ta="center" c="dimmed" py="md" size="sm">
                     {providers.length === 0
                       ? 'No providers configured'

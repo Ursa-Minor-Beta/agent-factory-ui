@@ -10,7 +10,7 @@ export function WorkspaceSecrets({ workspaceId }: WorkspaceSecretsProps) {
       workspaceId={workspaceId}
       description="Workspace scoped Encrypted secrets. For use with {{secret:NAME}} syntax"
       showSearch={false}
-      compact
+      columns={['name', 'value', 'description', 'created', 'actions']}
     />
   );
 }

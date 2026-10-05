@@ -26,7 +26,7 @@ import {
   IconAlertCircle,
 } from '@tabler/icons-react';
 import { workspacesApi } from '../../api/workspaces';
-import type { Workspace, WorkspaceQueryOptions, WorkspaceDeleteMode } from '../../types/workspace';
+import type { Workspace, WorkspaceQueryOptions } from '../../types/workspace';
 import { WorkspaceModal } from './WorkspaceModal';
 import { WorkspaceDeleteModal } from './WorkspaceDeleteModal';
 
@@ -49,7 +49,6 @@ export function WorkspacesPage() {
 
   const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
   const [workspaceToDelete, setWorkspaceToDelete] = useState<Workspace | null>(null);
-  const [agentCountForDelete, setAgentCountForDelete] = useState(0);
   const [deleting, setDeleting] = useState(false);
 
   // Query params
@@ -156,23 +155,17 @@ export function WorkspacesPage() {
     }
   };
 
-  const handleDeleteClick = async (workspace: Workspace) => {
-    try {
-      const { count } = await workspacesApi.getAgentCount(workspace.id);
-      setAgentCountForDelete(count);
-      setWorkspaceToDelete(workspace);
-      openDeleteModal();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load agent count');
-    }
+  const handleDeleteClick = (workspace: Workspace) => {
+    setWorkspaceToDelete(workspace);
+    openDeleteModal();
   };
 
-  const handleDelete = async (mode: WorkspaceDeleteMode) => {
+  const handleDelete = async () => {
     if (!workspaceToDelete) return;
 
     try {
       setDeleting(true);
-      await workspacesApi.delete(workspaceToDelete.id, mode);
+      await workspacesApi.delete(workspaceToDelete.id);
       setWorkspaces((prev) => prev.filter((w) => w.id !== workspaceToDelete.id));
       setTotal((prev) => prev - 1);
 
@@ -385,7 +378,6 @@ export function WorkspacesPage() {
         opened={deleteModalOpened}
         onClose={closeDeleteModal}
         workspace={workspaceToDelete}
-        agentCount={agentCountForDelete}
         onDelete={handleDelete}
         deleting={deleting}
       />

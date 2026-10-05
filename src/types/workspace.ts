@@ -31,5 +31,3 @@ export interface UpdateWorkspaceData {
   name?: string;
   description?: string;
 }
-
-export type WorkspaceDeleteMode = 'move-agents' | 'delete-agents';

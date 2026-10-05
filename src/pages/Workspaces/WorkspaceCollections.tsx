@@ -10,7 +10,7 @@ export function WorkspaceCollections({ workspaceId }: WorkspaceCollectionsProps)
       workspaceId={workspaceId}
       description="Workspace scoped Memory collections for storing structured data"
       showSearch={false}
-      compact
+      columns={['name', 'description', 'records', 'fields', 'created', 'actions']}
     />
   );
 }

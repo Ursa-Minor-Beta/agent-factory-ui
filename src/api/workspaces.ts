@@ -5,7 +5,6 @@ import type {
   WorkspaceListResponse,
   CreateWorkspaceData,
   UpdateWorkspaceData,
-  WorkspaceDeleteMode,
 } from '../types/workspace';
 
 function buildQueryString(params: WorkspaceQueryOptions): string {
@@ -60,8 +59,8 @@ export const workspacesApi = {
     return handleResponse<Workspace>(response);
   },
 
-  delete: async (id: string, mode: WorkspaceDeleteMode = 'move-agents'): Promise<{ success: boolean }> => {
-    const response = await fetchWithRefresh(`/api/workspaces/${id}?mode=${mode}`, {
+  delete: async (id: string): Promise<{ success: boolean }> => {
+    const response = await fetchWithRefresh(`/api/workspaces/${id}`, {
       method: 'DELETE',
     });
     return handleResponse<{ success: boolean }>(response);

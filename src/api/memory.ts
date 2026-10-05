@@ -82,7 +82,7 @@ export const memoryApi = {
     api.delete<{ deletedRecords: number }>(`/api/memory/schemas/${id}`),
 
   // Record operations
-  listRecords: (collection: string, options?: ListRecordsOptions) => {
+  listRecords: (collectionId: string, options?: ListRecordsOptions) => {
     const params = new URLSearchParams();
     if (options?.limit) params.append('limit', String(options.limit));
     if (options?.offset) params.append('offset', String(options.offset));
@@ -90,24 +90,24 @@ export const memoryApi = {
     if (options?.sortDirection) params.append('sortDirection', options.sortDirection);
     if (options?.search) params.append('search', options.search);
     const query = params.toString();
-    return api.get<MemoryRecord[]>(`/api/memory/${collection}/records${query ? `?${query}` : ''}`);
+    return api.get<MemoryRecord[]>(`/api/memory/${collectionId}/records${query ? `?${query}` : ''}`);
   },
 
-  getRecord: (collection: string, id: string) =>
-    api.get<MemoryRecord>(`/api/memory/${collection}/records/${id}`),
+  getRecord: (collectionId: string, id: string) =>
+    api.get<MemoryRecord>(`/api/memory/${collectionId}/records/${id}`),
 
-  createRecord: (collection: string, data: CreateMemoryRecordInput) =>
-    api.post<MemoryRecord>(`/api/memory/${collection}/records`, data),
+  createRecord: (collectionId: string, data: CreateMemoryRecordInput) =>
+    api.post<MemoryRecord>(`/api/memory/${collectionId}/records`, data),
 
-  updateRecord: (collection: string, id: string, data: UpdateMemoryRecordInput) =>
-    api.patch<MemoryRecord>(`/api/memory/${collection}/records/${id}`, data),
+  updateRecord: (collectionId: string, id: string, data: UpdateMemoryRecordInput) =>
+    api.patch<MemoryRecord>(`/api/memory/${collectionId}/records/${id}`, data),
 
-  deleteRecord: (collection: string, id: string) =>
-    api.delete<void>(`/api/memory/${collection}/records/${id}`),
+  deleteRecord: (collectionId: string, id: string) =>
+    api.delete<void>(`/api/memory/${collectionId}/records/${id}`),
 
-  searchRecords: (collection: string, options: MemorySearchOptions) =>
-    api.post<MemorySearchResult[]>(`/api/memory/${collection}/search`, options),
+  searchRecords: (collectionId: string, options: MemorySearchOptions) =>
+    api.post<MemorySearchResult[]>(`/api/memory/${collectionId}/search`, options),
 
-  countRecords: (collection: string, filters?: Record<string, unknown>) =>
-    api.post<{ count: number }>(`/api/memory/${collection}/count`, { filters }),
+  countRecords: (collectionId: string, filters?: Record<string, unknown>) =>
+    api.post<{ count: number }>(`/api/memory/${collectionId}/count`, { filters }),
 };
