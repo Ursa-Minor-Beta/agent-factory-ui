@@ -9,8 +9,6 @@ interface FieldInputProps {
   option: NodeTypeOption | undefined;
   nodeId: string;
   nodeLabel: string;
-  /** @deprecated Use nodes instead */
-  nodeIds?: string[];
   nodes?: NodeMetadata[];
   onUpdate: (nodeId: string, data: Record<string, unknown>) => void;
 }
@@ -22,7 +20,6 @@ export const FieldInput = memo(function FieldInput({
   option,
   nodeId,
   nodeLabel,
-  nodeIds,
   nodes,
   onUpdate,
 }: FieldInputProps) {
@@ -100,7 +97,6 @@ export const FieldInput = memo(function FieldInput({
         nodeLabel={nodeLabel}
         value={String(value ?? option?.default ?? '')}
         nodes={nodes}
-        nodeIds={nodeIds}
         onChange={handleChangeDebounced}
       />
     );
@@ -144,7 +140,6 @@ export const FieldInput = memo(function FieldInput({
       nodeLabel={nodeLabel}
       value={String(value ?? option?.default ?? '')}
       nodes={nodes}
-      nodeIds={nodeIds}
       onChange={handleChangeDebounced}
     />
   );

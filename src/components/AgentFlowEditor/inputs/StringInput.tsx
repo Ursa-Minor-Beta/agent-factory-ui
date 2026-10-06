@@ -13,17 +13,16 @@ interface StringInputProps {
   onChange: (value: string) => void;
 }
 
-export const StringInput = memo(function StringInput({ name, value, nodeIds, nodes, onChange }: StringInputProps) {
+export const StringInput = memo(function StringInput({ name, value, nodes, onChange }: StringInputProps) {
   return (
     <Box>
       <Text size="xs" c="dimmed" mb={4}>{name}</Text>
       <TemplateInputWrapper
         value={value}
         nodes={nodes}
-        nodeIds={nodeIds}
         onChange={onChange}
         highlightStyle={{
-          padding: '0 12px',
+          padding: '0 10px',
           display: 'flex',
           alignItems: 'center',
           whiteSpace: 'pre',

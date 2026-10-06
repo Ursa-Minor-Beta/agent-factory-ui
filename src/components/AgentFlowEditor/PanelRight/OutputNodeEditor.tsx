@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Stack, Group, Text, Button, TextInput, Card, Box, ActionIcon } from '@mantine/core';
+import { Stack, Group, Text, Button, TextInput, Card, Box, ActionIcon, Modal } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import { IconPlus, IconPencil, IconTrash } from '@tabler/icons-react';
 import type { NodeMetadata } from '../inputs/templateUtils';
 import { StringInput } from '../inputs/StringInput';
@@ -10,7 +11,6 @@ interface OutputFieldsEditorProps {
   nodeLabel: string;
   nodeData: Record<string, unknown>;
   nodes?: NodeMetadata[];
-  nodeIds?: string[];
   onUpdate: (nodeId: string, data: Record<string, unknown>) => void;
   onReplace: (nodeId: string, data: Record<string, unknown>) => void;
 }
@@ -20,7 +20,6 @@ export function OutputNodeEditor({
   nodeLabel,
   nodeData,
   nodes,
-  nodeIds,
   onUpdate,
   onReplace,
 }: OutputFieldsEditorProps) {
@@ -29,6 +28,8 @@ export function OutputNodeEditor({
   const [newFieldValue, setNewFieldValue] = useState('');
   const [editingFieldKey, setEditingFieldKey] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const [fieldToDelete, setFieldToDelete] = useState<string | null>(null);
+  const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
 
   // Get field keys excluding special fields
   const fieldKeys = Object.keys(nodeData).filter(
@@ -44,13 +45,20 @@ export function OutputNodeEditor({
     setShowAddFieldForm(false);
   };
 
-  // Handle deleting a field
-  const handleDeleteField = (fieldKey: string) => {
-    // Create new data object without the deleted field
+  // Handle opening delete confirmation
+  const handleOpenDeleteModal = (fieldKey: string) => {
+    setFieldToDelete(fieldKey);
+    openDeleteModal();
+  };
+
+  // Handle confirming delete
+  const handleConfirmDelete = () => {
+    if (!fieldToDelete) return;
     const newData = { ...nodeData };
-    delete newData[fieldKey];
-    // Replace entire node data
+    delete newData[fieldToDelete];
     onReplace(nodeId, newData);
+    setFieldToDelete(null);
+    closeDeleteModal();
   };
 
   // Handle renaming a field
@@ -118,7 +126,6 @@ export function OutputNodeEditor({
                 nodeLabel={nodeLabel}
                 value={newFieldValue}
                 nodes={nodes}
-                nodeIds={nodeIds}
                 onChange={setNewFieldValue}
               />
             </Box>
@@ -169,9 +176,19 @@ export function OutputNodeEditor({
             // Normal display mode
             return (
               <Box key={key}>
-                <Group justify="space-between" mb={4}>
-                  <Text size="xs" fw={500} ff="monospace">{key}</Text>
-                  <Group gap={4}>
+                <Group justify="space-between" mb={4} wrap="nowrap" align="stretch">
+                  <Box style={{ flex: 1 }}>
+                    <FieldInput
+                      fieldKey={key}
+                      nodeData={nodeData}
+                      option={undefined}
+                      nodeId={nodeId}
+                      nodeLabel={nodeLabel}
+                      nodes={nodes}
+                      onUpdate={onUpdate}
+                    />
+                  </Box>
+                  <Group gap={4} style={{ flexShrink: 0, alignSelf: 'flex-end', paddingBottom: '.25rem' }}>
                     <ActionIcon
                       size="sm"
                       variant="subtle"
@@ -184,23 +201,13 @@ export function OutputNodeEditor({
                       size="sm"
                       variant="subtle"
                       color="red"
-                      onClick={() => handleDeleteField(key)}
+                      onClick={() => handleOpenDeleteModal(key)}
                       title="Delete field"
                     >
                       <IconTrash size={14} />
                     </ActionIcon>
                   </Group>
                 </Group>
-                <FieldInput
-                  fieldKey={key}
-                  nodeData={nodeData}
-                  option={undefined}
-                  nodeId={nodeId}
-                  nodeLabel={nodeLabel}
-                  nodes={nodes}
-                  nodeIds={nodeIds}
-                  onUpdate={onUpdate}
-                />
               </Box>
             );
           })
@@ -212,6 +219,32 @@ export function OutputNodeEditor({
           )
         )}
       </Stack>
+
+      {/* Delete confirmation modal */}
+      <Modal
+        opened={deleteModalOpened}
+        onClose={closeDeleteModal}
+        title="Delete Field"
+        size="sm"
+        centered
+      >
+        <Stack gap="md">
+          <Text size="sm">
+            Are you sure you want to delete the field <strong>{fieldToDelete}</strong>?
+          </Text>
+          <Text size="xs" c="dimmed">
+            Note: Other nodes may reference this field. Please check for broken references.
+          </Text>
+          <Group justify="flex-end" gap="xs">
+            <Button variant="subtle" onClick={closeDeleteModal}>
+              Cancel
+            </Button>
+            <Button color="red" onClick={handleConfirmDelete}>
+              Delete
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Stack>
   );
 }

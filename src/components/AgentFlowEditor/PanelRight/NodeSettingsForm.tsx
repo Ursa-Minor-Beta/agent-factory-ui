@@ -1,6 +1,6 @@
 import { useEffect, useRef, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { TextInput as MantineTextInput, Stack, Badge, Divider, ScrollArea, Group, Text, ActionIcon } from '@mantine/core';
+import { TextInput as MantineTextInput, Stack, Divider, ScrollArea, Group, Text, ActionIcon } from '@mantine/core';
 import { IconPencil } from '@tabler/icons-react';
 import type { Node } from '@xyflow/react';
 import type { NodeType, NodeTypeOption } from '../../../api';
@@ -235,7 +235,6 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, nodeIds, onUpdate, on
             nodeLabel={nodeLabel}
             nodeData={nodeData}
             nodes={nodesMetadata}
-            nodeIds={nodeIds}
             onUpdate={onUpdate}
             onReplace={onReplace}
           />
@@ -249,7 +248,6 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, nodeIds, onUpdate, on
               nodeId={node.id}
               nodeLabel={nodeLabel}
               nodes={nodesMetadata}
-              nodeIds={nodeIds}
               onUpdate={onUpdate}
             />
           ))

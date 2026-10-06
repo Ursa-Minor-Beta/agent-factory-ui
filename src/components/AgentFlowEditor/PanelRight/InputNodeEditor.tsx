@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Stack, Group, Text, Button, TextInput, Select, Checkbox, ActionIcon, Card, Box } from '@mantine/core';
+import { Stack, Group, Text, Button, TextInput, Select, Checkbox, ActionIcon, Card, Box, Modal } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import { IconPlus, IconTrash, IconPencil } from '@tabler/icons-react';
 
 interface SchemaField {
@@ -24,6 +25,8 @@ interface EditingField {
 
 export function InputNodeEditor({ schema, onChange }: SchemaEditorProps) {
   const [editingField, setEditingField] = useState<EditingField | null>(null);
+  const [fieldToDelete, setFieldToDelete] = useState<string | null>(null);
+  const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
 
   const handleAddField = () => {
     setEditingField({
@@ -47,10 +50,18 @@ export function InputNodeEditor({ schema, onChange }: SchemaEditorProps) {
     });
   };
 
-  const handleDeleteField = (fieldName: string) => {
+  const handleOpenDeleteModal = (fieldName: string) => {
+    setFieldToDelete(fieldName);
+    openDeleteModal();
+  };
+
+  const handleConfirmDelete = () => {
+    if (!fieldToDelete) return;
     const newSchema = { ...schema };
-    delete newSchema[fieldName];
+    delete newSchema[fieldToDelete];
     onChange(newSchema);
+    setFieldToDelete(null);
+    closeDeleteModal();
   };
 
   const handleSaveField = () => {
@@ -196,7 +207,7 @@ export function InputNodeEditor({ schema, onChange }: SchemaEditorProps) {
                     size="sm"
                     variant="subtle"
                     color="red"
-                    onClick={() => handleDeleteField(fieldName)}
+                    onClick={() => handleOpenDeleteModal(fieldName)}
                     title="Delete field"
                   >
                     <IconTrash size={14} />
@@ -273,6 +284,32 @@ export function InputNodeEditor({ schema, onChange }: SchemaEditorProps) {
           </Text>
         )}
       </Stack>
+
+      {/* Delete confirmation modal */}
+      <Modal
+        opened={deleteModalOpened}
+        onClose={closeDeleteModal}
+        title="Delete Field"
+        size="sm"
+        centered
+      >
+        <Stack gap="md">
+          <Text size="sm">
+            Are you sure you want to delete the field <strong>{fieldToDelete}</strong>?
+          </Text>
+          <Text size="xs">
+            Note: Other nodes may reference this field. Please check for broken references.
+          </Text>
+          <Group justify="flex-end" gap="xs">
+            <Button variant="subtle" onClick={closeDeleteModal}>
+              Cancel
+            </Button>
+            <Button color="red" onClick={handleConfirmDelete}>
+              Delete
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Stack>
   );
 }
