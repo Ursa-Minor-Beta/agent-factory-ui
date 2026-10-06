@@ -8,7 +8,7 @@ import { useRunDetailsModal } from '../../RunDetailsModal';
 import { MessageContent } from '../../../pages/Chat/ChatMessages';
 
 interface RunTabProps {
-  agent: Agent | null;
+  agent: Partial<Agent> | null;
   onNodeStatus?: (nodeId: string, status: string) => void;
 }
 
@@ -35,7 +35,7 @@ export function RunTab({ agent, onNodeStatus }: RunTabProps) {
   }, []);
 
   const handleRun = useCallback(async () => {
-    if (!agent || running) return;
+    if (!agent?.id || running) return;
 
     setRunning(true);
     setOutput({ nodeStatuses: [] });
@@ -118,6 +118,14 @@ export function RunTab({ agent, onNodeStatus }: RunTabProps) {
     return (
       <Box p="xs">
         <Text size="sm" c="dimmed">No agent loaded</Text>
+      </Box>
+    );
+  }
+
+  if (!agent.id) {
+    return (
+      <Box p="xs">
+        <Text size="sm" c="dimmed">Save agent first to run</Text>
       </Box>
     );
   }

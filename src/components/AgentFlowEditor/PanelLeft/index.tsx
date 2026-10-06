@@ -19,7 +19,7 @@ interface PanelLeftProps {
   existingNodeTypes: Set<string>;
   edgeType: string;
   layoutDirection: LayoutDirection;
-  agent: Agent | null;
+  agent: Partial<Agent> | null;
   hasNodes: boolean;
   activeTab?: string | null;
   onActiveTabChange?: (tab: string | null) => void;

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   useNodesState,
   useEdgesState,
@@ -20,7 +21,8 @@ interface UseAgentEditorOptions {
 }
 
 export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
-  const [agent, setAgent] = useState<Agent | null>(null);
+  const navigate = useNavigate();
+  const [agent, setAgent] = useState<Partial<Agent> | null>(null);
   const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -51,7 +53,12 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
 
   // Fetch agent on mount
   useEffect(() => {
-    if (!agentId || agentId === 'new') return;
+    if (!agentId) return;
+
+    if (agentId === 'new') {
+      setAgent({})
+      return;
+    }
 
     async function fetchAgent() {
       setLoading(true);
@@ -125,19 +132,39 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
         nodePositions,
       };
 
-      await agentsApi.update(agent.id, { nodes: agentNodes, editorData });
+      if (agent.id) {
+        // Update existing agent
+        await agentsApi.update(agent.id, { nodes: agentNodes, editorData });
+      } else {
+        // Create new agent
+        const newAgent = await agentsApi.create({
+          name: agent.name || 'Untitled Agent',
+          description: agent.description || undefined,
+          nodes: agentNodes,
+          editorData,
+        });
+        // Navigate to the new agent's editor
+        navigate(`/agents/${newAgent.id}/editor`, { replace: true });
+      }
     } catch (err) {
       console.error('Failed to save agent:', err);
     } finally {
       setSaving(false);
     }
-  }, [agent, nodes]);
+  }, [agent, nodes, navigate]);
 
   // Update agent info (name, description)
   const updateAgentInfo = useCallback(
     async (data: { name?: string; description?: string }) => {
       if (!agent) return;
 
+      // For new agents (no id), just update local state
+      if (!agent.id) {
+        setAgent({ ...agent, ...data });
+        return;
+      }
+
+      // For existing agents, persist to backend
       setSaving(true);
       try {
         const updatedAgent = await agentsApi.update(agent.id, data);

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Stack, TextInput, Textarea, Group, Code, ActionIcon, Tooltip, CopyButton, Center, Text, Select, Divider } from '@mantine/core';
+import { Stack, TextInput, Textarea, Group, Code, ActionIcon, Tooltip, CopyButton, Text, Select, Divider } from '@mantine/core';
 import { IconCheck, IconCopy } from '@tabler/icons-react';
 import { useForm } from 'react-hook-form';
 import type { Agent } from '../../../types/agent';
@@ -19,7 +19,7 @@ const LAYOUT_DIRECTION_OPTIONS = [
 ];
 
 interface SettingsTabProps {
-  agent: Agent | null;
+  agent: Partial<Agent> | null;
   edgeType: string;
   layoutDirection: LayoutDirection;
   onAgentInfoChange: (data: { name?: string; description?: string }) => Promise<void>;
@@ -55,41 +55,35 @@ export function SettingsTab({ agent, edgeType, layoutDirection, onAgentInfoChang
     }
   }, [agent, reset]);
 
-  if (!agent) {
-    return (
-      <Center h="100%">
-        <Text size="sm" c="dimmed">
-          No agent loaded
-        </Text>
-      </Center>
-    );
-  }
-
   const onBlur = handleSubmit(async (data) => {
-    await onAgentInfoChange(data);
+    if (agent) {
+      await onAgentInfoChange(data);
+    }
   });
 
   return (
     <Stack gap="md">
-     <TextInput
+      <TextInput
         label="Name"
         placeholder="Enter agent name"
         error={errors.name?.message}
         {...register('name', { required: 'Name is required' })}
         onBlur={onBlur}
       />
-      <Group gap="xs">
-        <Code>ID: {agent.id}</Code>
-        <CopyButton value={agent.id}>
-          {({ copied, copy }) => (
-            <Tooltip label={copied ? 'Copied' : 'Copy'}>
-              <ActionIcon variant="subtle" size="sm" onClick={copy}>
-                {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
-              </ActionIcon>
-            </Tooltip>
-          )}
-        </CopyButton>
-      </Group>
+      {agent && (
+        <Group gap="xs">
+          <Code>ID: {agent.id}</Code>
+          <CopyButton value={agent.id}>
+            {({ copied, copy }) => (
+              <Tooltip label={copied ? 'Copied' : 'Copy'}>
+                <ActionIcon variant="subtle" size="sm" onClick={copy}>
+                  {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
+                </ActionIcon>
+              </Tooltip>
+            )}
+          </CopyButton>
+        </Group>
+      )}
       <Textarea
         label="Description"
         placeholder="Enter description (optional)"
@@ -99,6 +93,8 @@ export function SettingsTab({ agent, edgeType, layoutDirection, onAgentInfoChang
         {...register('description')}
         onBlur={onBlur}
       />
+      <Divider />
+      <Text size="sm" fw={500}>Canvas Settings</Text>
       <Select
         label="Layout Direction"
         size="xs"
