@@ -8,7 +8,7 @@ export function WorkspaceCollections({ workspaceId }: WorkspaceCollectionsProps)
   return (
     <CollectionsList
       workspaceId={workspaceId}
-      description="Workspace scoped Memory collections for storing structured data"
+      description="Workspace-scoped memory collections. Falls back to global if not found."
       showSearch={false}
       columns={['name', 'description', 'records', 'fields', 'created', 'actions']}
     />
