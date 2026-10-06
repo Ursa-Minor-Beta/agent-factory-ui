@@ -109,7 +109,7 @@ export function SessionsPage() {
 
       {/* Filters Row */}
       <Group mb="md" gap="sm" wrap="wrap">
-        <Select
+        {/* <Select
           placeholder="Status"
           value={statusFilter}
           onChange={setStatusFilter}
@@ -119,7 +119,7 @@ export function SessionsPage() {
           ]}
           clearable
           style={{ width: 140 }}
-        />
+        /> */}
         <TextInput
           placeholder="Agent ID"
           value={agentFilter}
@@ -162,7 +162,7 @@ export function SessionsPage() {
           <Table striped highlightOnHover>
             <Table.Thead>
               <Table.Tr>
-                <Table.Th>Status</Table.Th>
+                {/* <Table.Th>Status</Table.Th> */}
                 <Table.Th>Title</Table.Th>
                 <Table.Th>Agent ID</Table.Th>
                 <Table.Th>Updated</Table.Th>
@@ -176,7 +176,7 @@ export function SessionsPage() {
                   style={{ cursor: 'pointer' }}
                   onClick={() => handleViewDetails(session)}
                 >
-                  <Table.Td>
+                  {/* <Table.Td>
                     <Group gap="xs">
                       <Badge color={statusColors[session.status]} variant="light">
                         {session.status}
@@ -187,7 +187,7 @@ export function SessionsPage() {
                         </Tooltip>
                       )}
                     </Group>
-                  </Table.Td>
+                  </Table.Td> */}
                   <Table.Td>
                     <Text size="sm">{session.title || 'Untitled'}</Text>
                   </Table.Td>
@@ -214,7 +214,7 @@ export function SessionsPage() {
               ))}
               {sessions.length === 0 && (
                 <Table.Tr>
-                  <Table.Td colSpan={5}>
+                  <Table.Td colSpan={4}>
                     <Text ta="center" c="dimmed" py="md">
                       {hasFilters ? 'No sessions match your filters' : 'No sessions yet'}
                     </Text>

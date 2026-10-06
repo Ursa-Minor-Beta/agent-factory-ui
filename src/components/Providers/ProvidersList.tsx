@@ -158,7 +158,7 @@ export function ProvidersList({
               <Table.Tr key={provider.id}>
                 {showColumn('workspace') && (
                   <Table.Td>
-                    <Badge variant="light" color={provider.workspaceName ? 'cyan' : 'gray'} size="sm">
+                    <Badge variant="light" color={provider.workspaceName ? 'gray' : 'cyan'} size="sm">
                       {provider.workspaceName ? provider.workspaceName.slice(0, 8) : 'Global'}
                     </Badge>
                   </Table.Td>
