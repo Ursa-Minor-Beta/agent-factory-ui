@@ -33,18 +33,28 @@ const nodeIcons: Record<string, Icon> = {
 export const BaseNode = memo(function BaseNode({ id, type, sourcePosition, targetPosition }: NodeProps) {
   const IconComponent = nodeIcons[type];
 
+  // Rotate input/output icons based on flow direction (TB = 90deg)
+  const isVertical = sourcePosition === Position.Bottom || targetPosition === Position.Top;
+  const shouldRotate = (type === 'input' || type === 'output') && isVertical;
+
   return (
     <>
-      <Handle 
-          type="target" 
-          position={targetPosition ?? Position.Left} 
-          hidden={type === 'input'} 
+      <Handle
+          type="target"
+          position={targetPosition ?? Position.Left}
+          hidden={type === 'input'}
           />
-      <Box 
-          style={{ textAlign: 
+      <Box
+          style={{ textAlign:
           'center', minWidth: '80px' }}
           >
-        {IconComponent && <IconComponent size={36} stroke={1} />}
+        {IconComponent && (
+          <IconComponent
+            size={36}
+            stroke={1}
+            style={shouldRotate ? { transform: 'rotate(90deg)' } : undefined}
+          />
+        )}
         <Box fz="xs" c="cyan">{id || ''}</Box>
       </Box>
       <Handle 
