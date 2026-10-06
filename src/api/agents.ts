@@ -1,5 +1,11 @@
 import { api } from './client';
-import type { Agent, AgentQueryParams, AgentListResponse, EditorData } from '../types';
+import type { Agent, AgentQueryParams, AgentListResponse, EditorData, AgentNode } from '../types';
+
+export interface AgentExample {
+  name: string;
+  description: string;
+  nodes: AgentNode[];
+}
 
 export interface CreateAgentInput {
   name: string;
@@ -47,4 +53,7 @@ export const agentsApi = {
 
   validate: (id: string) =>
     api.post<{ valid: boolean; errors: string[] }>(`/api/agents/${id}/validate`),
+
+  getExamples: () =>
+    api.get<AgentExample[]>('/api/agents/examples'),
 };

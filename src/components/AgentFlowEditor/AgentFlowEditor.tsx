@@ -74,6 +74,7 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
     changeLayoutDirection,
     changeEdgeType,
     addNode,
+    loadTemplate,
   } = useAgentEditor({ agentId });
 
   // Compute set of node types already on the canvas
@@ -175,12 +176,14 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
           edgeType={edgeType}
           layoutDirection={layoutDirection}
           agent={agent}
+          hasNodes={nodes.length > 0}
           activeTab={activeTab}
           onActiveTabChange={handleActiveTabChange}
           onAddNode={handleAddNode}
           onEdgeTypeChange={changeEdgeType}
           onLayoutDirectionChange={changeLayoutDirection}
           onAgentInfoChange={updateAgentInfo}
+          onLoadTemplate={loadTemplate}
           onClose={togglePalette}
           />
       }

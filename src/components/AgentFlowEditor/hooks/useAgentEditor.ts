@@ -8,7 +8,7 @@ import {
   type Edge,
   type Connection,
 } from '@xyflow/react';
-import { agentsApi, nodesApi, type NodeType } from '../../../api';
+import { agentsApi, nodesApi, type NodeType, type AgentExample } from '../../../api';
 import type { Agent, CanvasSettings } from '../../../types/agent';
 import { toFlowNode, toAgentNode, extractEdges, generateNodeId, autoLayoutNodes, extractReferencedNodeIds, type LayoutDirection } from '../utils/converters';
 
@@ -360,6 +360,25 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
     localStorage.setItem(DEFAULT_EDGE_TYPE_KEY, value);
   }, [updateCanvasSettings]);
 
+  // Load template - replaces all nodes with template nodes
+  const loadTemplate = useCallback(
+    (template: AgentExample) => {
+      // Convert template nodes to flow nodes
+      const flowNodes = template.nodes.map((n, i) => toFlowNode(n, i));
+
+      // Extract edges from node data
+      const flowEdges = extractEdges(flowNodes);
+
+      // Apply auto-layout
+      const layoutedNodes = autoLayoutNodes(flowNodes, flowEdges, layoutDirection);
+
+      setNodes(layoutedNodes);
+      setEdges(flowEdges);
+      setSelectedNodeId(null);
+    },
+    [layoutDirection, setNodes, setEdges]
+  );
+
   return {
     // State
     agent,
@@ -389,5 +408,6 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
     updateAgentInfo,
     changeLayoutDirection,
     changeEdgeType,
+    loadTemplate,
   };
 }

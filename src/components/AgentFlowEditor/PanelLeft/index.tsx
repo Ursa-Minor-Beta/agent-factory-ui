@@ -1,12 +1,13 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Box, Text, Group, ActionIcon, Divider, Tabs } from '@mantine/core';
 import { IconLayoutSidebar } from '@tabler/icons-react';
-import type { NodeType } from '../../../api';
+import type { NodeType, AgentExample } from '../../../api';
 import type { Agent } from '../../../types/agent';
 import type { LayoutDirection } from '../utils/converters';
 import { NodesTab } from './NodesTab';
 import { SettingsTab } from './SettingsTab';
 import { RunTab } from './RunTab';
+import { TemplatesTab } from './TemplatesTab';
 
 const MIN_WIDTH = 120;
 const MAX_WIDTH_RATIO = 0.4; // 40% of viewport
@@ -19,16 +20,18 @@ interface PanelLeftProps {
   edgeType: string;
   layoutDirection: LayoutDirection;
   agent: Agent | null;
+  hasNodes: boolean;
   activeTab?: string | null;
   onActiveTabChange?: (tab: string | null) => void;
   onAddNode: (nodeType: NodeType, exampleIndex?: number) => void;
   onEdgeTypeChange: (value: string) => void;
   onLayoutDirectionChange: (value: LayoutDirection) => void;
   onAgentInfoChange: (data: { name?: string; description?: string }) => Promise<void>;
+  onLoadTemplate: (template: AgentExample) => void;
   onClose: () => void;
 }
 
-export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, activeTab: externalActiveTab, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onClose }: PanelLeftProps) {
+export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onLoadTemplate, onClose }: PanelLeftProps) {
   const [viewingNodeType, setViewingNodeType] = useState<NodeType | null>(null);
   const [internalActiveTab, setInternalActiveTab] = useState<string | null>(() => {
     const saved = localStorage.getItem(TAB_STORAGE_KEY);
@@ -146,6 +149,7 @@ export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, layoutDirect
           <Tabs value={activeTab} onChange={setActiveTab} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
             <Tabs.List px="xs" pt="xs">
               <Tabs.Tab value="nodes">Nodes</Tabs.Tab>
+              <Tabs.Tab value="templates">Templates</Tabs.Tab>
               <Tabs.Tab value="settings">Settings</Tabs.Tab>
               <Tabs.Tab value="run">Run</Tabs.Tab>
             </Tabs.List>
@@ -159,6 +163,10 @@ export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, layoutDirect
                 onNodeClick={setViewingNodeType}
                 onBack={() => setViewingNodeType(null)}
               />
+            </Tabs.Panel>
+
+            <Tabs.Panel value="templates" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+              <TemplatesTab hasNodes={hasNodes} onLoadTemplate={onLoadTemplate} />
             </Tabs.Panel>
 
             <Tabs.Panel value="run" style={{ flex: 1, minHeight: 0 }} p="xs">
