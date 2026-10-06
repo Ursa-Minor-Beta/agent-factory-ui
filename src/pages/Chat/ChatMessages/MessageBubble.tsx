@@ -1,9 +1,7 @@
 import { Box, Paper, ActionIcon, Tooltip, Group, CopyButton } from '@mantine/core';
 import { IconCopy, IconCheck, IconListDetails, IconRepeat } from '@tabler/icons-react';
 import type { ChatMessage } from '../types';
-import { CollapsibleContent } from './CollapsibleContent';
-import { AttachmentPreview } from './AttachmentPreview';
-import { FileRefPreview } from './FileContent';
+import { MessageContent } from './MessageContent';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -45,17 +43,11 @@ export function MessageBubble({ message, isFirst, showRetry, onViewRun, onRepeat
               : 'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5))',
         }}
       >
-        {message.content && <CollapsibleContent content={message.content} />}
-        {message.attachments && message.attachments.length > 0 && (
-          <Box mt={message.content ? 'sm' : 0}>
-            <AttachmentPreview attachments={message.attachments} />
-          </Box>
-        )}
-        {message.fileRefs && message.fileRefs.length > 0 && (
-          <Box mt={message.content || message.attachments ? 'sm' : 0}>
-            <FileRefPreview fileRefs={message.fileRefs} />
-          </Box>
-        )}
+        <MessageContent
+          content={message.content}
+          attachments={message.attachments}
+          fileRefs={message.fileRefs}
+        />
         <Group
           gap={4}
           className="message-hover-btns"

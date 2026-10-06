@@ -12,6 +12,7 @@ import {
   Select,
   SimpleGrid,
   Center,
+  Tooltip,
 } from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import {
@@ -19,7 +20,11 @@ import {
   IconSearch,
   IconFilter,
   IconAlertCircle,
+  IconLayoutDashboard,
+  IconSchema,
+  IconCode,
 } from '@tabler/icons-react';
+import { Link } from 'react-router-dom';
 import { agentsApi } from '../../api';
 import { workspacesApi } from '../../api/workspaces';
 import type { Agent, AgentQueryParams } from '../../types';
@@ -269,9 +274,28 @@ export function AgentsList({
         />
         <Box style={{ flex: 1 }} />
         {showCreateButton && (
-          <Button leftSection={<IconPlus size={16} />} onClick={() => openCreateAgent(workspaceId)}>
-            New Agent
-          </Button>
+          <Group gap="xs">
+            <Text size="sm" c="dimmed">New agent:</Text>
+            <Button.Group>
+              <Tooltip label="Visual Editor">
+                <Button
+                  component={Link}
+                  to="/agents/new/editor"
+                  variant="default"
+                >
+                  <IconSchema size={16} />
+                </Button>
+              </Tooltip>
+              <Tooltip label="JSON Editor">
+                <Button
+                  variant="default"
+                  onClick={() => openCreateAgent(workspaceId)}
+                >
+                  <IconCode size={16} />
+                </Button>
+              </Tooltip>
+            </Button.Group>
+          </Group>
         )}
       </Group>
 

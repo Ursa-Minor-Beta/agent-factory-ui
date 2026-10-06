@@ -1,14 +1,37 @@
 import { api } from './client';
 
-export interface NodeTypeField {
-  type: 'string' | 'number' | 'boolean' | 'object' | 'array';
+export const NODE_TYPES = [
+  'input',
+  'output',
+  'llm',
+  'http',
+  'js',
+  'agent',
+  'branch',
+  'memory-store',
+  'memory-search',
+  'memory-update',
+  'memory-delete',
+] as const;
+
+/**
+ * Valid node option types:
+ * - string: Short text input (single line, e.g., URLs, names, model names)
+ * - text: Long text input (multiline, e.g., prompts, descriptions, paragraphs)
+ * - code: Code input (multiline with syntax highlighting, e.g., JavaScript, JSON templates)
+ * - number: Numeric input (integers or floats)
+ * - boolean: True/false checkbox
+ * - object: JSON object or array
+ * - enum: Single selection from predefined values
+ * - enum[]: Multiple selections from predefined values
+ */
+export interface NodeTypeOption {
+  name: string;
+  type: 'string' | 'text' | 'code' | 'number' | 'boolean' | 'object' | 'array' | 'enum' | 'enum[]';
   required?: boolean;
   default?: unknown;
   description?: string;
-}
-
-export interface NodeTypeSchema {
-  [fieldName: string]: NodeTypeField;
+  values?: string[]; // For enum type
 }
 
 export interface NodeTypeExample {
@@ -19,14 +42,15 @@ export interface NodeTypeExample {
 }
 
 export interface NodeType {
-  type: string;
-  name: string;
+  type: typeof NODE_TYPES[number];
+  name?: string;
   description?: string;
   category?: string;
-  inputSchema?: NodeTypeSchema;
-  outputSchema?: NodeTypeSchema;
-  options?: Record<string, unknown>;
-  examples?: Array<NodeTypeExample>;
+  inputs?: string[];
+  outputs?: string[];
+  options?: NodeTypeOption[];
+  features?: string[];
+  examples?: NodeTypeExample[];
 }
 
 export const nodesApi = {

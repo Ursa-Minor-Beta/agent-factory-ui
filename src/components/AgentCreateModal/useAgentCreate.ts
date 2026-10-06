@@ -179,9 +179,6 @@ export function useAgentCreate({ opened, onClose, onSave, agent, defaultWorkspac
       if (nodeType.options) {
         processSchema(nodeType.options);
       }
-      if (nodeType.inputSchema && Object.keys(data).length === 0) {
-        processSchema(nodeType.inputSchema);
-      }
     }
 
     setNodes((prev) => {

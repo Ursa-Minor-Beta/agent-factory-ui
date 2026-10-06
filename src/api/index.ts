@@ -1,6 +1,7 @@
 export { api, apiRequest, ApiError } from './client';
 export { authApi } from './auth';
 export { agentsApi } from './agents';
+export type { AgentExample } from './agents';
 export { providersApi } from './providers';
 export { usersApi } from './users';
 export { sessionsApi } from './sessions';
@@ -11,7 +12,7 @@ export type { FileData, FileListItem } from './files';
 export { systemApi } from './system';
 export type { ApiInfo, HealthCheck, ReseedResult } from './system';
 export { nodesApi } from './nodes';
-export type { NodeType, NodeTypeSchema, NodeTypeField } from './nodes';
+export type { NodeType, NodeTypeOption, NodeTypeExample } from './nodes';
 export { memoryApi } from './memory';
 export type {
   CreateMemorySchemaInput,
