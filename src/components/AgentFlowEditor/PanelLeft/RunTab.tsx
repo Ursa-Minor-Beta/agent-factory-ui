@@ -213,39 +213,41 @@ export function RunTab({ agent, onNodeStatus }: RunTabProps) {
             )}
           </Group>
           <ScrollArea style={{ flex: 1 }} offsetScrollbars>
-            {/* Node statuses */}
-            {output.nodeStatuses.length > 0 && (
-              <ScrollArea.Autosize mah={80} offsetScrollbars mb="xs" ps='xs' style={{ border: '1px solid var(--mantine-color-default-border)', borderRadius: 'var(--mantine-radius-sm)' }}>
-                <Stack gap={2}>
-                  {output.nodeStatuses.map((ns, i) => (
-                    <Text key={i} size="xs" c="dimmed">
-                      {ns.nodeId}: {ns.statusText || ns.status}
-                    </Text>
-                  ))}
-                </Stack>
-              </ScrollArea.Autosize>
-            )}
+            <>
+              {/* Node statuses */}
+              {output.nodeStatuses.length > 0 && (
+                <ScrollArea.Autosize mah={80} offsetScrollbars mb="xs" ps='xs' style={{ border: '1px solid var(--mantine-color-default-border)', borderRadius: 'var(--mantine-radius-sm)' }}>
+                  <Stack gap={2}>
+                    {output.nodeStatuses.map((ns, i) => (
+                      <Text key={i} size="xs" c="dimmed">
+                        {ns.nodeId}: {ns.statusText || ns.status}
+                      </Text>
+                    ))}
+                  </Stack>
+                </ScrollArea.Autosize>
+              )}
 
-            {/* Loading indicator */}
-            {running && (
-              <Box mb="xs">
-                <Loader size="xs" />
-              </Box>
-            )}
+              {/* Loading indicator */}
+              {running && (
+                <Box mb="xs">
+                  <Loader size="xs" />
+                </Box>
+              )}
 
-            {/* Error */}
-            {output.error && (
-              <Alert icon={<IconAlertCircle size={14} />} color="red" fz="xs" mb="xs">
-                {output.error}
-              </Alert>
-            )}
+              {/* Error */}
+              {output.error && (
+                <Alert icon={<IconAlertCircle size={14} />} color="red" fz="xs" mb="xs">
+                  {output.error}
+                </Alert>
+              )}
 
-            {/* Response - MessageContent handles parsing and display */}
-            {output.response && (
-              <Card withBorder>
-                  <MessageContent content={output.response} />
-              </Card>
-            )}
+              {/* Response - MessageContent handles parsing and display */}
+              {output.response && (
+                <Card withBorder>
+                    <MessageContent content={output.response} />
+                </Card>
+              )}
+            </>
           </ScrollArea>
         </Card>
       )}

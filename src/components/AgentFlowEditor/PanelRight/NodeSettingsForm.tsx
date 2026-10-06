@@ -13,7 +13,6 @@ interface NodeSettingsFormProps {
   node: Node;
   nodes: Node[];
   nodeTypes: NodeType[];
-  nodeIds?: string[];
   onUpdate: (nodeId: string, data: Record<string, unknown>) => void;
   onReplace: (nodeId: string, data: Record<string, unknown>) => void;
 }
@@ -25,7 +24,7 @@ interface NodeFormData {
 
 const DEBOUNCE_MS = 300;
 
-export function NodeSettingsForm({ node, nodes, nodeTypes, nodeIds, onUpdate, onReplace }: NodeSettingsFormProps) {
+export function NodeSettingsForm({ node, nodes, nodeTypes, onUpdate, onReplace }: NodeSettingsFormProps) {
   const { register, reset, watch } = useForm<NodeFormData>();
   const updateTimeoutRef = useRef<number | undefined>(undefined);
 

@@ -26,7 +26,6 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
   const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [running, setRunning] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
@@ -193,11 +192,13 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
       };
       setAgent({ ...agent, editorData: updatedEditorData });
 
-      // Persist to backend
-      try {
-        await agentsApi.update(agent.id, { editorData: updatedEditorData });
-      } catch (err) {
-        console.error('Failed to save canvas settings:', err);
+      // Persist to backend only for existing agents
+      if (agent.id) {
+        try {
+          await agentsApi.update(agent.id, { editorData: updatedEditorData });
+        } catch (err) {
+          console.error('Failed to save canvas settings:', err);
+        }
       }
     },
     [agent]
@@ -236,11 +237,6 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
     if (!agent) return;
     window.open(`/agents/${agent.id}/chat`, '_blank');
   }, [agent]);
-
-  // Stop agent - not used since chat opens in new tab
-  const stopAgent = useCallback(() => {
-    // No-op
-  }, []);
 
   // Handle node click
   const onNodeClick = useCallback(
@@ -414,7 +410,6 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
     nodeTypes,
     loading,
     saving,
-    running,
     selectedNode,
     edgeType,
     layoutDirection,
@@ -429,7 +424,6 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
     addNode,
     deleteNode,
     runAgent,
-    stopAgent,
     updateNodeData,
     replaceNodeData,
     updateAgentInfo,

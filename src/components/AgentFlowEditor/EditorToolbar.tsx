@@ -1,14 +1,12 @@
 import { Group, Text, ActionIcon } from '@mantine/core';
-import { IconDeviceFloppy, IconPlayerPlay, IconPlayerStop, IconLayoutSidebar } from '@tabler/icons-react';
+import { IconDeviceFloppy, IconPlayerPlay, IconLayoutSidebar } from '@tabler/icons-react';
 
 interface EditorToolbarProps {
   agentName: string;
   saving: boolean;
-  running: boolean;
   isPaletteOpen: boolean;
   onSave: () => void;
   onRun: () => void;
-  onStop: () => void;
   onTogglePalette: () => void;
 }
 
@@ -22,11 +20,9 @@ const glassStyle = {
 export function EditorToolbar({
   agentName,
   saving,
-  running,
   isPaletteOpen,
   onSave,
   onRun,
-  onStop,
   onTogglePalette,
 }: EditorToolbarProps) {
   return (
@@ -78,27 +74,15 @@ export function EditorToolbar({
             <IconDeviceFloppy size={16} />
           </ActionIcon>
 
-          {running ? (
-            <ActionIcon
-              size="xs"
-              variant="subtle"
-              color="red"
-              title='Stop'
-              onClick={onStop}
-            >
-              <IconPlayerStop size={16} />
-            </ActionIcon>
-          ) : (
-            <ActionIcon
-              size="xs"
-              variant="subtle"
-              color="green"
-              title='Run'
-              onClick={onRun}
-            >
-              <IconPlayerPlay size={16} />
-            </ActionIcon>
-          )}
+          <ActionIcon
+            size="xs"
+            variant="subtle"
+            color="green"
+            title='Run'
+            onClick={onRun}
+          >
+            <IconPlayerPlay size={16} />
+          </ActionIcon>
         </Group>
       </Group>
     </>

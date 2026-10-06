@@ -16,11 +16,9 @@ import {
 } from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import {
-  IconPlus,
   IconSearch,
   IconFilter,
   IconAlertCircle,
-  IconLayoutDashboard,
   IconSchema,
   IconCode,
 } from '@tabler/icons-react';
