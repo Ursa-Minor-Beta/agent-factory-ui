@@ -27,7 +27,8 @@ export function RunTab({ agent, onNodeStatus }: RunTabProps) {
   const { openRunDetails } = useRunDetailsModal();
 
   // Use saved agent to get input schema (matches what backend will run)
-  const inputSchema: InputSchema = agent ? getInputSchema(agent) : {};
+  // Only call getInputSchema if agent has nodes (not a new unsaved agent)
+  const inputSchema: InputSchema = agent?.nodes ? getInputSchema(agent as Agent) : {};
   const inputFields = Object.entries(inputSchema);
 
   const handleInputChange = useCallback((key: string, value: string) => {
