@@ -40,13 +40,11 @@ export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace }: Age
             <Group>
               {agent.defaultName && (
                 <Tooltip label="Default agent automatically added for fast start, you can edit or restore from system settings">
-                  {/* <Text fz='xs' style={{ cursor: 'help' }}>Default agent</Text> */}
                   <Badge size="xs" color="blue" variant="outline" style={{ flexShrink: 0 }}>D</Badge>
                 </Tooltip>
               )}
               {agent.systemName && (
                 <Tooltip label="System agent automatically added, you can edit or restore from system settings. Used in internal functionality">
-                  {/* <Text fz='xs' style={{ cursor: 'help' }}>System agent</Text> */}
                   <Badge size="xs" color="dark" variant="outline" style={{ flexShrink: 0 }}>S</Badge>
                 </Tooltip>
               )}
