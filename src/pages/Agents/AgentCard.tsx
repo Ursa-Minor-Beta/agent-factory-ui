@@ -2,10 +2,11 @@ import { Link } from 'react-router-dom';
 import { Card, Text, Group, Stack, ActionIcon, Tooltip, Badge } from '@mantine/core';
 import {
   IconTrash,
-  IconEdit,
   IconMessageCircle,
   IconChevronRight,
   IconCopy,
+  IconSchema,
+  IconCode,
   IconFolder,
 } from '@tabler/icons-react';
 import type { AgentCardProps } from './types';
@@ -69,31 +70,46 @@ export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace }: Age
           {agent.description || 'No description'}
         </Text>
       </Stack>
-
-      <Group mt="md" gap="xs" justify="space-between">
-        <Link
-          to={`/agents/${agent.id}/chat`}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            color: 'var(--mantine-color-cyan-5)',
-            textDecoration: 'none',
-          }}
-        >
-          <IconMessageCircle size={16} />
-          <Text size="sm" fw={500} c="cyan">Chat</Text>
-          <IconChevronRight size={14} />
-        </Link>
+      <Group mt="sm" gap="xs" justify="space-between">
+        <Group gap="md">
+          <Link
+            to={`/agents/${agent.id}/chat`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              color: 'var(--mantine-color-cyan-5)',
+              textDecoration: 'none',
+            }}
+          >
+            <IconMessageCircle size={16} />
+            <Text size="sm" fw={500} c="cyan">Chat</Text>
+            <IconChevronRight size={14} />
+          </Link>
+        </Group>
         <Group gap="xs">
-          <Tooltip label="Edit">
-            <ActionIcon
-              variant="subtle"
-              onClick={() => onEdit(agent)}
+          <Tooltip label="Visual Editor">
+            <Link
+              to={`/agents/${agent.id}/editor`}
+              title='Visual editor'
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                color: 'var(--mantine-color-violet-5)',
+                textDecoration: 'none',
+              }}
             >
-              <IconEdit size={18} />
-            </ActionIcon>
+              <IconSchema size={16} />
+            </Link>
           </Tooltip>
+          <ActionIcon
+              variant="subtle"
+              title='JSON Editor'
+              onClick={() => onEdit(agent)}
+              >
+              <IconCode size={18} />
+            </ActionIcon>
           <Tooltip label="Clone">
             <ActionIcon
               variant="subtle"

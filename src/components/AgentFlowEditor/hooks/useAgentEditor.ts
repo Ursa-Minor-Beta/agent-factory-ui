@@ -1,0 +1,440 @@
+import { useCallback, useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  useNodesState,
+  useEdgesState,
+  addEdge,
+  Position,
+  type Node,
+  type Edge,
+  type Connection,
+} from '@xyflow/react';
+import { agentsApi, nodesApi, type NodeType, type AgentExample } from '../../../api';
+import type { Agent, CanvasSettings } from '../../../types/agent';
+import { toFlowNode, toAgentNode, extractEdges, generateNodeId, autoLayoutNodes, extractReferencedNodeIds, type LayoutDirection } from '../utils/converters';
+
+const DEFAULT_EDGE_TYPE_KEY = 'agent-editor-default-edge-type';
+const DEFAULT_LAYOUT_DIRECTION_KEY = 'agent-editor-default-layout-direction';
+
+interface UseAgentEditorOptions {
+  agentId?: string;
+}
+
+export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
+  const navigate = useNavigate();
+  const [agent, setAgent] = useState<Partial<Agent> | null>(null);
+  const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+
+  // Derive selectedNode from nodes array
+  const selectedNode = useMemo(
+    () => (selectedNodeId ? nodes.find((n) => n.id === selectedNodeId) ?? null : null),
+    [nodes, selectedNodeId]
+  );
+
+  // Fetch node types on mount
+  useEffect(() => {
+    async function fetchNodeTypes() {
+      try {
+        const data = await nodesApi.list();
+        setNodeTypes(data);
+      } catch (err) {
+        console.error('Failed to fetch node types:', err);
+      }
+    }
+    fetchNodeTypes();
+  }, []);
+
+  // Fetch agent on mount
+  useEffect(() => {
+    if (!agentId) return;
+
+    if (agentId === 'new') {
+      setAgent({})
+      return;
+    }
+
+    async function fetchAgent() {
+      setLoading(true);
+      try {
+        const data = await agentsApi.getById(agentId!);
+        setAgent(data);
+
+        // Convert agent nodes to flow nodes
+        const flowNodes = data.nodes.map((n, i) => toFlowNode(n, i));
+
+        // Extract edges from node data
+        const flowEdges = extractEdges(flowNodes);
+
+        // Get layout direction from agent or localStorage fallback
+        const savedDirection = data.editorData?.canvasSettings?.layoutDirection
+          ?? localStorage.getItem(DEFAULT_LAYOUT_DIRECTION_KEY);
+        const direction: LayoutDirection = (savedDirection === 'LR' || savedDirection === 'TB') ? savedDirection : 'LR';
+
+        // Determine handle positions based on direction
+        const sourcePosition = direction === 'LR' ? Position.Right : Position.Bottom;
+        const targetPosition = direction === 'LR' ? Position.Left : Position.Top;
+
+        // Apply saved positions from editorData if available, otherwise use auto-layout
+        const nodePositions = data.editorData?.nodePositions;
+        const positionedNodes = nodePositions
+          ? flowNodes.map((node) => ({
+              ...node,
+              sourcePosition,
+              targetPosition,
+              position: nodePositions[node.id] || node.position,
+            }))
+          : autoLayoutNodes(flowNodes, flowEdges, direction);
+
+        setNodes(positionedNodes);
+        setEdges(flowEdges);
+      } catch (err) {
+        console.error('Failed to fetch agent:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchAgent();
+  }, [agentId, setNodes, setEdges]);
+
+  // Handle connection
+  const onConnect = useCallback(
+    (connection: Connection) => {
+      setEdges((eds) => addEdge(connection, eds));
+    },
+    [setEdges]
+  );
+
+  // Save agent
+  const saveAgent = useCallback(async () => {
+    if (!agent) return;
+
+    setSaving(true);
+    try {
+      const agentNodes = nodes.map(toAgentNode);
+
+      // Build nodePositions from current node positions
+      const nodePositions: Record<string, { x: number; y: number }> = {};
+      for (const node of nodes) {
+        nodePositions[node.id] = { x: node.position.x, y: node.position.y };
+      }
+
+      // Merge with existing editorData to preserve other fields
+      const editorData = {
+        ...agent.editorData,
+        nodePositions,
+      };
+
+      if (agent.id) {
+        // Update existing agent
+        await agentsApi.update(agent.id, { nodes: agentNodes, editorData });
+      } else {
+        // Create new agent
+        const newAgent = await agentsApi.create({
+          name: agent.name || 'Untitled Agent',
+          description: agent.description || undefined,
+          nodes: agentNodes,
+          editorData,
+        });
+        // Navigate to the new agent's editor
+        navigate(`/agents/${newAgent.id}/editor`, { replace: true });
+      }
+    } catch (err) {
+      console.error('Failed to save agent:', err);
+    } finally {
+      setSaving(false);
+    }
+  }, [agent, nodes, navigate]);
+
+  // Update agent info (name, description)
+  const updateAgentInfo = useCallback(
+    async (data: { name?: string; description?: string }) => {
+      if (!agent) return;
+
+      // For new agents (no id), just update local state
+      if (!agent.id) {
+        setAgent({ ...agent, ...data });
+        return;
+      }
+
+      // For existing agents, persist to backend
+      setSaving(true);
+      try {
+        const updatedAgent = await agentsApi.update(agent.id, data);
+        setAgent(updatedAgent);
+      } catch (err) {
+        console.error('Failed to update agent info:', err);
+      } finally {
+        setSaving(false);
+      }
+    },
+    [agent]
+  );
+
+  // Update canvas settings (layout direction, edge type)
+  const updateCanvasSettings = useCallback(
+    async (settings: CanvasSettings) => {
+      if (!agent) return;
+
+      // Optimistically update local state
+      const updatedEditorData = {
+        ...agent.editorData,
+        canvasSettings: {
+          ...agent.editorData?.canvasSettings,
+          ...settings,
+        },
+      };
+      setAgent({ ...agent, editorData: updatedEditorData });
+
+      // Persist to backend
+      try {
+        await agentsApi.update(agent.id, { editorData: updatedEditorData });
+      } catch (err) {
+        console.error('Failed to save canvas settings:', err);
+      }
+    },
+    [agent]
+  );
+
+  // Add new node
+  const addNode = useCallback(
+    (type: string, position?: { x: number; y: number }, data?: Record<string, unknown>) => {
+      const id = generateNodeId(type, nodes);
+      // Default position at center if not provided
+      const pos = position || { x: 200, y: 200 };
+      const newNode: Node = {
+        id,
+        type,
+        position: pos,
+        sourcePosition: Position.Right,
+        targetPosition: Position.Left,
+        data: { label: type.toUpperCase(), ...data },
+      };
+      setNodes((nds) => [...nds, newNode]);
+    },
+    [nodes, setNodes]
+  );
+
+  // Delete node
+  const deleteNode = useCallback(
+    (nodeId: string) => {
+      setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+      setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
+    },
+    [setNodes, setEdges]
+  );
+
+  // Run agent - opens chat in new tab
+  const runAgent = useCallback(() => {
+    if (!agent) return;
+    window.open(`/agents/${agent.id}/chat`, '_blank');
+  }, [agent]);
+
+  // Stop agent - not used since chat opens in new tab
+  const stopAgent = useCallback(() => {
+    // No-op
+  }, []);
+
+  // Handle node click
+  const onNodeClick = useCallback(
+    (_event: React.MouseEvent, node: Node) => {
+      setSelectedNodeId(node.id);
+    },
+    []
+  );
+
+  const updateNodeData = useCallback(
+    (nodeId: string, data: Record<string, unknown>) => {
+      // Handle ID change
+      const targetId = data.id && data.id !== nodeId ? (data.id as string) : nodeId;
+
+      if (data.id && data.id !== nodeId) {
+        const newId = data.id as string;
+        setNodes((nds) =>
+          nds.map((n) => (n.id === nodeId ? { ...n, id: newId, data: { ...n.data, ...data } } : n))
+        );
+        setSelectedNodeId((prev) => (prev === nodeId ? newId : prev));
+      } else {
+        setNodes((nds) =>
+          nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, ...data } } : n))
+        );
+      }
+
+      // Auto-manage edges based on template references
+      setEdges((eds) => {
+        // Get current node's full data (merge existing with new)
+        const currentNode = nodes.find((n) => n.id === nodeId);
+        const mergedData = { ...currentNode?.data, ...data };
+
+        // Extract referenced node IDs from merged data
+        const referencedIds = extractReferencedNodeIds(mergedData as Record<string, unknown>);
+
+        // Get existing node IDs for validation
+        const existingNodeIds = new Set(nodes.map((n) => (n.id === nodeId ? targetId : n.id)));
+
+        // Current edges targeting this node
+        const currentSourceIds = new Set(
+          eds.filter((e) => e.target === nodeId || e.target === targetId).map((e) => e.source)
+        );
+
+        // Remove edges for references that no longer exist
+        let updatedEdges = eds.filter((e) => {
+          if (e.target !== nodeId && e.target !== targetId) return true;
+          return referencedIds.has(e.source);
+        });
+
+        // Add new edges for new references (only if source node exists)
+        referencedIds.forEach((sourceId) => {
+          if (!currentSourceIds.has(sourceId) && existingNodeIds.has(sourceId)) {
+            const edgeId = `${sourceId}-${targetId}`;
+            if (!updatedEdges.some((e) => e.id === edgeId)) {
+              updatedEdges.push({
+                id: edgeId,
+                source: sourceId,
+                target: targetId,
+              });
+            }
+          }
+        });
+
+        return updatedEdges;
+      });
+    },
+    [setNodes, setEdges, nodes]
+  );
+
+  const replaceNodeData = useCallback(
+    (nodeId: string, data: Record<string, unknown>) => {
+      setNodes((nds) =>
+        nds.map((n) => (n.id === nodeId ? { ...n, data } : n))
+      );
+
+      // Auto-manage edges based on template references
+      setEdges((eds) => {
+        // Extract referenced node IDs from new data
+        const referencedIds = extractReferencedNodeIds(data);
+
+        // Get existing node IDs for validation
+        const existingNodeIds = new Set(nodes.map((n) => n.id));
+
+        // Current edges targeting this node
+        const currentSourceIds = new Set(
+          eds.filter((e) => e.target === nodeId).map((e) => e.source)
+        );
+
+        // Remove edges for references that no longer exist
+        let updatedEdges = eds.filter((e) => {
+          if (e.target !== nodeId) return true;
+          return referencedIds.has(e.source);
+        });
+
+        // Add new edges for new references (only if source node exists)
+        referencedIds.forEach((sourceId) => {
+          if (!currentSourceIds.has(sourceId) && existingNodeIds.has(sourceId)) {
+            const edgeId = `${sourceId}-${nodeId}`;
+            if (!updatedEdges.some((e) => e.id === edgeId)) {
+              updatedEdges.push({
+                id: edgeId,
+                source: sourceId,
+                target: nodeId,
+              });
+            }
+          }
+        });
+
+        return updatedEdges;
+      });
+    },
+    [setNodes, setEdges, nodes]
+  );
+
+  // Clear selection when clicking canvas
+  const onPaneClick = useCallback(() => {
+    setSelectedNodeId(null);
+  }, []);
+
+  // Derive canvas settings from agent (with localStorage fallback)
+  const edgeType = useMemo(() => {
+    return agent?.editorData?.canvasSettings?.edgeType
+      ?? localStorage.getItem(DEFAULT_EDGE_TYPE_KEY)
+      ?? 'smart';
+  }, [agent?.editorData?.canvasSettings?.edgeType]);
+
+  const layoutDirection = useMemo((): LayoutDirection => {
+    const saved = agent?.editorData?.canvasSettings?.layoutDirection
+      ?? localStorage.getItem(DEFAULT_LAYOUT_DIRECTION_KEY);
+    return (saved === 'LR' || saved === 'TB') ? saved : 'LR';
+  }, [agent?.editorData?.canvasSettings?.layoutDirection]);
+
+  // Change layout direction and re-layout nodes
+  const changeLayoutDirection = useCallback((direction: LayoutDirection) => {
+    const layoutedNodes = autoLayoutNodes(nodes, edges, direction);
+    setNodes(layoutedNodes);
+    updateCanvasSettings({ layoutDirection: direction });
+    localStorage.setItem(DEFAULT_LAYOUT_DIRECTION_KEY, direction);
+  }, [nodes, edges, setNodes, updateCanvasSettings]);
+
+  // Change edge type
+  const changeEdgeType = useCallback((value: string) => {
+    updateCanvasSettings({ edgeType: value });
+    localStorage.setItem(DEFAULT_EDGE_TYPE_KEY, value);
+  }, [updateCanvasSettings]);
+
+  // Load template - replaces all nodes with template nodes
+  const loadTemplate = useCallback(
+    (template: AgentExample) => {
+      // Convert template nodes to flow nodes
+      const flowNodes = template.nodes.map((n, i) => toFlowNode(n, i));
+
+      // Extract edges from node data
+      const flowEdges = extractEdges(flowNodes);
+
+      // Apply auto-layout
+      const layoutedNodes = autoLayoutNodes(flowNodes, flowEdges, layoutDirection);
+
+      setNodes(layoutedNodes);
+      setEdges(flowEdges);
+      setSelectedNodeId(null);
+    },
+    [layoutDirection, setNodes, setEdges]
+  );
+
+  return {
+    // State
+    agent,
+    nodes,
+    edges,
+    nodeTypes,
+    loading,
+    saving,
+    running,
+    selectedNode,
+    edgeType,
+    layoutDirection,
+
+    // Actions
+    onNodesChange,
+    onEdgesChange,
+    onConnect,
+    onNodeClick,
+    onPaneClick,
+    saveAgent,
+    addNode,
+    deleteNode,
+    runAgent,
+    stopAgent,
+    updateNodeData,
+    replaceNodeData,
+    updateAgentInfo,
+    changeLayoutDirection,
+    changeEdgeType,
+    loadTemplate,
+  };
+}

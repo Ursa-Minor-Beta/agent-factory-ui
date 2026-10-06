@@ -1,10 +1,17 @@
 import { api } from './client';
-import type { Agent, AgentQueryParams, AgentListResponse } from '../types';
+import type { Agent, AgentQueryParams, AgentListResponse, EditorData, AgentNode } from '../types';
+
+export interface AgentExample {
+  name: string;
+  description: string;
+  nodes: AgentNode[];
+}
 
 export interface CreateAgentInput {
   name: string;
   description?: string;
   nodes?: Agent['nodes'];
+  editorData?: EditorData;
   workspaceId?: string | null;
 }
 
@@ -12,6 +19,7 @@ export interface UpdateAgentInput {
   name?: string;
   description?: string;
   nodes?: Agent['nodes'];
+  editorData?: EditorData;
   status?: 'draft' | 'published';
   workspaceId?: string | null;
 }
@@ -45,4 +53,7 @@ export const agentsApi = {
 
   validate: (id: string) =>
     api.post<{ valid: boolean; errors: string[] }>(`/api/agents/${id}/validate`),
+
+  getExamples: () =>
+    api.get<AgentExample[]>('/api/agents/examples'),
 };

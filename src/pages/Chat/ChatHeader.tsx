@@ -1,6 +1,7 @@
 import { Box, Card, Group, ActionIcon, Text, Tooltip, useMantineColorScheme } from '@mantine/core';
-import { IconMenu2, IconGhost, IconPencil } from '@tabler/icons-react';
+import { IconMenu2, IconGhost, IconCode, IconSchema } from '@tabler/icons-react';
 import type { ChatHeaderProps } from './types';
+import { Link } from 'react-router-dom';
 
 export function ChatHeader({
   agent,
@@ -49,9 +50,24 @@ export function ChatHeader({
             )}
           </Group>
           <Group gap="xs">
-            <Tooltip label="Edit agent">
+            <Tooltip label="Visual editor">
+              <Link
+                to={`/agents/${agent.id}/editor`}
+                title='Visual editor'
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  color: 'var(--mantine-color-violet-5)',
+                  textDecoration: 'none',
+                }}
+              >
+                <IconSchema size={16} />
+              </Link>
+            </Tooltip>
+            <Tooltip label="JSON editor">
               <ActionIcon variant="subtle" onClick={onEditAgent}>
-                <IconPencil size={18} />
+                <IconCode size={18} />
               </ActionIcon>
             </Tooltip>
           </Group>
