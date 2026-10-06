@@ -22,6 +22,8 @@ export function MessageBubble({ message, isFirst, showRetry, onViewRun, onRepeat
       pb="xs"
       style={{
         display: 'flex',
+        marginRight: message.role === 'user' ? '.5rem' : '',
+        marginLeft: message.role !== 'user' ? '.5rem' : '',
         justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
         alignItems: 'flex-end',
         gap: 8,
