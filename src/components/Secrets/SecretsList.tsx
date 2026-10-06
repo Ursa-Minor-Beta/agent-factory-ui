@@ -12,7 +12,6 @@ import {
   Center,
   Code,
   TextInput,
-  Badge,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
@@ -26,6 +25,7 @@ import { secretsApi } from '../../api';
 import type { Secret } from '../../types';
 import { SecretModal } from './SecretModal';
 import { SecretDeleteModal } from './SecretDeleteModal';
+import { WorkspaceBadge } from '../Workspace';
 
 export type SecretColumn = 'workspace' | 'name' | 'value' | 'description' | 'created' | 'actions';
 
@@ -170,9 +170,7 @@ export function SecretsList({
               <Table.Tr key={secret.id}>
                 {showColumn('workspace') && (
                   <Table.Td>
-                    <Badge variant="light" color={secret.workspaceName ? 'cyan' : 'gray'} size="sm">
-                      {secret.workspaceName ? secret.workspaceName.slice(0, 8) : 'Global'}
-                    </Badge>
+                    <WorkspaceBadge workspaceName={secret.workspaceName} />
                   </Table.Td>
                 )}
                 {showColumn('name') && (

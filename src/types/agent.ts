@@ -28,6 +28,7 @@ export interface Agent {
   nodes: AgentNode[];
   status: 'draft' | 'published';
   workspaceId?: string;
+  workspaceName?: string;
   defaultName?: string;
   systemName?: string;
   createdAt: string;

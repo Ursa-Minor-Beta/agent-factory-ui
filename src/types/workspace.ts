@@ -5,6 +5,10 @@ export interface Workspace {
   description?: string;
   createdAt: string;
   updatedAt: string;
+  agentCount?: number;
+  secretCount?: number;
+  providerCount?: number;
+  collectionCount?: number;
 }
 
 export interface WorkspaceQueryOptions {

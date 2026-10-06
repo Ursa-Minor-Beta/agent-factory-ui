@@ -29,6 +29,7 @@ import { memoryApi } from '../../api';
 import type { MemorySchema } from '../../types';
 import { CollectionModal } from './CollectionModal';
 import { CollectionDeleteModal } from './CollectionDeleteModal';
+import { WorkspaceBadge } from '../Workspace';
 
 export type CollectionColumn = 'workspace' | 'name' | 'description' | 'records' | 'fields' | 'created' | 'actions';
 
@@ -187,9 +188,7 @@ export function CollectionsList({
               <Table.Tr key={collection.id}>
                 {showColumn('workspace') && (
                   <Table.Td>
-                    <Badge variant="light" color={collection.workspaceName ? 'cyan' : 'gray'} size="sm">
-                      {collection.workspaceName ? collection.workspaceName.slice(0, 8) : 'Global'}
-                    </Badge>
+                    <WorkspaceBadge workspaceName={collection.workspaceName} />
                   </Table.Td>
                 )}
                 {showColumn('name') && (

@@ -203,11 +203,13 @@ export function AgentsList({
 
   const handleClone = async (agent: Agent) => {
     try {
+      // Fetch full agent data to get nodes // TODO move clone to thhe backend
+      const fullAgent = await agentsApi.getById(agent.id);
       await agentsApi.create({
-        name: `${agent.name} (clone)`,
-        description: agent.description,
-        nodes: agent.nodes,
-        workspaceId: agent.workspaceId || workspaceId,
+        name: `${fullAgent.name} (clone)`,
+        description: fullAgent.description,
+        nodes: fullAgent.nodes,
+        workspaceId: fullAgent.workspaceId || workspaceId,
       });
       loadAgents();
     } catch (err) {

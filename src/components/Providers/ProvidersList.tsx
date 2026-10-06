@@ -26,6 +26,7 @@ import { providersApi } from '../../api';
 import type { ProviderConfig } from '../../types';
 import { ProviderModal } from './ProviderModal';
 import { ProviderDeleteModal } from './ProviderDeleteModal';
+import { WorkspaceBadge } from '../Workspace';
 
 export type ProviderColumn = 'workspace' | 'name' | 'provider' | 'apiKey' | 'baseUrl' | 'default' | 'actions';
 
@@ -158,9 +159,7 @@ export function ProvidersList({
               <Table.Tr key={provider.id}>
                 {showColumn('workspace') && (
                   <Table.Td>
-                    <Badge variant="light" color={provider.workspaceName ? 'gray' : 'cyan'} size="sm">
-                      {provider.workspaceName ? provider.workspaceName.slice(0, 8) : 'Global'}
-                    </Badge>
+                    <WorkspaceBadge workspaceName={provider.workspaceName} />
                   </Table.Td>
                 )}
                 {showColumn('name') && <Table.Td>{provider.name}</Table.Td>}

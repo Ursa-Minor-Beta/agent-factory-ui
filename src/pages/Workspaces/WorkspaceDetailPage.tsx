@@ -167,16 +167,16 @@ export function WorkspaceDetailPage() {
       <Tabs defaultValue="agents">
         <Tabs.List mb="md">
           <Tabs.Tab value="agents" leftSection={<IconRobot size={16} />}>
-            Agents
+            Agents{workspace.agentCount !== undefined && ` (${workspace.agentCount})`}
           </Tabs.Tab>
           <Tabs.Tab value="providers" leftSection={<IconCloud size={16} />}>
-            Providers
+            Providers{workspace.providerCount !== undefined && ` (${workspace.providerCount})`}
           </Tabs.Tab>
           <Tabs.Tab value="secrets" leftSection={<IconKey size={16} />}>
-            Secrets
+            Secrets{workspace.secretCount !== undefined && ` (${workspace.secretCount})`}
           </Tabs.Tab>
           <Tabs.Tab value="collections" leftSection={<IconDatabase size={16} />}>
-            Collections
+            Collections{workspace.collectionCount !== undefined && ` (${workspace.collectionCount})`}
           </Tabs.Tab>
         </Tabs.List>
 

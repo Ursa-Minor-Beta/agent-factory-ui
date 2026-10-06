@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Card, Text, Group, Stack, ActionIcon, Badge, Tooltip } from '@mantine/core';
+import { Card, Text, Group, Stack, ActionIcon, Tooltip, Badge } from '@mantine/core';
 import {
   IconTrash,
   IconEdit,
@@ -9,35 +9,50 @@ import {
   IconFolder,
 } from '@tabler/icons-react';
 import type { AgentCardProps } from './types';
+import { WorkspaceBadge } from '../../components/Workspace';
 
 export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace }: AgentCardProps) {
   return (
     <Card
       withBorder
       padding="md"
-      style={{ display: 'flex', flexDirection: 'column', height: '100%' }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+      }}
     >
       <Stack gap="xs" style={{ flex: 1 }}>
         <Group justify="space-between" align="flex-start" wrap="nowrap">
-          <Text
-            fw={600}
-            style={{
-              flex: 1,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {agent.name}
-          </Text>
-          <Group gap={4}>
-            {agent.defaultName && (
-              <Badge color="cyan" size="xs">Default</Badge>
-            )}
-            {agent.systemName && (
-              <Badge color="gray" size="xs">System</Badge>
-            )}
+          <Group gap={6} wrap="nowrap" style={{ flex: 1, overflow: 'hidden' }}>
+            <Text
+              fw={600}
+              style={{
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {agent.name}
+            </Text>
+
+            <Group>
+              {agent.defaultName && (
+                <Tooltip label="Default agent automatically added for fast start, you can edit or restore from system settings">
+                  {/* <Text fz='xs' style={{ cursor: 'help' }}>Default agent</Text> */}
+                  <Badge size="xs" color="blue" variant="outline" style={{ flexShrink: 0 }}>D</Badge>
+                </Tooltip>
+              )}
+              {agent.systemName && (
+                <Tooltip label="System agent automatically added, you can edit or restore from system settings. Used in internal functionality">
+                  {/* <Text fz='xs' style={{ cursor: 'help' }}>System agent</Text> */}
+                  <Badge size="xs" color="dark" variant="outline" style={{ flexShrink: 0 }}>S</Badge>
+                </Tooltip>
+              )}
+            </Group>
+
           </Group>
+          <WorkspaceBadge workspaceName={agent.workspaceName} size="xs" />
         </Group>
         <Text
           size="sm"
@@ -53,11 +68,9 @@ export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace }: Age
         >
           {agent.description || 'No description'}
         </Text>
-        <Text size="xs" c="dimmed">
-          {agent.nodes.length} nodes
-        </Text>
       </Stack>
-      <Group mt="sm" gap="xs" justify="space-between">
+
+      <Group mt="md" gap="xs" justify="space-between">
         <Link
           to={`/agents/${agent.id}/chat`}
           style={{
@@ -109,6 +122,7 @@ export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace }: Age
           </Tooltip>
         </Group>
       </Group>
+
     </Card>
   );
 }
