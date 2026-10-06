@@ -57,7 +57,6 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
     nodeTypes: availableNodeTypes,
     loading,
     saving,
-    running,
     selectedNode,
     edgeType,
     layoutDirection,
@@ -67,7 +66,6 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
     onNodeClick,
     onPaneClick,
     saveAgent,
-    stopAgent,
     updateNodeData,
     replaceNodeData,
     updateAgentInfo,
@@ -81,9 +79,6 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
   const existingNodeTypes = useMemo(() => {
     return new Set(nodes.map((node) => node.type).filter((type): type is string => !!type));
   }, [nodes]);
-
-  // Compute list of node IDs for template variable validation
-  const nodeIds = useMemo(() => nodes.map((node) => node.id), [nodes]);
 
   const handleAddNode = useCallback(
     (nodeType: NodeType, exampleIndex?: number) => {
@@ -133,11 +128,9 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
         <EditorToolbar
           agentName={agent?.name || ''}
           saving={saving}
-          running={running}
           isPaletteOpen={isPaletteOpen}
           onSave={saveAgent}
           onRun={handleRunClick}
-          onStop={stopAgent}
           onTogglePalette={togglePalette}
         />
         <ReactFlow
@@ -193,7 +186,6 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
           node={selectedNode}
           nodes={nodes}
           nodeTypes={availableNodeTypes}
-          nodeIds={nodeIds}
           onUpdate={updateNodeData}
           onReplace={replaceNodeData}
           onClose={onPaneClick}

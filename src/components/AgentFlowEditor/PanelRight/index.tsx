@@ -13,13 +13,12 @@ interface PanelRightProps {
   node: Node;
   nodes: Node[];
   nodeTypes: NodeType[];
-  nodeIds?: string[];
   onUpdate: (nodeId: string, data: Record<string, unknown>) => void;
   onReplace: (nodeId: string, data: Record<string, unknown>) => void;
   onClose: () => void;
 }
 
-export function PanelRight({ node, nodes, nodeTypes, nodeIds, onUpdate, onReplace, onClose }: PanelRightProps) {
+export function PanelRight({ node, nodes, nodeTypes, onUpdate, onReplace, onClose }: PanelRightProps) {
   const [width, setWidth] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     return saved ? parseInt(saved, 10) : 280;
@@ -107,13 +106,12 @@ export function PanelRight({ node, nodes, nodeTypes, nodeIds, onUpdate, onReplac
           </ActionIcon>
         </Group>
 
-        <NodeSettingsForm 
-            node={node} 
-            nodes={nodes} 
-            nodeTypes={nodeTypes} 
-            nodeIds={nodeIds} 
-            onUpdate={onUpdate} 
-            onReplace={onReplace} 
+        <NodeSettingsForm
+            node={node}
+            nodes={nodes}
+            nodeTypes={nodeTypes}
+            onUpdate={onUpdate}
+            onReplace={onReplace}
             />
       </Box>
     </Box>

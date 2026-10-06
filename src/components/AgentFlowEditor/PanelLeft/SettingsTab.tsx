@@ -70,7 +70,7 @@ export function SettingsTab({ agent, edgeType, layoutDirection, onAgentInfoChang
         {...register('name', { required: 'Name is required' })}
         onBlur={onBlur}
       />
-      {agent && (
+      {agent?.id && (
         <Group gap="xs">
           <Code>ID: {agent.id}</Code>
           <CopyButton value={agent.id}>
