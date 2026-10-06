@@ -122,21 +122,23 @@ export function WorkspaceDetailPage() {
   return (
     <Box>
       {/* Header */}
-      <Group mb="lg" align="flex-start">
-        <Tooltip label="All workspaces">
-          <ActionIcon variant="subtle" color="gray" size="md" component={Link} to="/workspaces">
-            <IconList size={18} />
-          </ActionIcon>
-        </Tooltip>
-        <Box>
-          <Text fw={500} size="lg" mb="xs">
-            Workspace: {workspace.name}
-          </Text>
-          <Text c="dimmed" size="sm" mb="md">
-            {workspace.description}
-          </Text>
-        </Box>
-        <Group ms='xs' gap="xs">
+      <Group mb="lg" align="flex-start" justify="space-between">
+        <Group align="flex-start" gap="xs">
+          <Tooltip label="All workspaces">
+            <ActionIcon variant="subtle" color="gray" size="md" component={Link} to="/workspaces">
+              <IconList size={18} />
+            </ActionIcon>
+          </Tooltip>
+          <Group gap="xs" align="baseline">
+            <Text fw={500} size="lg">
+              Workspace: {workspace.name}
+            </Text>
+            <Text c="dimmed" size="sm">
+              — {workspace.description}
+            </Text>
+          </Group>
+        </Group>
+        <Group gap="xs">
             <Tooltip label="Edit workspace">
               <ActionIcon variant="subtle" color="cyan" size="md" onClick={openEditModal}>
                 <IconEdit size={18} />
