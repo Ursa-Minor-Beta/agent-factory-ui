@@ -29,9 +29,10 @@ interface ProviderModalProps {
   onClose: () => void;
   workspaceId?: string;
   onSuccess: () => void;
+  defaultName?: string;
 }
 
-export function ProviderModal({ opened, onClose, workspaceId, onSuccess }: ProviderModalProps) {
+export function ProviderModal({ opened, onClose, workspaceId, onSuccess, defaultName }: ProviderModalProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -47,7 +48,7 @@ export function ProviderModal({ opened, onClose, workspaceId, onSuccess }: Provi
     if (opened) {
       reset({
         provider: 'openai',
-        name: '',
+        name: defaultName || '',
         apiKey: '',
         baseUrl: '',
         selectedWorkspaceId: workspaceId || '',
@@ -61,7 +62,7 @@ export function ProviderModal({ opened, onClose, workspaceId, onSuccess }: Provi
         .catch(() => setWorkspaces([]))
         .finally(() => setLoadingWorkspaces(false));
     }
-  }, [opened, workspaceId, reset]);
+  }, [opened, workspaceId, defaultName, reset]);
 
   const handleClose = () => {
     reset({ provider: 'openai', name: '', apiKey: '', baseUrl: '', selectedWorkspaceId: '' });

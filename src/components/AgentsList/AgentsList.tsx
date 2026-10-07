@@ -34,7 +34,7 @@ import { AgentCard } from '../../pages/Agents/AgentCard';
 import { AgentFilters } from '../../pages/Agents/AgentFilters';
 import { AgentDeleteModal } from '../../pages/Agents/AgentDeleteModal';
 import { AgentWorkspaceModal } from '../../pages/Agents/AgentWorkspaceModal';
-import { AgentImportModal } from '../../pages/Agents/AgentImportModal';
+import { AgentImportModal } from '../../pages/Agents/AgentImportModal/AgentImportModal';
 import { useAgentModal } from '../AgentCreateModal';
 
 const ITEMS_PER_PAGE = 12;

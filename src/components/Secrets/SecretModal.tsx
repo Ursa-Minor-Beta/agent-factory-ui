@@ -29,9 +29,10 @@ interface SecretModalProps {
   secret: Secret | null;
   workspaceId?: string;
   onSuccess: () => void;
+  defaultName?: string;
 }
 
-export function SecretModal({ opened, onClose, secret, workspaceId, onSuccess }: SecretModalProps) {
+export function SecretModal({ opened, onClose, secret, workspaceId, onSuccess, defaultName }: SecretModalProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -50,7 +51,7 @@ export function SecretModal({ opened, onClose, secret, workspaceId, onSuccess }:
         });
       } else {
         reset({
-          name: '',
+          name: defaultName || '',
           value: '',
           description: '',
           selectedWorkspaceId: workspaceId || '',
@@ -65,7 +66,7 @@ export function SecretModal({ opened, onClose, secret, workspaceId, onSuccess }:
         .catch(() => setWorkspaces([]))
         .finally(() => setLoadingWorkspaces(false));
     }
-  }, [opened, secret, workspaceId, reset]);
+  }, [opened, secret, workspaceId, defaultName, reset]);
 
   const handleClose = () => {
     reset({ name: '', value: '', description: '', selectedWorkspaceId: '' });

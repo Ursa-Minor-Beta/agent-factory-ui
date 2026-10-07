@@ -33,6 +33,7 @@ interface CollectionModalProps {
   collection: MemorySchema | null;
   workspaceId?: string;
   onSuccess: () => void;
+  defaultName?: string;
 }
 
 const fieldTypes: { value: MemoryFieldType; label: string }[] = [
@@ -52,7 +53,7 @@ const defaultField: MemorySchemaField = {
   description: '',
 };
 
-export function CollectionModal({ opened, onClose, collection, workspaceId, onSuccess }: CollectionModalProps) {
+export function CollectionModal({ opened, onClose, collection, workspaceId, onSuccess, defaultName }: CollectionModalProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -83,7 +84,7 @@ export function CollectionModal({ opened, onClose, collection, workspaceId, onSu
         });
       } else {
         reset({
-          name: '',
+          name: defaultName || '',
           description: '',
           fields: [{ ...defaultField }],
           selectedWorkspaceId: workspaceId || '',
@@ -98,7 +99,7 @@ export function CollectionModal({ opened, onClose, collection, workspaceId, onSu
         .catch(() => setWorkspaces([]))
         .finally(() => setLoadingWorkspaces(false));
     }
-  }, [opened, collection, workspaceId, reset]);
+  }, [opened, collection, workspaceId, defaultName, reset]);
 
   const handleClose = () => {
     reset({

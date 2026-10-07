@@ -10,6 +10,7 @@ import {
   IconTool,
   IconDatabase,
   IconFolders,
+  IconCloud,
 } from '@tabler/icons-react';
 import type { NavItem } from './types';
 
@@ -24,7 +25,7 @@ export const getBaseNavItems = (): NavItem[] => [
     path: '/configurations',
     icon: <IconSettings size={20} />,
     children: [
-      { label: 'Providers', path: '/providers', icon: <IconSettings size={18} /> },
+      { label: 'Providers', path: '/providers', icon: <IconCloud size={18} /> },
       { label: 'Secrets', path: '/secrets', icon: <IconLock size={18} /> },
       { label: 'Collections', path: '/collections', icon: <IconDatabase size={18} /> },
     ],

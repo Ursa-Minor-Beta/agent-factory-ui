@@ -127,6 +127,15 @@ export interface AgentImportWarnings {
   missingSecrets: string[];
   missingProviders: string[];
   collectionsWithoutSchema: string[];
+  // Items that exist globally (optional - backend may not provide these)
+  globalSecrets?: string[];
+  globalProviders?: string[];
+  globalCollections?: string[];
+}
+
+export interface CreatedCollection {
+  id: string;
+  name: string;
 }
 
 export interface AgentImportResponse {
@@ -135,4 +144,5 @@ export interface AgentImportResponse {
   agentId: string;
   agentIdMap: Record<string, string>;
   warnings: AgentImportWarnings;
+  createdCollections?: CreatedCollection[];
 }
