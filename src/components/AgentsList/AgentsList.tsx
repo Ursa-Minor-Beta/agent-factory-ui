@@ -21,8 +21,6 @@ import {
   IconAlertCircle,
   IconSchema,
   IconCode,
-  IconUpload,
-  IconFileImport,
   IconDownload,
 } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';

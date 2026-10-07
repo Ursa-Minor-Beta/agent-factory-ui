@@ -1,5 +1,5 @@
-import { Box, Text, Group, Button, Stack, Card, Badge } from '@mantine/core';
-import { IconCheck, IconCircleCheck, IconCircleDashed, IconKey, IconCloud, IconDatabase, IconPlus, IconCircleHalf, IconCircleHalf2, IconRobot } from '@tabler/icons-react';
+import { Text, Group, Button, Stack, Card, Badge } from '@mantine/core';
+import { IconCircleCheck, IconCircleDashed, IconKey, IconCloud, IconDatabase, IconPlus, IconCircleHalf2, IconRobot } from '@tabler/icons-react';
 import type { AgentImportResponse } from '../../../types';
 
 interface ConfigItemProps {
@@ -113,11 +113,6 @@ export function ImportSuccessView({
     result.warnings.missingProviders.length > 0 ||
     result.warnings.collectionsWithoutSchema.length > 0;
 
-  const allConfigured =
-    result.warnings.missingSecrets.every((s) => createdSecrets.has(s) || globalSecrets.has(s)) &&
-    result.warnings.missingProviders.every((p) => createdProviders.has(p) || globalProviders.has(p)) &&
-    result.warnings.collectionsWithoutSchema.every((c) => createdCollections.has(c) || globalCollections.has(c));
-
   return (
     <Stack gap="xs">
       {Object.keys(result.agentIdMap).length > 1 && (
@@ -153,40 +148,32 @@ export function ImportSuccessView({
       )}
 
       {hasWarnings && (
-        <Box>
-          {/* <Text size="sm" c="dimmed" mb="sm">
-            {allConfigured
-              ? 'All dependencies configured'
-              : 'Create workspace dependencies or skip if you have global ones'}
-          </Text> */}
-
-          <Stack gap="xs">
-            <ConfigSection
-              title="Secrets"
-              icon={<IconKey size={16} color="var(--mantine-color-dimmed)" />}
-              items={result.warnings.missingSecrets}
-              createdItems={createdSecrets}
-              globalItems={globalSecrets}
-              onCreate={onCreateSecret}
-            />
-            <ConfigSection
-              title="Providers"
-              icon={<IconCloud size={16} color="var(--mantine-color-dimmed)" />}
-              items={result.warnings.missingProviders}
-              createdItems={createdProviders}
-              globalItems={globalProviders}
-              onCreate={onCreateProvider}
-            />
-            <ConfigSection
-              title="Collections"
-              icon={<IconDatabase size={16} color="var(--mantine-color-dimmed)" />}
-              items={result.warnings.collectionsWithoutSchema}
-              createdItems={createdCollections}
-              globalItems={globalCollections}
-              onCreate={onCreateCollection}
-            />
-          </Stack>
-        </Box>
+        <>
+          <ConfigSection
+            title="Secrets"
+            icon={<IconKey size={16} color="var(--mantine-color-dimmed)" />}
+            items={result.warnings.missingSecrets}
+            createdItems={createdSecrets}
+            globalItems={globalSecrets}
+            onCreate={onCreateSecret}
+          />
+          <ConfigSection
+            title="Providers"
+            icon={<IconCloud size={16} color="var(--mantine-color-dimmed)" />}
+            items={result.warnings.missingProviders}
+            createdItems={createdProviders}
+            globalItems={globalProviders}
+            onCreate={onCreateProvider}
+          />
+          <ConfigSection
+            title="Collections"
+            icon={<IconDatabase size={16} color="var(--mantine-color-dimmed)" />}
+            items={result.warnings.collectionsWithoutSchema}
+            createdItems={createdCollections}
+            globalItems={globalCollections}
+            onCreate={onCreateCollection}
+          />
+        </>
       )}
 
       <Group justify="flex-end" gap="sm">

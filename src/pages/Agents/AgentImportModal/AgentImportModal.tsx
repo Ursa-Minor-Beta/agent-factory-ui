@@ -116,7 +116,7 @@ export function AgentImportModal({ opened, onClose, onImported, workspaceId }: A
     setImporting(true);
     setError('');
 
-    const targetWorkspaceId = selectedWorkspace === NEW_WORKSPACE_VALUE ? undefined : selectedWorkspace;
+    const targetWorkspaceId = selectedWorkspace === NEW_WORKSPACE_VALUE ? undefined : selectedWorkspace ?? undefined;
 
     try {
       const response = await agentsApi.import({

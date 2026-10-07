@@ -8,8 +8,6 @@ import {
   Alert,
   Table,
   Center,
-  Badge,
-  Select,
   Button,
   ActionIcon,
   Tooltip,
@@ -23,12 +21,11 @@ import {
   IconRefresh,
   IconRobot,
   IconTrash,
-  IconEyeOff,
 } from '@tabler/icons-react';
 import { sessionsApi } from '../../api';
 import type { Session } from '../../types';
 import { SessionDetailsModal } from './SessionDetailsModal';
-import { statusColors, formatRelativeTime } from './types';
+import { formatRelativeTime } from './types';
 
 const PAGE_SIZE = 50;
 

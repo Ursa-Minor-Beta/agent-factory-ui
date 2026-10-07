@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { Stack, TextInput, Textarea, Group, Code, ActionIcon, Tooltip, CopyButton, Text, Select, Divider, Button, Box } from '@mantine/core';
-import { IconCheck, IconCopy, IconDownload, IconUpload } from '@tabler/icons-react';
+import { Stack, TextInput, Textarea, Group, Code, ActionIcon, Tooltip, CopyButton, Text, Select, Divider, Button } from '@mantine/core';
+import { IconCheck, IconCopy, IconUpload } from '@tabler/icons-react';
 import { useForm } from 'react-hook-form';
 import type { Agent } from '../../../types/agent';
 import type { LayoutDirection } from '../utils/converters';

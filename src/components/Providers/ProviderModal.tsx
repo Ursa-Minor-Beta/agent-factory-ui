@@ -122,7 +122,6 @@ export function ProviderModal({ opened, onClose, workspaceId, onSuccess, default
           <TextInput
             label="Name"
             placeholder="e.g., Production OpenAI"
-            name="providerName"
             autoComplete="one-time-code"
             data-lpignore="true"
             data-1p-ignore
@@ -132,7 +131,6 @@ export function ProviderModal({ opened, onClose, workspaceId, onSuccess, default
           {watchProvider !== 'ollama' && (
             <PasswordInput
               label="API Key"
-              name="apiKey"
               autoComplete="one-time-code"
               data-lpignore="true"
               data-1p-ignore

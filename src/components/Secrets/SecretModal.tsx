@@ -122,7 +122,6 @@ export function SecretModal({ opened, onClose, secret, workspaceId, onSuccess, d
             label="Name"
             placeholder="e.g., API_KEY"
             description="Alphanumeric and underscore only, must start with letter or underscore"
-            name="secretName"
             autoComplete="one-time-code"
             data-lpignore="true"
             data-1p-ignore
@@ -139,7 +138,6 @@ export function SecretModal({ opened, onClose, secret, workspaceId, onSuccess, d
             label="Value"
             placeholder={secret ? 'Leave empty to keep current value' : 'Secret value'}
             description={secret ? 'Leave empty to keep existing value' : undefined}
-            name="secretValue"
             autoComplete="one-time-code"
             data-lpignore="true"
             data-1p-ignore
