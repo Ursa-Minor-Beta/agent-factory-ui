@@ -21,6 +21,9 @@ import {
   IconAlertCircle,
   IconSchema,
   IconCode,
+  IconUpload,
+  IconFileImport,
+  IconDownload,
 } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { agentsApi } from '../../api';
@@ -31,6 +34,7 @@ import { AgentCard } from '../../pages/Agents/AgentCard';
 import { AgentFilters } from '../../pages/Agents/AgentFilters';
 import { AgentDeleteModal } from '../../pages/Agents/AgentDeleteModal';
 import { AgentWorkspaceModal } from '../../pages/Agents/AgentWorkspaceModal';
+import { AgentImportModal } from '../../pages/Agents/AgentImportModal';
 import { useAgentModal } from '../AgentCreateModal';
 
 const ITEMS_PER_PAGE = 12;
@@ -52,6 +56,8 @@ interface AgentsListProps {
   showPagination?: boolean; // Show/hide pagination
   showCreateButton?: boolean; // Show/hide create button
   limit?: number; // Custom limit
+  onCreate?: () => void; // Called when agent is created/imported
+  onDelete?: () => void; // Called when agent is deleted
 }
 
 export function AgentsList({
@@ -60,6 +66,8 @@ export function AgentsList({
   showPagination = true,
   showCreateButton = true,
   limit = ITEMS_PER_PAGE,
+  onCreate,
+  onDelete,
 }: AgentsListProps) {
   const isMobile = useMediaQuery('(max-width: 768px)') ?? false;
 
@@ -72,6 +80,7 @@ export function AgentsList({
   const { openCreateAgent, openEditAgent } = useAgentModal();
   const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
   const [agentForWorkspace, setAgentForWorkspace] = useState<Agent | null>(null);
+  const [importModalOpened, setImportModalOpened] = useState(false);
 
   // Filter panel
   const [filtersOpened, { toggle: toggleFilters }] = useDisclosure(false);
@@ -205,10 +214,10 @@ export function AgentsList({
 
   // Listen for agent-saved event from global modal
   useEffect(() => {
-    const handleAgentSaved = () => loadAgents();
+    const handleAgentSaved = () => { loadAgents(); onCreate?.(); };
     window.addEventListener('agent-saved', handleAgentSaved);
     return () => window.removeEventListener('agent-saved', handleAgentSaved);
-  }, [loadAgents]);
+  }, [loadAgents, onCreate]);
 
   const handleOpenEditModal = (agent: Agent) => {
     openEditAgent(agent.id);
@@ -225,6 +234,7 @@ export function AgentsList({
         workspaceId: fullAgent.workspaceId || workspaceId,
       });
       loadAgents();
+      onCreate?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to clone agent');
     }
@@ -293,27 +303,37 @@ export function AgentsList({
         />
         <Box style={{ flex: 1 }} />
         {showCreateButton && (
-          <Group gap="xs">
-            <Text size="sm" c="dimmed">New agent:</Text>
-            <Button.Group>
-              <Tooltip label="Visual Editor">
-                <Button
-                  component={Link}
-                  to="/agents/new/editor"
-                  variant="default"
-                >
-                  <IconSchema size={16} style={{ color: 'var(--mantine-color-violet-5)' }} />
-                </Button>
-              </Tooltip>
-              <Tooltip label="JSON Editor">
-                <Button
-                  variant="default"
-                  onClick={() => openCreateAgent(workspaceId)}
-                >
-                  <IconCode size={16} />
-                </Button>
-              </Tooltip>
-            </Button.Group>
+          <Group gap="md">
+            <Group gap="xs">
+              <Text size="sm" c="dimmed">New agent:</Text>
+              <Button.Group>
+                <Tooltip label="Visual Editor">
+                  <Button
+                    component={Link}
+                    to="/agents/new/editor"
+                    variant="default"
+                  >
+                    <IconSchema size={16} style={{ color: 'var(--mantine-color-violet-5)' }} />
+                  </Button>
+                </Tooltip>
+                <Tooltip label="JSON Editor">
+                  <Button
+                    variant="default"
+                    onClick={() => openCreateAgent(workspaceId)}
+                  >
+                    <IconCode size={16} />
+                  </Button>
+                </Tooltip>
+                <Tooltip label="Import Agent">
+                  <Button
+                    variant="default"
+                    onClick={() => setImportModalOpened(true)}
+                  >
+                    <IconDownload size={16} />
+                  </Button>
+                </Tooltip>
+              </Button.Group>
+            </Group>
           </Group>
         )}
       </Group>
@@ -408,13 +428,20 @@ export function AgentsList({
       <AgentDeleteModal
         agent={agentToDelete}
         onClose={() => setAgentToDelete(null)}
-        onDeleted={loadAgents}
+        onDeleted={() => { loadAgents(); onDelete?.(); }}
       />
 
       <AgentWorkspaceModal
         agent={agentForWorkspace}
         onClose={() => setAgentForWorkspace(null)}
         onSaved={loadAgents}
+      />
+
+      <AgentImportModal
+        opened={importModalOpened}
+        onClose={() => setImportModalOpened(false)}
+        onImported={() => { loadAgents(); onCreate?.(); }}
+        workspaceId={workspaceId}
       />
     </Box>
   );

@@ -40,6 +40,8 @@ interface CollectionsListProps {
   description?: string;
   showSearch?: boolean;
   columns?: CollectionColumn[];
+  onCreate?: () => void;
+  onDelete?: () => void;
 }
 
 export function CollectionsList({
@@ -47,6 +49,8 @@ export function CollectionsList({
   description = '',
   showSearch = true,
   columns = DEFAULT_COLUMNS,
+  onCreate,
+  onDelete,
 }: CollectionsListProps) {
   const showColumn = (col: CollectionColumn) => columns.includes(col);
   const clipboard = useClipboard({ timeout: 1500 });
@@ -106,8 +110,10 @@ export function CollectionsList({
   };
 
   const handleSuccess = () => {
+    const isNew = !editingCollection;
     handleCloseModal();
     loadCollections(searchDebounced);
+    if (isNew) onCreate?.();
   };
 
   const handleOpenDeleteModal = (collection: MemorySchema) => {
@@ -123,6 +129,7 @@ export function CollectionsList({
       closeDeleteModal();
       setDeletingCollection(null);
       loadCollections(searchDebounced);
+      onDelete?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete collection');
     } finally {

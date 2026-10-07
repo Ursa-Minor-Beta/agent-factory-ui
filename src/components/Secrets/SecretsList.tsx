@@ -36,6 +36,8 @@ interface SecretsListProps {
   description?: string;
   showSearch?: boolean;
   columns?: SecretColumn[];
+  onCreate?: () => void;
+  onDelete?: () => void;
 }
 
 export function SecretsList({
@@ -43,6 +45,8 @@ export function SecretsList({
   description = '',
   showSearch = true,
   columns = DEFAULT_COLUMNS,
+  onCreate,
+  onDelete,
 }: SecretsListProps) {
   const showColumn = (col: SecretColumn) => columns.includes(col);
   const [secrets, setSecrets] = useState<Secret[]>([]);
@@ -88,8 +92,10 @@ export function SecretsList({
   };
 
   const handleSuccess = () => {
+    const isNew = !editingSecret;
     handleCloseModal();
     loadSecrets();
+    if (isNew) onCreate?.();
   };
 
   const handleOpenDeleteModal = (secret: Secret) => {
@@ -105,6 +111,7 @@ export function SecretsList({
       closeDeleteModal();
       setDeletingSecret(null);
       loadSecrets();
+      onDelete?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete secret');
     } finally {

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
   Box,
   Text,
@@ -26,13 +26,26 @@ import type { Workspace } from '../../types/workspace';
 import { WorkspaceModal } from './WorkspaceModal';
 import { WorkspaceDeleteModal } from './WorkspaceDeleteModal';
 import { AgentsList } from '../../components/AgentsList';
-import { WorkspaceProviders } from './WorkspaceProviders';
-import { WorkspaceSecrets } from './WorkspaceSecrets';
-import { WorkspaceCollections } from './WorkspaceCollections';
+import { ProvidersList } from '../../components/Providers';
+import { SecretsList } from '../../components/Secrets';
+import { CollectionsList } from '../../components/Collections';
+
+const VALID_TABS = ['agents', 'providers', 'secrets', 'collections'] as const;
 
 export function WorkspaceDetailPage() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const tab = VALID_TABS.includes(searchParams.get('tab') as typeof VALID_TABS[number])
+    ? searchParams.get('tab')!
+    : 'agents';
+
+  const handleTabChange = (value: string | null) => {
+    if (value) {
+      setSearchParams({ tab: value }, { replace: true });
+    }
+  };
 
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,25 +59,24 @@ export function WorkspaceDetailPage() {
   const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
   const [deleting, setDeleting] = useState(false);
 
+  const loadWorkspace = useCallback(async () => {
+    if (!workspaceId) return;
+    try {
+      setLoading(true);
+      const workspaceData = await workspacesApi.getById(workspaceId);
+      setWorkspace(workspaceData);
+      setError('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load workspace');
+    } finally {
+      setLoading(false);
+    }
+  }, [workspaceId]);
+
   // Load workspace data
   useEffect(() => {
-    if (!workspaceId) return;
-
-    const loadWorkspace = async () => {
-      try {
-        setLoading(true);
-        const workspaceData = await workspacesApi.getById(workspaceId);
-        setWorkspace(workspaceData);
-        setError('');
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load workspace');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadWorkspace();
-  }, [workspaceId]);
+  }, [loadWorkspace]);
 
   const handleSave = async (data: { name: string; description: string }) => {
     if (!workspace) return;
@@ -164,7 +176,7 @@ export function WorkspaceDetailPage() {
         </Alert>
       )}
 
-      <Tabs defaultValue="agents">
+      <Tabs value={tab} onChange={handleTabChange}>
         <Tabs.List mb="md">
           <Tabs.Tab value="agents" leftSection={<IconRobot size={16} />}>
             Agents{workspace.agentCount !== undefined && ` (${workspace.agentCount})`}
@@ -186,19 +198,42 @@ export function WorkspaceDetailPage() {
             showFilters={false}
             showPagination={false}
             showCreateButton={true}
+            onCreate={loadWorkspace}
+            onDelete={loadWorkspace}
           />
         </Tabs.Panel>
 
         <Tabs.Panel value="providers">
-          <WorkspaceProviders workspaceId={workspaceId!} />
+          <ProvidersList
+            workspaceId={workspaceId}
+            description="Workspace-scoped LLM providers. Falls back to global if not configured."
+            showSearch={false}
+            columns={['name', 'provider', 'apiKey', 'baseUrl', 'default', 'actions']}
+            onCreate={loadWorkspace}
+            onDelete={loadWorkspace}
+          />
         </Tabs.Panel>
 
         <Tabs.Panel value="secrets">
-          <WorkspaceSecrets workspaceId={workspaceId!} />
+          <SecretsList
+            workspaceId={workspaceId}
+            description="Workspace-scoped secrets for {{secret:NAME}} syntax. Falls back to global if not found."
+            showSearch={false}
+            columns={['name', 'value', 'description', 'created', 'actions']}
+            onCreate={loadWorkspace}
+            onDelete={loadWorkspace}
+          />
         </Tabs.Panel>
 
         <Tabs.Panel value="collections">
-          <WorkspaceCollections workspaceId={workspaceId!} />
+          <CollectionsList
+            workspaceId={workspaceId}
+            description="Workspace-scoped memory collections. Falls back to global if not found."
+            showSearch={false}
+            columns={['name', 'description', 'records', 'fields', 'created', 'actions']}
+            onCreate={loadWorkspace}
+            onDelete={loadWorkspace}
+          />
         </Tabs.Panel>
       </Tabs>
 

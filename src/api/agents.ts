@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { Agent, AgentQueryParams, AgentListResponse, EditorData, AgentNode, AgentExportData } from '../types';
+import type { Agent, AgentQueryParams, AgentListResponse, EditorData, AgentNode, AgentExportData, AgentImportRequest, AgentImportResponse } from '../types';
 
 export interface AgentExample {
   name: string;
@@ -59,4 +59,7 @@ export const agentsApi = {
 
   export: (id: string) =>
     api.get<AgentExportData>(`/api/agents/${id}/export`),
+
+  import: (data: AgentImportRequest) =>
+    api.post<AgentImportResponse>('/api/agents/import', data),
 };

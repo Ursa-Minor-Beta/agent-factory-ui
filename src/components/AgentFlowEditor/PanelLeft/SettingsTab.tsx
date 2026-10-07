@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Stack, TextInput, Textarea, Group, Code, ActionIcon, Tooltip, CopyButton, Text, Select, Divider, Button, Box } from '@mantine/core';
-import { IconCheck, IconCopy, IconDownload } from '@tabler/icons-react';
+import { IconCheck, IconCopy, IconDownload, IconUpload } from '@tabler/icons-react';
 import { useForm } from 'react-hook-form';
 import type { Agent } from '../../../types/agent';
 import type { LayoutDirection } from '../utils/converters';
@@ -117,7 +117,7 @@ export function SettingsTab({ agent, edgeType, layoutDirection, onAgentInfoChang
           <Group>
               <Button
                 variant="light"
-                leftSection={<IconDownload size={16} />}
+                leftSection={<IconUpload size={16} />}
                 onClick={onExport}
                 loading={exporting}
               >

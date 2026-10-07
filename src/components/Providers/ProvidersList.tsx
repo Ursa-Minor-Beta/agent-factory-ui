@@ -37,6 +37,8 @@ interface ProvidersListProps {
   description?: string;
   showSearch?: boolean;
   columns?: ProviderColumn[];
+  onCreate?: () => void;
+  onDelete?: () => void;
 }
 
 export function ProvidersList({
@@ -44,6 +46,8 @@ export function ProvidersList({
   description = '',
   showSearch = true,
   columns = DEFAULT_COLUMNS,
+  onCreate,
+  onDelete,
 }: ProvidersListProps) {
   const showColumn = (col: ProviderColumn) => columns.includes(col);
   const [providers, setProviders] = useState<ProviderConfig[]>([]);
@@ -85,6 +89,7 @@ export function ProvidersList({
       closeDeleteModal();
       setDeletingProvider(null);
       loadProviders();
+      onDelete?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete provider');
     } finally {
@@ -225,7 +230,7 @@ export function ProvidersList({
         opened={modalOpened}
         onClose={closeModal}
         workspaceId={workspaceId}
-        onSuccess={loadProviders}
+        onSuccess={() => { loadProviders(); onCreate?.(); }}
       />
 
       <ProviderDeleteModal

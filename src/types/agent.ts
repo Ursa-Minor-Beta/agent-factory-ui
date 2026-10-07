@@ -116,3 +116,22 @@ export interface AgentExportData {
   secrets: ExportedSecret[];
   providers: string[];
 }
+
+// Import types
+export interface AgentImportRequest {
+  package: AgentExportData;
+  workspaceId?: string;
+}
+
+export interface AgentImportWarnings {
+  missingSecrets: string[];
+  missingProviders: string[];
+  collectionsWithoutSchema: string[];
+}
+
+export interface AgentImportResponse {
+  workspaceId: string;
+  agentId: string;
+  agentIdMap: Record<string, string>;
+  warnings: AgentImportWarnings;
+}
