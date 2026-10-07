@@ -8,8 +8,8 @@ import {
   IconSchema,
   IconCode,
   IconFolder,
-  IconDownload,
   IconDotsVertical,
+  IconUpload,
 } from '@tabler/icons-react';
 import type { AgentCardProps } from './types';
 import { WorkspaceBadge } from '../../components/Workspace';
@@ -122,7 +122,7 @@ export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExp
               <Menu.Item leftSection={<IconCopy size={16} />} onClick={() => onClone(agent)}>
                 Clone
               </Menu.Item>
-              <Menu.Item leftSection={<IconDownload size={16} />} onClick={() => onExport(agent)}>
+              <Menu.Item leftSection={<IconUpload size={16} />} onClick={() => onExport(agent)}>
                 Export
               </Menu.Item>
               <Menu.Item leftSection={<IconFolder size={16} />} onClick={() => onWorkspace(agent)}>
