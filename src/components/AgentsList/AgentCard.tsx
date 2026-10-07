@@ -42,12 +42,12 @@ export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExp
             <Group>
               {agent.defaultName && (
                 <Tooltip label="Default agent automatically added for fast start, you can edit or restore from system settings">
-                  <Badge size="xs" color="blue" variant="outline" style={{ flexShrink: 0 }}>D</Badge>
+                  <Text size="xs" c="dimmed">DEFAULT</Text>
                 </Tooltip>
               )}
               {agent.systemName && (
                 <Tooltip label="System agent automatically added, you can edit or restore from system settings. Used in internal functionality">
-                  <Badge size="xs" color="dark" variant="outline" style={{ flexShrink: 0 }}>S</Badge>
+                  <Text size="xs" c="dimmed">SYSTEM</Text>
                 </Tooltip>
               )}
             </Group>
