@@ -131,6 +131,7 @@ export interface AgentImportWarnings {
 
 export interface AgentImportResponse {
   workspaceId: string;
+  workspaceName: string;
   agentId: string;
   agentIdMap: Record<string, string>;
   warnings: AgentImportWarnings;

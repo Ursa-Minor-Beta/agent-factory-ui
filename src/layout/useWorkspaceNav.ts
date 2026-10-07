@@ -47,6 +47,13 @@ export function useWorkspaceNav() {
   useEffect(() => {
     const handleWorkspaceCreated = (event: Event) => {
       const { workspace } = (event as CustomEvent).detail;
+
+      // Validate workspace has required fields
+      if (!workspace?.id || !workspace?.name) {
+        console.warn('workspace-created event missing id or name:', workspace);
+        return;
+      }
+
       const currentWorkspacesItem = navItems.find(item => item.path === '/workspaces');
       const currentWorkspaces = currentWorkspacesItem?.children?.map(child => ({
         id: child.path.split('/').pop()!,
@@ -54,7 +61,7 @@ export function useWorkspaceNav() {
       })) || [];
 
       const updatedWorkspaces = [...currentWorkspaces, workspace]
-        .sort((a, b) => a.name.localeCompare(b.name))
+        .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
         .slice(0, 10);
 
       updateWorkspaceNav(updatedWorkspaces as Workspace[]);
@@ -62,6 +69,13 @@ export function useWorkspaceNav() {
 
     const handleWorkspaceUpdated = (event: Event) => {
       const { workspace } = (event as CustomEvent).detail;
+
+      // Validate workspace has required fields
+      if (!workspace?.id || !workspace?.name) {
+        console.warn('workspace-updated event missing id or name:', workspace);
+        return;
+      }
+
       const currentWorkspacesItem = navItems.find(item => item.path === '/workspaces');
 
       if (currentWorkspacesItem?.children) {
@@ -72,7 +86,7 @@ export function useWorkspaceNav() {
               ? { id: workspace.id, name: workspace.name }
               : { id: wsId!, name: child.label };
           })
-          .sort((a, b) => a.name.localeCompare(b.name));
+          .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
         updateWorkspaceNav(updatedWorkspaces as Workspace[]);
       }

@@ -106,8 +106,9 @@ export function WorkspaceDetailPage() {
       // Dispatch event to update sidebar
       window.dispatchEvent(new CustomEvent('workspace-deleted', { detail: { workspaceId: workspace.id } }));
 
-      navigate('/workspaces');
-    } catch (err) {
+      navigate('/agents');
+    } 
+    catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete workspace');
       setDeleting(false);
     }

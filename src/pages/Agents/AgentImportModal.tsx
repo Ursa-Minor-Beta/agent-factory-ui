@@ -142,10 +142,12 @@ export function AgentImportModal({ opened, onClose, onImported, workspaceId }: A
       setResult(response);
 
       // Notify sidebar about the new workspace (only if we created a new one)
-      if (!targetWorkspaceId) {
-        const wsName = parsed.workspace?.name || 'Imported Workspace';
+      if (selectedWorkspace === NEW_WORKSPACE_VALUE) {
+
+        console.log('dispatchEvent')
+
         window.dispatchEvent(new CustomEvent('workspace-created', {
-          detail: { workspace: { id: response.workspaceId, name: wsName } }
+          detail: { workspace: { id: response.workspaceId, name: response.workspaceName } }
         }));
       }
 
@@ -264,7 +266,7 @@ export function AgentImportModal({ opened, onClose, onImported, workspaceId }: A
           ]}
           style={{ flexShrink: 0 }}
         />
-        
+
         <Box
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
