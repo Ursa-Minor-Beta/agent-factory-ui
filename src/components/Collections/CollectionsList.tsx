@@ -28,7 +28,7 @@ import {
 import { memoryApi } from '../../api';
 import type { MemorySchema } from '../../types';
 import { CollectionModal } from './CollectionModal';
-import { CollectionDeleteModal } from './CollectionDeleteModal';
+import { DeleteConfirmModal } from '../DeleteConfirmModal';
 import { WorkspaceBadge } from '../Workspace';
 
 export type CollectionColumn = 'workspace' | 'name' | 'description' | 'records' | 'fields' | 'created' | 'actions';
@@ -302,12 +302,14 @@ export function CollectionsList({
         onSuccess={handleSuccess}
       />
 
-      <CollectionDeleteModal
+      <DeleteConfirmModal
         opened={deleteModalOpened}
         onClose={closeDeleteModal}
-        collection={deletingCollection}
         onDelete={handleDelete}
         deleting={deleting}
+        title="Delete Collection"
+        entityName={deletingCollection?.name}
+        subtitle="All records in this collection will be permanently deleted."
       />
     </Box>
   );

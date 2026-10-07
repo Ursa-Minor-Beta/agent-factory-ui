@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Modal, Text, Group, Button } from '@mantine/core';
 import { agentsApi } from '../../api';
 import type { Agent } from '../../types';
+import { DeleteConfirmModal } from '../../components/DeleteConfirmModal';
 
 interface AgentDeleteModalProps {
   agent: Agent | null;
@@ -29,29 +29,14 @@ export function AgentDeleteModal({ agent, onClose, onDeleted }: AgentDeleteModal
   };
 
   return (
-    <Modal
+    <DeleteConfirmModal
       opened={!!agent}
       onClose={onClose}
-      title="Delete agent"
-      centered
-      size="sm"
-    >
-      <Text size="sm" mb="lg">
-        Are you sure you want to delete <strong>{agent?.name}</strong>? This action cannot be undone.
-      </Text>
-      {error && (
-        <Text size="sm" c="red" mb="md">
-          {error}
-        </Text>
-      )}
-      <Group justify="flex-end" gap="sm">
-        <Button variant="default" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button color="red" onClick={handleDelete} loading={deleting}>
-          Delete
-        </Button>
-      </Group>
-    </Modal>
+      onDelete={handleDelete}
+      deleting={deleting}
+      title="Delete Agent"
+      entityName={agent?.name}
+      error={error}
+    />
   );
 }

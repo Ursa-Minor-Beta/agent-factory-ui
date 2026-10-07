@@ -24,7 +24,7 @@ import {
 import { workspacesApi } from '../../api/workspaces';
 import type { Workspace } from '../../types/workspace';
 import { WorkspaceModal } from './WorkspaceModal';
-import { WorkspaceDeleteModal } from './WorkspaceDeleteModal';
+import { DeleteConfirmModal } from '../../components/DeleteConfirmModal';
 import { AgentsList } from '../../components/AgentsList';
 import { ProvidersList } from '../../components/Providers';
 import { SecretsList } from '../../components/Secrets';
@@ -246,12 +246,15 @@ export function WorkspaceDetailPage() {
         saving={saving}
       />
 
-      <WorkspaceDeleteModal
+      <DeleteConfirmModal
         opened={deleteModalOpened}
         onClose={closeDeleteModal}
-        workspace={workspace}
         onDelete={handleDelete}
         deleting={deleting}
+        title="Delete Workspace"
+        entityName={`the workspace ${workspace?.name}`}
+        subtitle="All agents, secrets, providers, and collections in this workspace will be permanently deleted."
+        deleteButtonText="Delete Workspace"
       />
     </Box>
   );

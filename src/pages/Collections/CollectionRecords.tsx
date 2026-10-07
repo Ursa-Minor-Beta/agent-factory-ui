@@ -31,7 +31,7 @@ import { memoryApi } from '../../api';
 import type { MemorySchema, MemoryRecord } from '../../types';
 import { getRecordUserFields } from '../../types';
 import { RecordModal } from './RecordModal';
-import { RecordDeleteModal } from './RecordDeleteModal';
+import { DeleteConfirmModal } from '../../components/DeleteConfirmModal';
 
 interface RecordForm {
   data: string; // JSON string of user fields
@@ -424,12 +424,13 @@ export function CollectionRecordsPage() {
         saving={saving}
       />
 
-      <RecordDeleteModal
+      <DeleteConfirmModal
         opened={deleteModalOpened}
         onClose={closeDeleteModal}
-        record={deletingRecord}
         onDelete={handleDelete}
         deleting={deleting}
+        title="Delete Record"
+        entityName={<>record <Code fz="xs">{deletingRecord?.id}</Code></>}
       />
     </Box>
   );

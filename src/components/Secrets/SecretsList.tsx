@@ -24,7 +24,7 @@ import {
 import { secretsApi } from '../../api';
 import type { Secret } from '../../types';
 import { SecretModal } from './SecretModal';
-import { SecretDeleteModal } from './SecretDeleteModal';
+import { DeleteConfirmModal } from '../DeleteConfirmModal';
 import { WorkspaceBadge } from '../Workspace';
 
 export type SecretColumn = 'workspace' | 'name' | 'value' | 'description' | 'created' | 'actions';
@@ -250,12 +250,13 @@ export function SecretsList({
         onSuccess={handleSuccess}
       />
 
-      <SecretDeleteModal
+      <DeleteConfirmModal
         opened={deleteModalOpened}
         onClose={closeDeleteModal}
-        secret={deletingSecret}
         onDelete={handleDelete}
         deleting={deleting}
+        title="Delete Secret"
+        entityName={<Code>{deletingSecret?.name}</Code>}
       />
     </Box>
   );

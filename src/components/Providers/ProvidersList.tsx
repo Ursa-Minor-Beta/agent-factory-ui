@@ -25,7 +25,7 @@ import {
 import { providersApi } from '../../api';
 import type { ProviderConfig } from '../../types';
 import { ProviderModal } from './ProviderModal';
-import { ProviderDeleteModal } from './ProviderDeleteModal';
+import { DeleteConfirmModal } from '../DeleteConfirmModal';
 import { WorkspaceBadge } from '../Workspace';
 
 export type ProviderColumn = 'workspace' | 'name' | 'provider' | 'apiKey' | 'baseUrl' | 'default' | 'actions';
@@ -233,12 +233,13 @@ export function ProvidersList({
         onSuccess={() => { loadProviders(); onCreate?.(); }}
       />
 
-      <ProviderDeleteModal
+      <DeleteConfirmModal
         opened={deleteModalOpened}
         onClose={closeDeleteModal}
-        provider={deletingProvider}
         onDelete={handleDelete}
         deleting={deleting}
+        title="Delete Provider"
+        entityName={deletingProvider?.name}
       />
     </Box>
   );
