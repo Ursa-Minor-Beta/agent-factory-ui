@@ -9,8 +9,19 @@ import { nodeTypes } from './nodes';
 import { edgeTypes } from './edges';
 import type { AgentFlowEditorProps } from './types';
 import type { NodeType } from '../../api';
+import { agentsApi } from '../../api';
 import { PanelLeft } from './PanelLeft';
 import { PanelRight } from './PanelRight';
+
+function downloadJson(data: unknown, filename: string) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 const PALETTE_STORAGE_KEY = 'agent-editor-palette-open';
 const TAB_STORAGE_KEY = 'agent-editor-active-tab';
@@ -25,6 +36,7 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
     const saved = localStorage.getItem(TAB_STORAGE_KEY);
     return saved || 'nodes';
   });
+  const [exporting, setExporting] = useState(false);
 
   const handleActiveTabChange = useCallback((tab: string | null) => {
     setActiveTab(tab);
@@ -49,6 +61,21 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
     }
     handleActiveTabChange('run');
   }, [isPaletteOpen, handleActiveTabChange]);
+
+  // Handle Export button
+  const handleExport = useCallback(async () => {
+    if (!agentId) return;
+    setExporting(true);
+    try {
+      const exportData = await agentsApi.export(agentId);
+      const agentName = exportData.agent?.name || 'agent';
+      downloadJson(exportData, `${agentName}.agent.json`);
+    } catch (err) {
+      console.error('Failed to export agent:', err);
+    } finally {
+      setExporting(false);
+    }
+  }, [agentId]);
 
   const {
     agent,
@@ -178,6 +205,8 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
           onAgentInfoChange={updateAgentInfo}
           onLoadTemplate={loadTemplate}
           onClose={togglePalette}
+          onExport={handleExport}
+          exporting={exporting}
           />
       }
 

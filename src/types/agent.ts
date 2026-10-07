@@ -83,3 +83,36 @@ export interface AgentJsonModalProps {
   onClose: () => void;
   onSave: () => void;
 }
+
+// Export types
+export interface ExportedAgent {
+  name: string;
+  description?: string;
+  nodes: AgentNode[];
+  originalId: string;
+}
+
+export interface ExportedCollection {
+  name: string;
+  description?: string | null;
+  fields: unknown[];
+}
+
+export interface ExportedSecret {
+  name: string;
+  description: string;
+}
+
+export interface AgentExportData {
+  version: string;
+  exportedAt: string;
+  workspace?: {
+    name: string;
+    description?: string;
+  };
+  agent: ExportedAgent;
+  dependencies: ExportedAgent[];
+  collections: ExportedCollection[];
+  secrets: ExportedSecret[];
+  providers: string[];
+}

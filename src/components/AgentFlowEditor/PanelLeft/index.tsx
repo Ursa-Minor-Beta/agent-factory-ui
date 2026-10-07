@@ -29,9 +29,11 @@ interface PanelLeftProps {
   onAgentInfoChange: (data: { name?: string; description?: string }) => Promise<void>;
   onLoadTemplate: (template: AgentExample) => void;
   onClose: () => void;
+  onExport?: () => void;
+  exporting?: boolean;
 }
 
-export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onLoadTemplate, onClose }: PanelLeftProps) {
+export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onLoadTemplate, onClose, onExport, exporting }: PanelLeftProps) {
   const [viewingNodeType, setViewingNodeType] = useState<NodeType | null>(null);
   const [internalActiveTab, setInternalActiveTab] = useState<string | null>(() => {
     const saved = localStorage.getItem(TAB_STORAGE_KEY);
@@ -181,6 +183,8 @@ export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, layoutDirect
                 onAgentInfoChange={onAgentInfoChange}
                 onEdgeTypeChange={onEdgeTypeChange}
                 onLayoutDirectionChange={onLayoutDirectionChange}
+                onExport={onExport}
+                exporting={exporting}
               />
             </Tabs.Panel>
           </Tabs>

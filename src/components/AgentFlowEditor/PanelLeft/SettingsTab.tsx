@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { Stack, TextInput, Textarea, Group, Code, ActionIcon, Tooltip, CopyButton, Text, Select, Divider } from '@mantine/core';
-import { IconCheck, IconCopy } from '@tabler/icons-react';
+import { Stack, TextInput, Textarea, Group, Code, ActionIcon, Tooltip, CopyButton, Text, Select, Divider, Button, Box } from '@mantine/core';
+import { IconCheck, IconCopy, IconDownload } from '@tabler/icons-react';
 import { useForm } from 'react-hook-form';
 import type { Agent } from '../../../types/agent';
 import type { LayoutDirection } from '../utils/converters';
@@ -25,6 +25,8 @@ interface SettingsTabProps {
   onAgentInfoChange: (data: { name?: string; description?: string }) => Promise<void>;
   onEdgeTypeChange: (value: string) => void;
   onLayoutDirectionChange: (value: LayoutDirection) => void;
+  onExport?: () => void;
+  exporting?: boolean;
 }
 
 interface SettingsForm {
@@ -32,7 +34,7 @@ interface SettingsForm {
   description: string;
 }
 
-export function SettingsTab({ agent, edgeType, layoutDirection, onAgentInfoChange, onEdgeTypeChange, onLayoutDirectionChange }: SettingsTabProps) {
+export function SettingsTab({ agent, edgeType, layoutDirection, onAgentInfoChange, onEdgeTypeChange, onLayoutDirectionChange, onExport, exporting }: SettingsTabProps) {
   const {
     register,
     handleSubmit,
@@ -109,6 +111,21 @@ export function SettingsTab({ agent, edgeType, layoutDirection, onAgentInfoChang
         onChange={(value) => value && onEdgeTypeChange(value)}
         data={EDGE_TYPE_OPTIONS}
       />
+      {agent?.id && onExport && (
+        <Stack mt='sm' gap='xs'>
+          <Divider />
+          <Group>
+              <Button
+                variant="light"
+                leftSection={<IconDownload size={16} />}
+                onClick={onExport}
+                loading={exporting}
+              >
+                Export Agent
+              </Button>
+          </Group>
+        </Stack>
+      )}
     </Stack>
   );
 }

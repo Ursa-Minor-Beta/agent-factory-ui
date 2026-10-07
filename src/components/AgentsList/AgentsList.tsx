@@ -36,6 +36,16 @@ import { useAgentModal } from '../AgentCreateModal';
 const ITEMS_PER_PAGE = 12;
 const SORT_STORAGE_KEY = 'agents-sort';
 
+function downloadJson(data: unknown, filename: string) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 interface AgentsListProps {
   workspaceId?: string; // If provided, filter by this workspace
   showFilters?: boolean; // Show/hide filters panel
@@ -220,6 +230,15 @@ export function AgentsList({
     }
   };
 
+  const handleExport = async (agent: Agent) => {
+    try {
+      const exportData = await agentsApi.export(agent.id);
+      downloadJson(exportData, `${agent.name}.agent.json`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to export agent');
+    }
+  };
+
   const clearFilters = () => {
     setSearch('');
     setSearchDebounced('');
@@ -283,7 +302,7 @@ export function AgentsList({
                   to="/agents/new/editor"
                   variant="default"
                 >
-                  <IconSchema size={16} />
+                  <IconSchema size={16} style={{ color: 'var(--mantine-color-violet-5)' }} />
                 </Button>
               </Tooltip>
               <Tooltip label="JSON Editor">
@@ -360,6 +379,7 @@ export function AgentsList({
                 onDelete={setAgentToDelete}
                 onClone={handleClone}
                 onWorkspace={setAgentForWorkspace}
+                onExport={handleExport}
               />
             ))}
           </SimpleGrid>
