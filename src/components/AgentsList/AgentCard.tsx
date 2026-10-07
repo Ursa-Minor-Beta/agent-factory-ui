@@ -12,7 +12,7 @@ import {
   IconUpload,
 } from '@tabler/icons-react';
 import type { AgentCardProps } from './types';
-import { WorkspaceBadge } from '../../components/Workspace';
+import { WorkspaceBadge } from '../Workspace';
 
 export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExport }: AgentCardProps) {
   return (
@@ -87,7 +87,7 @@ export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExp
             <IconChevronRight size={14} />
           </Link>
         </Group>
-        
+
         <Group gap="xs">
           <Tooltip label="Visual Editor">
             <Link

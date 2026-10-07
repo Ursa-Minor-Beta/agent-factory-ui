@@ -4,11 +4,11 @@ import { Modal, Text, Group, Button, Stack, Textarea, Select } from '@mantine/co
 import { agentsApi, workspacesApi, secretsApi, providersApi, memoryApi } from '../../../api';
 import type { AgentExportData, AgentImportResponse } from '../../../types';
 import type { Workspace } from '../../../types/workspace';
-import { FileDropZone } from '../../../components/FileDropZone';
+import { FileDropZone } from '../../FileDropZone';
 import { ImportSuccessView } from './ImportSuccessView';
-import { SecretModal } from '../../../components/Secrets/SecretModal';
-import { ProviderModal } from '../../../components/Providers/ProviderModal';
-import { CollectionModal } from '../../../components/Collections/CollectionModal';
+import { SecretModal } from '../../Secrets/SecretModal';
+import { ProviderModal } from '../../Providers/ProviderModal';
+import { CollectionModal } from '../../Collections/CollectionModal';
 import { IconCheck } from '@tabler/icons-react';
 
 const NEW_WORKSPACE_VALUE = '__new__';
@@ -180,10 +180,10 @@ export function AgentImportModal({ opened, onClose, onImported, workspaceId }: A
   if (result) {
     return (
       <>
-        <Modal 
-          opened={opened} 
-          onClose={handleClose} 
-          title={      
+        <Modal
+          opened={opened}
+          onClose={handleClose}
+          title={
           <Group gap="xs">
             <IconCheck size={20} color="var(--mantine-color-green-6)" />
             <Text fw={500}>
@@ -191,7 +191,7 @@ export function AgentImportModal({ opened, onClose, onImported, workspaceId }: A
             </Text>
           </Group>
           }
-          centered 
+          centered
           size="xl"
           >
           <ImportSuccessView
@@ -263,10 +263,10 @@ export function AgentImportModal({ opened, onClose, onImported, workspaceId }: A
           style={{ flexShrink: 0 }}
         />
 
-        <FileDropZone 
+        <FileDropZone
             accept='.json'
             label='Drop a .json file here or click to select'
-            onFileContent={validateAndSetJson} 
+            onFileContent={validateAndSetJson}
             />
 
         <Text size="sm" c="dimmed" ta="center" style={{ flexShrink: 0 }}>

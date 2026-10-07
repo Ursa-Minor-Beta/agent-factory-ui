@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { agentsApi } from '../../api';
 import type { Agent } from '../../types';
-import { DeleteConfirmModal } from '../../components/DeleteConfirmModal';
+import { DeleteConfirmModal } from '../DeleteConfirmModal';
 
 interface AgentDeleteModalProps {
   agent: Agent | null;

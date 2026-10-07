@@ -27,4 +27,3 @@ export interface AgentFiltersProps {
   activeFilterCount: number;
   onClearFilters: () => void;
 }
-

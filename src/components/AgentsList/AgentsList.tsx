@@ -28,11 +28,11 @@ import { agentsApi } from '../../api';
 import { workspacesApi } from '../../api/workspaces';
 import type { Agent, AgentQueryParams } from '../../types';
 import type { Workspace } from '../../types/workspace';
-import { AgentCard } from '../../pages/Agents/AgentCard';
-import { AgentFilters } from '../../pages/Agents/AgentFilters';
-import { AgentDeleteModal } from '../../pages/Agents/AgentDeleteModal';
-import { AgentWorkspaceModal } from '../../pages/Agents/AgentWorkspaceModal';
-import { AgentImportModal } from '../../pages/Agents/AgentImportModal/AgentImportModal';
+import { AgentCard } from './AgentCard';
+import { AgentFilters } from './AgentFilters';
+import { AgentDeleteModal } from './AgentDeleteModal';
+import { AgentWorkspaceModal } from './AgentWorkspaceModal';
+import { AgentImportModal } from './AgentImportModal/AgentImportModal';
 import { useAgentModal } from '../AgentCreateModal';
 
 const ITEMS_PER_PAGE = 12;
