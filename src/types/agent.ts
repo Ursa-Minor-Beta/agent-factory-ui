@@ -123,19 +123,34 @@ export interface AgentImportRequest {
   workspaceId?: string;
 }
 
+export interface CreatedCollection {
+  id: string;
+  name: string;
+}
+
+export interface ImportCollectionSchema {
+  name: string;
+  schema: {
+    description?: string;
+    fields: Array<{
+      name: string;
+      type: string;
+      required: boolean;
+      index: boolean;
+      description?: string;
+    }>;
+  };
+}
+
 export interface AgentImportWarnings {
-  missingSecrets: string[];
-  missingProviders: string[];
-  collectionsWithoutSchema: string[];
+  missingSecrets?: string[];
+  missingProviders?: string[];
+  collectionsWithoutSchema?: string[];
+  missingCollections?: ImportCollectionSchema[];
   // Items that exist globally (optional - backend may not provide these)
   globalSecrets?: string[];
   globalProviders?: string[];
   globalCollections?: string[];
-}
-
-export interface CreatedCollection {
-  id: string;
-  name: string;
 }
 
 export interface AgentImportResponse {

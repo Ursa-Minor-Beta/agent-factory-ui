@@ -50,7 +50,7 @@ interface ConfigSectionProps {
 }
 
 function ConfigSection({ title, icon, items, createdItems, globalItems, onCreate }: ConfigSectionProps) {
-  if (items.length === 0) return null;
+  if (!items || items.length === 0) return null;
 
   const resolvedCount = items.filter((item) => createdItems.has(item) || globalItems.has(item)).length;
   const allDone = resolvedCount === items.length;
@@ -108,10 +108,13 @@ export function ImportSuccessView({
   globalProviders,
   globalCollections,
 }: ImportSuccessViewProps) {
+  // Get collection names from result.warnings.missingCollections (schemas to create)
+  const collectionsToCreate = result.warnings.missingCollections?.map((c) => c.name) ?? [];
+
   const hasWarnings =
-    result.warnings.missingSecrets.length > 0 ||
-    result.warnings.missingProviders.length > 0 ||
-    result.warnings.collectionsWithoutSchema.length > 0;
+    (result.warnings.missingSecrets?.length ?? 0) > 0 ||
+    (result.warnings.missingProviders?.length ?? 0) > 0 ||
+    collectionsToCreate.length > 0;
 
   return (
     <Stack gap="xs">
@@ -127,32 +130,20 @@ export function ImportSuccessView({
         </Card>
       )}
 
-      {result.createdCollections && result.createdCollections.length > 0 && (
-        <Card withBorder padding="sm" radius="md">
-          <Group gap="xs" mb="xs">
-            <IconDatabase size={16} color="var(--mantine-color-green-6)" />
-            <Text size="sm" fw={500} style={{ flex: 1 }}>Collections Created</Text>
-            <Badge size="sm" color="green" variant="light">
-              {result.createdCollections.length}
-            </Badge>
-          </Group>
-          <Stack gap={0}>
-            {result.createdCollections.map((col) => (
-              <Group key={col.id} gap="xs" py={6} px="xs">
-                <IconCircleCheck size={16} color="var(--mantine-color-green-6)" />
-                <Text size="sm" c="dimmed">{col.name}</Text>
-              </Group>
-            ))}
-          </Stack>
-        </Card>
-      )}
-
       {hasWarnings && (
         <>
           <ConfigSection
+            title="Collections"
+            icon={<IconDatabase size={16} color="var(--mantine-color-dimmed)" />}
+            items={collectionsToCreate}
+            createdItems={createdCollections}
+            globalItems={globalCollections}
+            onCreate={onCreateCollection}
+          />
+          <ConfigSection
             title="Secrets"
             icon={<IconKey size={16} color="var(--mantine-color-dimmed)" />}
-            items={result.warnings.missingSecrets}
+            items={result.warnings.missingSecrets ?? []}
             createdItems={createdSecrets}
             globalItems={globalSecrets}
             onCreate={onCreateSecret}
@@ -160,18 +151,10 @@ export function ImportSuccessView({
           <ConfigSection
             title="Providers"
             icon={<IconCloud size={16} color="var(--mantine-color-dimmed)" />}
-            items={result.warnings.missingProviders}
+            items={result.warnings.missingProviders ?? []}
             createdItems={createdProviders}
             globalItems={globalProviders}
             onCreate={onCreateProvider}
-          />
-          <ConfigSection
-            title="Collections"
-            icon={<IconDatabase size={16} color="var(--mantine-color-dimmed)" />}
-            items={result.warnings.collectionsWithoutSchema}
-            createdItems={createdCollections}
-            globalItems={globalCollections}
-            onCreate={onCreateCollection}
           />
         </>
       )}

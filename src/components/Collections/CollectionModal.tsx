@@ -27,6 +27,17 @@ interface SchemaForm {
   selectedWorkspaceId: string;
 }
 
+interface DefaultSchema {
+  description?: string;
+  fields: Array<{
+    name: string;
+    type: string;
+    required: boolean;
+    index: boolean;
+    description?: string;
+  }>;
+}
+
 interface CollectionModalProps {
   opened: boolean;
   onClose: () => void;
@@ -34,6 +45,7 @@ interface CollectionModalProps {
   workspaceId?: string;
   onSuccess: () => void;
   defaultName?: string;
+  defaultSchema?: DefaultSchema;
 }
 
 const fieldTypes: { value: MemoryFieldType; label: string }[] = [
@@ -53,7 +65,7 @@ const defaultField: MemorySchemaField = {
   description: '',
 };
 
-export function CollectionModal({ opened, onClose, collection, workspaceId, onSuccess, defaultName }: CollectionModalProps) {
+export function CollectionModal({ opened, onClose, collection, workspaceId, onSuccess, defaultName, defaultSchema }: CollectionModalProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -83,10 +95,21 @@ export function CollectionModal({ opened, onClose, collection, workspaceId, onSu
           selectedWorkspaceId: collection.workspaceId || '',
         });
       } else {
+        // Use defaultSchema fields if provided, otherwise use empty field
+        const schemaFields = defaultSchema?.fields?.length
+          ? defaultSchema.fields.map((f) => ({
+              name: f.name,
+              type: f.type as MemoryFieldType,
+              required: f.required,
+              index: f.index,
+              description: f.description || '',
+            }))
+          : [{ ...defaultField }];
+
         reset({
           name: defaultName || '',
-          description: '',
-          fields: [{ ...defaultField }],
+          description: defaultSchema?.description || '',
+          fields: schemaFields,
           selectedWorkspaceId: workspaceId || '',
         });
       }
@@ -99,7 +122,7 @@ export function CollectionModal({ opened, onClose, collection, workspaceId, onSu
         .catch(() => setWorkspaces([]))
         .finally(() => setLoadingWorkspaces(false));
     }
-  }, [opened, collection, workspaceId, defaultName, reset]);
+  }, [opened, collection, workspaceId, defaultName, defaultSchema, reset]);
 
   const handleClose = () => {
     reset({
