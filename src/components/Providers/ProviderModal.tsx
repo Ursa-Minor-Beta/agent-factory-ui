@@ -13,8 +13,8 @@ import {
 import { IconAlertCircle } from '@tabler/icons-react';
 import { providersApi, workspacesApi } from '../../api';
 import type { Workspace } from '../../types/workspace';
-
-type ProviderType = 'openai' | 'anthropic' | 'ollama';
+import type { ProviderType } from '../../types/provider';
+import { PROVIDER_OPTIONS } from '../../types/provider';
 
 interface ProviderFormData {
   provider: ProviderType;
@@ -110,17 +110,14 @@ export function ProviderModal({ opened, onClose, workspaceId, onSuccess, default
             render={({ field }) => (
               <Select
                 label="Provider"
-                data={[
-                  { value: 'openai', label: 'OpenAI' },
-                  { value: 'anthropic', label: 'Anthropic' },
-                  { value: 'ollama', label: 'Ollama' },
-                ]}
+                data={PROVIDER_OPTIONS}
                 {...field}
               />
             )}
           />
           <TextInput
             label="Name"
+            name="provider-name"
             placeholder="e.g., Production OpenAI"
             autoComplete="one-time-code"
             data-lpignore="true"

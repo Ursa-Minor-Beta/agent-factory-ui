@@ -24,3 +24,4 @@ export type {
   ListRecordsOptions,
 } from './memory';
 export { workspacesApi } from './workspaces';
+export { githubApi } from './github';

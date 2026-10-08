@@ -27,3 +27,6 @@ export * from './memory';
 
 // File reference types
 export * from './file';
+
+// GitHub sync types
+export * from './github';
