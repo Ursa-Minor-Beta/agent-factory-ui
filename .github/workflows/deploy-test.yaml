@@ -8,6 +8,11 @@ name: Deploy agent-factory-ui to test
 # ("Run workflow"). Docs-only pushes skip it.
 on:
   workflow_dispatch:
+    inputs:
+      skip_refresh:
+        description: 'Skip the Pulumi refresh (once, after rotating a provider credential such as the Cloudflare token)'
+        type: boolean
+        default: false
   push:
     branches: [master]
     paths-ignore:
@@ -64,11 +69,12 @@ jobs:
       - name: sc deploy
         env:
           SIMPLE_CONTAINER_CONFIG: ${{ secrets.SC_CONFIG }}
+          SKIP_REFRESH: ${{ inputs.skip_refresh && '-R' || '' }}
         # A unique version per run. With the default "latest" the task
         # definition never changes, so ECS keeps the old task running while
         # the job goes green. The run number makes a re-run of the same
         # commit roll out too.
-        run: sc deploy -s agent-factory-ui -e test -V "${GITHUB_SHA::12}-${GITHUB_RUN_NUMBER}"
+        run: sc deploy -s agent-factory-ui -e test -V "${GITHUB_SHA::12}-${GITHUB_RUN_NUMBER}" $SKIP_REFRESH
 
       - name: Health gate
         run: |
