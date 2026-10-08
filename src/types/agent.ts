@@ -45,6 +45,7 @@ export interface Agent {
   systemName?: string;
   githubRepository?: string;
   githubPath?: string;
+  nodesCount?: number;
   createdAt: string;
   updatedAt: string;
 }

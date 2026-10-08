@@ -61,6 +61,11 @@ export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExp
           </Group>
           <WorkspaceBadge workspaceName={agent.workspaceName} size="xs" />
         </Group>
+
+        <Text size="xs" c="dimmed">
+          {agent.nodesCount || 0} nodes
+        </Text>
+
         <Text
           size="sm"
           c="dimmed"
@@ -73,7 +78,7 @@ export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExp
             minHeight: '2.5em',
           }}
         >
-          {agent.description || 'No description'}
+          {agent.description || ''}
         </Text>
       </Stack>
       <Group mt="sm" gap="xs" justify="space-between">
