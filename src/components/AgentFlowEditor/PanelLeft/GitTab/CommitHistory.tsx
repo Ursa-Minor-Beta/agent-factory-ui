@@ -1,4 +1,4 @@
-import { Text, Stack, Loader, Card, Timeline } from '@mantine/core';
+import { Text, Stack, Loader, Timeline } from '@mantine/core';
 import { IconGitCommit } from '@tabler/icons-react';
 
 interface GitHubCommit {
@@ -15,9 +15,7 @@ interface CommitHistoryProps {
 
 export function CommitHistory({ commits, loading }: CommitHistoryProps) {
   return (
-    <Card withBorder>
-      <Text size="sm" fw={500} mb="xs">Commit History</Text>
-
+    <>
       {loading ? (
         <Stack align="center" py="md">
           <Loader size="sm" />
@@ -58,6 +56,6 @@ export function CommitHistory({ commits, loading }: CommitHistoryProps) {
           Showing 10 of {commits.length} commits
         </Text>
       )}
-    </Card>
+    </>
   );
 }

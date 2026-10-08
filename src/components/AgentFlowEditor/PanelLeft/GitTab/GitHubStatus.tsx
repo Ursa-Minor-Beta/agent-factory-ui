@@ -1,4 +1,4 @@
-import { Text, Badge, Card, ActionIcon, Group, Tooltip } from '@mantine/core';
+import { Text, Badge, ActionIcon, Group, Tooltip } from '@mantine/core';
 import { InfoTable } from '../../../common/InfoTable';
 import { IconRefresh } from '@tabler/icons-react';
 
@@ -41,29 +41,28 @@ const formatDate = (date: string | null) => {
 
 export function GitHubStatus({ syncStatus, isLoading, onRefresh }: GitHubStatusProps) {
   return (
-    <Card withBorder>
-      <InfoTable
+    <InfoTable
         rows={[
-          {
-            label: 'Status',
-            value: (
-              <Group justify='space-between'>
-                <Badge color={isLoading ? '' : getStatusColor(syncStatus.status)} variant="light" size="sm">
-                  {isLoading ? 'Updating...' : syncStatus.status}
-                </Badge>
-              <Tooltip label="Refresh GitHub data">
-                <ActionIcon
-                  variant="subtle"
-                  color="gray"
-                  loading={isLoading}
-                  onClick={onRefresh}
-                >
-                  <IconRefresh size={16} />
-                </ActionIcon>
-              </Tooltip>
-            </Group>
-            ),
-          },
+          // {
+          //   label: 'Status',
+          //   value: (
+          //     <Group justify='space-between'>
+          //       <Badge color={isLoading ? '' : getStatusColor(syncStatus.status)} variant="light" size="sm">
+          //         {isLoading ? 'Updating...' : syncStatus.status}
+          //       </Badge>
+          //     <Tooltip label="Refresh GitHub data">
+          //       <ActionIcon
+          //         variant="subtle"
+          //         color="gray"
+          //         loading={isLoading}
+          //         onClick={onRefresh}
+          //       >
+          //         <IconRefresh size={16} />
+          //       </ActionIcon>
+          //     </Tooltip>
+          //   </Group>
+          //   ),
+          // },
 
           ...(isLoading ? [] : [{
               label: 'Repository',
@@ -114,6 +113,5 @@ export function GitHubStatus({ syncStatus, isLoading, onRefresh }: GitHubStatusP
 
         ]}
       />
-    </Card>
   );
 }
