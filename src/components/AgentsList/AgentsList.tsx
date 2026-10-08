@@ -387,11 +387,12 @@ export function AgentsList({
       )}
 
       {/* Results info */}
-      {!loading && (
+      {/* {!loading && (
         <Text size="sm" c="dimmed" mb="md">
           {total} agent{total !== 1 ? 's' : ''} found
         </Text>
-      )}
+      )} */}
+      <Box mb="xl" />
 
       {loading ? (
         <Center py="xl">
