@@ -19,7 +19,6 @@ import {
   Checkbox,
   Paper,
   Transition,
-  rem,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import {
