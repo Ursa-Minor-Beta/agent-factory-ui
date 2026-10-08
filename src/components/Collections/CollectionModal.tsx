@@ -170,24 +170,22 @@ export function CollectionModal({ opened, onClose, collection, workspaceId, onSu
             rows={2}
             {...register('description')}
           />
-          {!collection && (
-            <Controller
-              name="selectedWorkspaceId"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  label="Workspace"
-                  placeholder="Select workspace"
-                  data={[
-                    { value: '', label: 'Global' },
-                    ...workspaces.map((ws) => ({ value: ws.id, label: ws.name })),
-                  ]}
-                  disabled={loadingWorkspaces}
-                  {...field}
-                />
-              )}
-            />
-          )}
+          <Controller
+            name="selectedWorkspaceId"
+            control={control}
+            render={({ field }) => (
+              <Select
+                label="Workspace"
+                placeholder="Select workspace"
+                data={[
+                  { value: '', label: 'Global' },
+                  ...workspaces.map((ws) => ({ value: ws.id, label: ws.name })),
+                ]}
+                disabled={loadingWorkspaces}
+                {...field}
+              />
+            )}
+          />
 
           <Box>
             <Group justify="space-between" mb="xs">
