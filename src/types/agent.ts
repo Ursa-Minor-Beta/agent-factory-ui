@@ -43,6 +43,8 @@ export interface Agent {
   workspaceName?: string;
   defaultName?: string;
   systemName?: string;
+  githubRepository?: string;
+  githubPath?: string;
   createdAt: string;
   updatedAt: string;
 }

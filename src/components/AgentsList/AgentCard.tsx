@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Card, Text, Group, Stack, ActionIcon, Tooltip, Menu } from '@mantine/core';
+import { Card, Text, Group, Stack, ActionIcon, Tooltip, Menu, Button, Box } from '@mantine/core';
 import {
   IconTrash,
   IconMessageCircle,
@@ -10,6 +10,7 @@ import {
   IconFolder,
   IconDotsVertical,
   IconUpload,
+  IconBrandGithub,
 } from '@tabler/icons-react';
 import type { AgentCardProps } from './types';
 import { WorkspaceBadge } from '../Workspace';
@@ -39,7 +40,12 @@ export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExp
               {agent.name}
             </Text>
 
-            <Group>
+            <Group gap="xs">
+              {agent.githubRepository && (
+                <Tooltip label={`Linked to: ${agent.githubRepository}/${agent.githubPath || ''}`}>
+                  <IconBrandGithub size={16} style={{ color: 'var(--mantine-color-dimmed)' }} />
+                </Tooltip>
+              )}
               {agent.defaultName && (
                 <Tooltip label="Default agent automatically added for fast start, you can edit or restore from system settings">
                   <Text size="xs" c="dimmed">DEFAULT</Text>
@@ -71,45 +77,37 @@ export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExp
         </Text>
       </Stack>
       <Group mt="sm" gap="xs" justify="space-between">
-        <Group gap="md">
-          <Link
-            to={`/agents/${agent.id}/chat`}
+        <Box>
+          <Button
+            component='a'
+            size='xs'
+            variant='subtle'
+            href={`/agents/${agent.id}/chat`}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
+              padding: '0 4px',
               color: 'var(--mantine-color-cyan-5)',
               textDecoration: 'none',
             }}
           >
             <IconMessageCircle size={16} />
-            <Text size="sm" fw={500} c="cyan">Chat</Text>
+            <Text size="sm" fw={500} c="cyan" ms={2}>Chat</Text>
             <IconChevronRight size={14} />
-          </Link>
-        </Group>
+          </Button>
+        </Box>
 
         <Group gap="xs">
           <Tooltip label="Visual Editor">
-            <Link
-              to={`/agents/${agent.id}/editor`}
+            <ActionIcon
+              component='a'
+              variant='subtle'
+              href={`/agents/${agent.id}/editor`}
               title='Visual editor'
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                color: 'var(--mantine-color-violet-5)',
-                textDecoration: 'none',
+                padding: '0 2px',
+                color: 'var(--mantine-color-text)',
               }}
             >
-              <IconSchema size={16} />
-            </Link>
-          </Tooltip>
-          <Tooltip label="JSON Editor">
-            <ActionIcon
-              variant="subtle"
-              onClick={() => onEdit(agent)}
-            >
-              <IconCode size={18} />
+              <IconSchema size={16} stroke={1} />
             </ActionIcon>
           </Tooltip>
           <Menu position="bottom-end" withinPortal>
@@ -119,6 +117,9 @@ export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExp
               </ActionIcon>
             </Menu.Target>
             <Menu.Dropdown>
+              <Menu.Item leftSection={<IconCode size={16} />} onClick={() => onEdit(agent)}>
+                JSON Editor
+              </Menu.Item>
               <Menu.Item leftSection={<IconCopy size={16} />} onClick={() => onClone(agent)}>
                 Clone
               </Menu.Item>
