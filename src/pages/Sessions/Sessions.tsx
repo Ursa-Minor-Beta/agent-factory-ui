@@ -16,6 +16,7 @@ import {
   Paper,
   Transition,
   CopyButton,
+  Badge,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
@@ -26,6 +27,7 @@ import {
   IconSquareCheck,
   IconCopy,
   IconCheck,
+  IconEyeOff,
 } from '@tabler/icons-react';
 import { sessionsApi } from '../../api';
 import type { Session } from '../../types';
@@ -249,17 +251,6 @@ export function SessionsPage() {
           )}
         </Transition>
         <Group mb="md" gap="sm" wrap="wrap">
-          <Select
-            placeholder="Status"
-            value={statusFilter}
-            onChange={setStatusFilter}
-            data={[
-              { value: 'active', label: 'Active' },
-              { value: 'archived', label: 'Archived' },
-            ]}
-            clearable
-            style={{ width: 140 }}
-          />
           <TextInput
             placeholder="Agent ID"
             value={agentFilter}
