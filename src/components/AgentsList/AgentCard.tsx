@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Card, Text, Group, Stack, ActionIcon, Tooltip, Menu } from '@mantine/core';
+import { Card, Text, Group, Stack, ActionIcon, Tooltip, Menu, Box, Button } from '@mantine/core';
 import {
   IconTrash,
   IconMessageCircle,
@@ -12,7 +12,6 @@ import {
   IconUpload,
   IconBrandGithub,
 } from '@tabler/icons-react';
-import { Link } from 'react-router-dom';
 import type { AgentCardProps } from './types';
 import { WorkspaceBadge } from '../Workspace';
 
