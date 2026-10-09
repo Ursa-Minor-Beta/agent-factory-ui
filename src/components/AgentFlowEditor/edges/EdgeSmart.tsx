@@ -1,8 +1,8 @@
-import { BaseEdge, useEdges, useNodes, type Node } from '@xyflow/react';
+import { BaseEdge, Position, useEdges, useNodes, type Node } from '@xyflow/react';
 
 const radius = 10;
 const baseOffset = 10;
-const edgeGap = 16;
+const edgeGap = 2;
 
 interface Point {
   key: 'L' | 'M'; // svg command keys
@@ -19,6 +19,8 @@ interface EdgeProps {
   sourceY: number;
   targetX: number;
   targetY: number;
+  sourcePosition?: Position;
+  targetPosition?: Position;
   markerEnd?: string;
 }
 
@@ -87,6 +89,7 @@ interface GetPointsParams {
   sourceNodeBox: ReturnType<typeof getBox>;
   edgeNumInSource: number;
   edgeNumInTarget: number;
+  isVertical?: boolean;
 }
 
 function getPoints({
@@ -143,10 +146,64 @@ function getPoints({
   return points;
 }
 
+function getPointsVertical({
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourceNodeBox,
+  edgeNumInSource,
+  edgeNumInTarget,
+}: GetPointsParams): Point[] {
+  const sourceBoxOffset = baseOffset + edgeNumInSource * edgeGap;
+  const targetBoxOffset = baseOffset + edgeNumInTarget * edgeGap;
+
+  const pointStart: Point = { key: 'M', x: sourceX, y: sourceY };
+  const pointStartOffset: Point = { key: 'L', x: sourceX, y: sourceY + sourceBoxOffset, length: sourceBoxOffset };
+  const pointFinishOffset: Point = { key: 'L', x: targetX, y: targetY - targetBoxOffset };
+  const pointFinish: Point = { key: 'L', x: targetX, y: targetY };
+
+  const points: Point[] = [pointStart, pointStartOffset];
+
+  if (pointStartOffset.y > pointFinishOffset.y) {
+    let x: number;
+    let length: number;
+
+    if (pointStart.x < pointFinish.x) {
+      x =
+        sourceNodeBox.c.x + sourceBoxOffset + baseOffset < pointFinish.x
+          ? sourceNodeBox.c.x + sourceBoxOffset
+          : pointStart.x + (pointFinish.x - pointStart.x) / 2;
+
+      length = x - pointStartOffset.x;
+    } else {
+      x =
+        sourceNodeBox.a.x - sourceBoxOffset - baseOffset > pointFinish.x
+          ? sourceNodeBox.a.x - sourceBoxOffset
+          : pointFinish.x + (pointStart.x - pointFinish.x) / 2;
+
+      length = pointStartOffset.x - x;
+    }
+    points.push({ key: 'L', x, y: pointStartOffset.y, length: Math.abs(length) });
+    points.push({ key: 'L', x, y: pointFinishOffset.y, length: Math.abs(pointFinishOffset.y - pointStartOffset.y) });
+
+    const finishOffLen = Math.abs(x - pointFinishOffset.x);
+    points.push({ ...pointFinishOffset, length: finishOffLen });
+  } else if (pointStartOffset.y < pointFinishOffset.y) {
+    const length = Math.abs(pointFinishOffset.x - pointStartOffset.x);
+    points.push({ key: 'L', x: pointFinishOffset.x, y: pointStartOffset.y, length });
+  }
+
+  const finishLen = Math.abs(pointFinish.y - points[points.length - 1].y);
+  points.push({ ...pointFinish, length: finishLen });
+
+  return points;
+}
+
 function getPath(params: GetPointsParams): string {
   let path = '';
 
-  const points = getPoints(params);
+  const points = params.isVertical ? getPointsVertical(params) : getPoints(params);
   if (points && points.length > 0) {
     for (let i = 0; i < points.length; i++) {
       const x = points[i].x;
@@ -195,8 +252,14 @@ export function EdgeSmart(edgeProps: EdgeProps) {
     nodesToConnect.source.size.h
   );
 
-  // compare y centers of boxes
-  const isSourceHigherTarget = edgeProps.sourceY < edgeProps.targetY;
+  // Detect vertical flow direction
+  const isVertical =
+    edgeProps.sourcePosition === Position.Bottom || edgeProps.targetPosition === Position.Top;
+
+  // compare positions based on flow direction
+  const isSourceHigherTarget = isVertical
+    ? edgeProps.sourceY < edgeProps.targetY
+    : edgeProps.sourceX < edgeProps.targetX;
 
   // count all edges in source and target
   const { sourceEdgesIds, targetEdgesIds } = useCountConnectedEdges(edgeProps.source, edgeProps.target);
@@ -226,6 +289,7 @@ export function EdgeSmart(edgeProps: EdgeProps) {
     sourceNodeBox,
     edgeNumInSource,
     edgeNumInTarget,
+    isVertical,
   };
 
   const path = getPath(edgePathParams);
