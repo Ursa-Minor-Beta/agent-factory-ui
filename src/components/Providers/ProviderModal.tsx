@@ -117,7 +117,6 @@ export function ProviderModal({ opened, onClose, workspaceId, onSuccess, default
           />
           <TextInput
             label="Name"
-            name="provider-name"
             placeholder="e.g., Production OpenAI"
             autoComplete="one-time-code"
             data-lpignore="true"
