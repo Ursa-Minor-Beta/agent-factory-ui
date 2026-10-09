@@ -87,15 +87,15 @@ export function CollectionRecordsPage() {
       }
 
       // Fetch records using schema id
-      const recordsData = await memoryApi.listRecords(fetchedSchema.id, {
+      const data = await memoryApi.listRecords(fetchedSchema.id, {
         search: searchQuery || undefined,
         limit: limitNum,
         offset,
         sortDirection: 'desc',
       });
 
-      setRecords(recordsData);
-      setTotal(fetchedSchema.recordCount ?? recordsData.length);
+      setRecords(data.records);
+      setTotal(data.total);
       setError('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load data');
