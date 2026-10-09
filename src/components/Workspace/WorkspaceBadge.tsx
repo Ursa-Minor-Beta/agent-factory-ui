@@ -20,6 +20,7 @@ export function WorkspaceBadge({
         <Badge
           variant="light"
           color={workspaceName ? 'blue' : 'gray'}
+          radius="xs"
           size={size}
         >
           {displayName}

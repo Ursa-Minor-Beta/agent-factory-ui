@@ -1,9 +1,12 @@
-import { Stack, Alert, Accordion, ActionIcon, Badge, Group, Tooltip, Text, ButtonGroup, Card } from '@mantine/core';
-import { IconAlertCircle, IconRefresh } from '@tabler/icons-react';
+import { useState } from 'react';
+import { Stack, Alert, Accordion } from '@mantine/core';
+import { IconAlertCircle } from '@tabler/icons-react';
 import type { Agent } from '../../../../types/agent';
 import { useGitHubData } from './useGitHubData';
 import { GitHubStatus } from './GitHubStatus';
 import { CommitHistory } from './CommitHistory';
+import { GitSyncActions } from './GitSyncActions';
+import { githubApi } from '../../../../api/github';
 
 interface GitTabProps {
   agent: Partial<Agent> | null;
@@ -11,6 +14,9 @@ interface GitTabProps {
 
 export function GitTab({ agent }: GitTabProps) {
   const { syncStatus, commits, loading, loadingCommits, error, refresh } = useGitHubData(agent?.id);
+  const [pushing, setPushing] = useState(false);
+  const [pulling, setPulling] = useState(false);
+  const [pullingCommit, setPullingCommit] = useState<string | null>(null);
 
   if (!agent?.id) {
     return (
@@ -42,42 +48,61 @@ export function GitTab({ agent }: GitTabProps) {
     );
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'synced': return 'green';
-      case 'pending': return 'yellow';
-      case 'error': return 'red';
-      default: return 'gray';
+  const handlePush = async () => {
+    if (!agent?.id) return;
+    setPushing(true);
+    try {
+      await githubApi.pushAgent(agent.id, {});
+      refresh();
+    } catch (err) {
+      console.error('Push failed:', err);
+    } finally {
+      setPushing(false);
+    }
+  };
+
+  const handlePull = async () => {
+    if (!agent?.id) return;
+    setPulling(true);
+    try {
+      await githubApi.pullAgent(agent.id);
+      refresh();
+    } catch (err) {
+      console.error('Pull failed:', err);
+    } finally {
+      setPulling(false);
+    }
+  };
+
+  const handlePullCommit = async (commitSha: string) => {
+    if (!agent?.id) return;
+    setPullingCommit(commitSha);
+    try {
+      await githubApi.pullAgent(agent.id, { commitSha });
+      refresh();
+    } catch (err) {
+      console.error('Pull commit failed:', err);
+    } finally {
+      setPullingCommit(null);
     }
   };
 
   return (
     <Stack gap="xs" p="xs">
-
-      <Card withBorder p='xs'>
-        <Group gap="xs" justify="space-between">
-          <Badge color={loading || loadingCommits ? '' : getStatusColor(syncStatus.status)} variant="light" size="sm">
-            {loading || loadingCommits ? 'Updating...' : syncStatus.status}
-          </Badge>
-          <Group gap="xs">
-            <Tooltip label="Refresh GitHub data">
-              <ActionIcon
-                loading={loading || loadingCommits}
-                onClick={ (e) => {
-                  e.stopPropagation()
-                  refresh()
-                }}
-              >
-                <IconRefresh size={16} />
-              </ActionIcon>
-            </Tooltip>
-          </Group>
-        </Group>
-      </Card>
+      <GitSyncActions
+        status={syncStatus.status}
+        loading={loading || loadingCommits}
+        pushing={pushing}
+        pulling={pulling}
+        publicRepo={syncStatus.publicRepo}
+        onRefresh={refresh}
+        onPush={handlePush}
+        onPull={handlePull}
+      />
 
       <Accordion
         multiple={true}
-        defaultValue={["status"]} 
+        defaultValue={["commits"]} 
         variant="separated" 
         >
         <Accordion.Item value="status">
@@ -90,7 +115,15 @@ export function GitTab({ agent }: GitTabProps) {
         <Accordion.Item value="commits">
           <Accordion.Control>Commit History</Accordion.Control>
           <Accordion.Panel>
-            <CommitHistory commits={commits} loading={loadingCommits} />
+            <CommitHistory
+              commits={commits}
+              loading={loadingCommits}
+              status={syncStatus.status}
+              currentCommitSha={syncStatus.lastCommitSha}
+              pullingCommit={pullingCommit}
+              onPullCommit={handlePullCommit}
+              repository={syncStatus.repository}
+            />
           </Accordion.Panel>
         </Accordion.Item>
       </Accordion>

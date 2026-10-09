@@ -52,7 +52,7 @@ interface GitHubImportModalProps {
   workspaceId?: string;
 }
 
-export function GitHubImportModal({
+export function ModalGitHubImport({
   opened,
   onClose,
   onImported,

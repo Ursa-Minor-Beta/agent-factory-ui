@@ -33,8 +33,8 @@ import { AgentCard } from './AgentCard';
 import { AgentFilters } from './AgentFilters';
 import { AgentDeleteModal } from './AgentDeleteModal';
 import { AgentWorkspaceModal } from './AgentWorkspaceModal';
-import { AgentImportModal } from './AgentImportModal/AgentImportModal';
-import { GitHubImportModal } from './GitHubImportModal';
+import { ModalAgentImport } from './ModalAgentImport/ModalAgentImport';
+import { ModalGitHubImport } from './ModalGitHubImport';
 import { useAgentModal } from '../AgentCreateModal';
 
 const ITEMS_PER_PAGE = 12;
@@ -447,14 +447,14 @@ export function AgentsList({
         onSaved={loadAgents}
       />
 
-      <AgentImportModal
+      <ModalAgentImport
         opened={importModalOpened}
         onClose={() => setImportModalOpened(false)}
         onImported={() => { loadAgents(); onCreate?.(); }}
         workspaceId={workspaceId}
       />
 
-      <GitHubImportModal
+      <ModalGitHubImport
         opened={githubImportModalOpened}
         onClose={() => setGithubImportModalOpened(false)}
         onImported={() => { loadAgents(); onCreate?.(); }}

@@ -7,6 +7,7 @@ import type {
   GitHubImportResponse,
   GitHubPushRequest,
   GitHubPushResponse,
+  GitHubPullRequest,
   GitHubPullResponse,
 } from '../types/github';
 
@@ -28,8 +29,8 @@ export const githubApi = {
     api.post(`/api/agents/${agentId}/github/push`, data),
 
   // Pull agent changes from GitHub (updates existing agent)
-  pullAgent: (agentId: string): Promise<GitHubPullResponse> =>
-    api.post(`/api/agents/${agentId}/github/pull`),
+  pullAgent: (agentId: string, data?: GitHubPullRequest): Promise<GitHubPullResponse> =>
+    api.post(`/api/agents/${agentId}/github/pull`, data),
 
   // Import a new agent from GitHub
   importAgent: (data: GitHubImportRequest): Promise<GitHubImportResponse> =>

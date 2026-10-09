@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Modal, Text, Group, Button, Stack, Textarea, Select } from '@mantine/core';
+import { Modal, Text, Group, Button, Stack, Textarea, Select, TextInput, ActionIcon } from '@mantine/core';
 import { agentsApi, workspacesApi, secretsApi, providersApi, memoryApi } from '../../../api';
 import type { AgentExportData, AgentImportResponse, ImportCollectionSchema } from '../../../types';
 import type { Workspace } from '../../../types/workspace';
@@ -9,7 +9,7 @@ import { ImportSuccessView } from './ImportSuccessView';
 import { SecretModal } from '../../Secrets/SecretModal';
 import { ProviderModal } from '../../Providers/ProviderModal';
 import { CollectionModal } from '../../Collections/CollectionModal';
-import { IconCheck } from '@tabler/icons-react';
+import { IconCheck, IconDownload } from '@tabler/icons-react';
 
 const NEW_WORKSPACE_VALUE = '__new__';
 
@@ -20,13 +20,15 @@ interface AgentImportModalProps {
   workspaceId?: string;
 }
 
-export function AgentImportModal({ opened, onClose, onImported, workspaceId }: AgentImportModalProps) {
+export function ModalAgentImport({ opened, onClose, onImported, workspaceId }: AgentImportModalProps) {
   const navigate = useNavigate();
 
   const [jsonContent, setJsonContent] = useState('');
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState('');
   const [parseError, setParseError] = useState('');
+  const [urlInput, setUrlInput] = useState('');
+  const [fetchingUrl, setFetchingUrl] = useState(false);
   const [result, setResult] = useState<AgentImportResponse | null>(null);
 
   // Workspace selection
@@ -80,6 +82,39 @@ export function AgentImportModal({ opened, onClose, onImported, workspaceId }: A
     setGlobalSecrets(new Set());
     setGlobalProviders(new Set());
     setGlobalCollections(new Set());
+    setUrlInput('');
+  };
+
+  const convertToRawUrl = (url: string): string => {
+    // Convert GitHub blob URLs to raw URLs
+    // https://github.com/owner/repo/blob/branch/path -> https://raw.githubusercontent.com/owner/repo/branch/path
+    const githubBlobMatch = url.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/(.+)$/);
+    if (githubBlobMatch) {
+      const [, owner, repo, rest] = githubBlobMatch;
+      return `https://raw.githubusercontent.com/${owner}/${repo}/${rest}`;
+    }
+    return url;
+  };
+
+  const handleFetchFromUrl = async () => {
+    if (!urlInput.trim()) return;
+
+    setFetchingUrl(true);
+    setError('');
+
+    try {
+      const fetchUrl = convertToRawUrl(urlInput.trim());
+      const response = await fetch(fetchUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
+      }
+      const text = await response.text();
+      validateAndSetJson(text);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch from URL');
+    } finally {
+      setFetchingUrl(false);
+    }
   };
 
   const handleClose = () => {
@@ -267,6 +302,28 @@ export function AgentImportModal({ opened, onClose, onImported, workspaceId }: A
           ]}
           style={{ flexShrink: 0 }}
         />
+
+        <TextInput
+          // label=""
+          placeholder="Import from URL, https://example.com/agent.json"
+          value={urlInput}
+          onChange={(e) => setUrlInput(e.currentTarget.value)}
+          rightSection={
+            <ActionIcon
+              variant="subtle"
+              loading={fetchingUrl}
+              disabled={!urlInput.trim()}
+              onClick={handleFetchFromUrl}
+            >
+              <IconDownload size={16} />
+            </ActionIcon>
+          }
+          style={{ flexShrink: 0 }}
+        />
+
+        <Text size="sm" c="dimmed" ta="center" style={{ flexShrink: 0 }}>
+          — or drop a file —
+        </Text>
 
         <FileDropZone
             accept='.json'

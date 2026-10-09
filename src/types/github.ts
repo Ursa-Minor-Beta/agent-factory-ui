@@ -6,9 +6,10 @@ export const GitHubSyncEntity = {
 export type GitHubSyncEntity = typeof GitHubSyncEntity[keyof typeof GitHubSyncEntity];
 
 export const GitHubSyncStatus = {
-  LINKED: 'linked',
   SYNCED: 'synced',
-  ERROR: 'error',
+  LOCAL_AHEAD: 'local_ahead',
+  REMOTE_AHEAD: 'remote_ahead',
+  CONFLICT: 'conflict',
 } as const;
 
 export type GitHubSyncStatus = typeof GitHubSyncStatus[keyof typeof GitHubSyncStatus];
@@ -18,6 +19,8 @@ export interface GitHubSync {
   userId: string;
   entityType: GitHubSyncEntity;
   entityId: string;
+  providerName: string;
+  publicRepo: boolean;
   repository: string;
   branch: string;
   path: string;
@@ -63,6 +66,10 @@ export interface GitHubPushRequest {
 export interface GitHubPushResponse {
   commitSha: string;
   message: string;
+}
+
+export interface GitHubPullRequest {
+  commitSha?: string;
 }
 
 export interface GitHubPullResponse {

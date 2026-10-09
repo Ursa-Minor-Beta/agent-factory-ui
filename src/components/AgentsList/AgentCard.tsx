@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Card, Text, Group, Stack, ActionIcon, Tooltip, Menu, Box, Button } from '@mantine/core';
+import { Card, Text, Group, Stack, ActionIcon, Tooltip, Menu, Box, Button, Badge, Anchor } from '@mantine/core';
 import {
   IconTrash,
   IconMessageCircle,
@@ -28,24 +28,20 @@ export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExp
     >
       <Stack gap="xs" style={{ flex: 1 }}>
         <Group justify="space-between" align="flex-start" wrap="nowrap">
-          <Group gap={6} wrap="nowrap" style={{ flex: 1, overflow: 'hidden' }}>
-            <Text
-              fw={600}
-              style={{
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {agent.name}
-            </Text>
 
-            <Group gap="xs">
-              {agent.githubRepository && (
-                <Tooltip label={`Linked to: ${agent.githubRepository}/${agent.githubPath || ''}`}>
-                  <IconBrandGithub size={16} style={{ color: 'var(--mantine-color-dimmed)' }} />
-                </Tooltip>
-              )}
+          <Stack gap="xs">
+            <Group gap={6} wrap="nowrap" style={{ flex: 1, overflow: 'hidden' }}>
+              <Text
+                fw={600}
+                style={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {agent.name}
+              </Text>
+
               {agent.defaultName && (
                 <Tooltip label="Default agent automatically added for fast start, you can edit or restore from system settings">
                   <Text size="xs" c="dimmed">DEFAULT</Text>
@@ -57,14 +53,28 @@ export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExp
                 </Tooltip>
               )}
             </Group>
+            <Text size="xs" c="dimmed">
+              {agent.nodesCount || 0} nodes
+            </Text>
+          </Stack>
 
-          </Group>
-          <WorkspaceBadge workspaceName={agent.workspaceName} size="xs" />
+          <Stack gap="xs" align="flex-end">
+            <WorkspaceBadge workspaceName={agent.workspaceName} size="xs" />
+            {agent.github && (
+              <Tooltip label={`${agent.github.rootId ? 'Sub' : 'Root'} agent: ${agent.github.repository}/${agent.github.path}`}>
+                <Badge
+                  size="xs"
+                  variant={agent.github.rootId ? "outline" : "light" }
+                  color="gray"
+                  leftSection={<IconBrandGithub size={12} />}
+                  >
+                  {agent.github.rootId ? 'sub' : 'root'}
+                </Badge>
+              </Tooltip>
+            )}
+          </Stack>
+
         </Group>
-
-        <Text size="xs" c="dimmed">
-          {agent.nodesCount || 0} nodes
-        </Text>
 
         <Text
           size="sm"
@@ -95,7 +105,7 @@ export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExp
             }}
           >
             <IconMessageCircle size={16} />
-            <Text size="sm" fw={500} c="cyan" ms={2}>Chat</Text>
+            <Text size="sm" fw={500} c="cyan" ms={8}>Chat</Text>
             <IconChevronRight size={14} />
           </Button>
         </Box>
