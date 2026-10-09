@@ -191,22 +191,22 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
 
       {isPaletteOpen &&
         <PanelLeft
-          nodeTypes={availableNodeTypes}
-          existingNodeTypes={existingNodeTypes}
-          edgeType={edgeType}
-          layoutDirection={layoutDirection}
-          agent={agent}
-          hasNodes={nodes.length > 0}
           activeTab={activeTab}
+          agent={agent}
+          edgeType={edgeType}
+          existingNodeTypes={existingNodeTypes}
+          exporting={exporting}
+          hasNodes={nodes.length > 0}
+          layoutDirection={layoutDirection}
+          nodeTypes={availableNodeTypes}
           onActiveTabChange={handleActiveTabChange}
           onAddNode={handleAddNode}
-          onEdgeTypeChange={changeEdgeType}
-          onLayoutDirectionChange={changeLayoutDirection}
           onAgentInfoChange={updateAgentInfo}
-          onLoadTemplate={loadTemplate}
           onClose={togglePalette}
+          onEdgeTypeChange={changeEdgeType}
           onExport={handleExport}
-          exporting={exporting}
+          onLayoutDirectionChange={changeLayoutDirection}
+          onLoadTemplate={loadTemplate}
           />
       }
 

@@ -2,7 +2,7 @@ import { BaseEdge, useEdges, useNodes, type Node } from '@xyflow/react';
 
 const radius = 10;
 const baseOffset = 10;
-const edgeGap = 16;
+const edgeGap = 2;
 
 interface Point {
   key: 'L' | 'M'; // svg command keys

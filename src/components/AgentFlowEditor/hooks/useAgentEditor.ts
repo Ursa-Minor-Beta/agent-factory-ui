@@ -240,7 +240,8 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
 
   // Handle node click
   const onNodeClick = useCallback(
-    (_event: React.MouseEvent, node: Node) => {
+    (event: React.MouseEvent, node: Node) => {
+      if (event.ctrlKey || event.metaKey) return;
       setSelectedNodeId(node.id);
     },
     []
