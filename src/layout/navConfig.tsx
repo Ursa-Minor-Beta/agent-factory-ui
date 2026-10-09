@@ -10,18 +10,38 @@ import {
   IconTool,
   IconDatabase,
   IconFolders,
+  IconCloud,
 } from '@tabler/icons-react';
 import type { NavItem } from './types';
 
 export const getBaseNavItems = (): NavItem[] => [
-  { label: 'Workspaces', path: '/workspaces', icon: <IconFolders size={20} /> },
+
   { label: 'Agents', path: '/agents', icon: <IconRobot size={20} /> },
-  { label: 'Providers', path: '/providers', icon: <IconSettings size={20} /> },
-  { label: 'Secrets', path: '/secrets', icon: <IconLock size={20} /> },
-  { label: 'Collections', path: '/collections', icon: <IconDatabase size={20} /> },
-  { label: 'Sessions', path: '/sessions', icon: <IconMessages size={20} /> },
-  { label: 'Runs', path: '/runs', icon: <IconHistory size={20} /> },
-  { label: 'Files', path: '/files', icon: <IconFiles size={20} /> },
+  
+  { label: 'Workspaces', path: '/workspaces', icon: <IconFolders size={20} /> },
+
+  {
+    label: 'Configurations',
+    path: '/configurations',
+    icon: <IconSettings size={20} />,
+    children: [
+      { label: 'Providers', path: '/providers', icon: <IconCloud size={18} /> },
+      { label: 'Secrets', path: '/secrets', icon: <IconLock size={18} /> },
+      { label: 'Collections', path: '/collections', icon: <IconDatabase size={18} /> },
+    ],
+  },
+  
+  {
+    label: 'Monitoring',
+    path: '/monitoring',
+    icon: <IconHistory size={20} />,
+    children: [
+      { label: 'Sessions', path: '/sessions', icon: <IconMessages size={18} /> },
+      { label: 'Runs', path: '/runs', icon: <IconHistory size={18} /> },
+      { label: 'Files', path: '/files', icon: <IconFiles size={18} /> },
+    ],
+  },
+  
   {
     label: 'Settings',
     path: '/settings',

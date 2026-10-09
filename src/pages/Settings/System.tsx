@@ -180,7 +180,7 @@ export function SystemSettings() {
           <Group justify="space-between" mb="md">
             <Group gap="xs">
               <IconRefresh size={20} />
-              <Text fw={500}>Reseed System Agents</Text>
+              <Text fw={500}>Reseed Default and System Agents</Text>
             </Group>
             <Button
               leftSection={<IconRefresh size={16} />}
@@ -192,7 +192,7 @@ export function SystemSettings() {
             </Button>
           </Group>
           <Text size="sm" c="dimmed" mb="md">
-            Reseed system agents from the default configuration. This will update existing system agents and create any missing ones.
+            Reseed default and system agents from the default configuration. This will update existing system agents and create any missing ones.
           </Text>
           {reseedResult && (
             <Stack gap="xs">

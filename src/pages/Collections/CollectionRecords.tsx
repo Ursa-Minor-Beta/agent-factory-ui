@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, NavLink } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import {
   Box,
   Text,
@@ -14,7 +14,6 @@ import {
   Center,
   Tooltip,
   Breadcrumbs,
-  Anchor,
   Code,
   Pagination,
   Select,
@@ -26,19 +25,20 @@ import {
   IconPencil,
   IconSearch,
   IconAlertCircle,
+  IconList,
 } from '@tabler/icons-react';
 import { memoryApi } from '../../api';
 import type { MemorySchema, MemoryRecord } from '../../types';
 import { getRecordUserFields } from '../../types';
 import { RecordModal } from './RecordModal';
-import { RecordDeleteModal } from './RecordDeleteModal';
+import { DeleteConfirmModal } from '../../components/DeleteConfirmModal';
 
 interface RecordForm {
   data: string; // JSON string of user fields
 }
 
 export function CollectionRecordsPage() {
-  const { collection } = useParams<{ collection: string }>();
+  const { collectionId } = useParams<{ collectionId: string }>();
   const [schema, setSchema] = useState<MemorySchema | null>(null);
   const [records, setRecords] = useState<MemoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,36 +63,46 @@ export function CollectionRecordsPage() {
   });
   const [dataError, setDataError] = useState('');
 
-  const loadData = useCallback(async (searchQuery?: string, currentPage?: number, currentLimit?: number) => {
-    if (!collection) return;
+  const loadData = useCallback(async (searchQuery?: string, currentPage?: number, currentLimit?: number, schemaData?: MemorySchema | null) => {
+    if (!collectionId) return;
     const pageNum = currentPage ?? page;
     const limitNum = currentLimit ?? limit;
     const offset = (pageNum - 1) * limitNum;
 
     try {
       setLoading(true);
-      // Load schema and records in parallel
-      const [schemasData, recordsData] = await Promise.all([
-        memoryApi.listSchemas(),
-        memoryApi.listRecords(collection, {
-          search: searchQuery || undefined,
-          limit: limitNum,
-          offset,
-          sortDirection: 'desc',
-        }),
-      ]);
-      const foundSchema = schemasData.find((s) => s.name === collection);
-      setSchema(foundSchema || null);
+
+      // Use passed schema or fetch it
+      const currentSchema = schemaData !== undefined ? schemaData : schema;
+      let fetchedSchema = currentSchema;
+
+      if (!fetchedSchema) {
+        fetchedSchema = await memoryApi.getSchema(collectionId);
+        setSchema(fetchedSchema);
+      }
+
+      if (!fetchedSchema) {
+        setError('Collection not found');
+        return;
+      }
+
+      // Fetch records using schema id
+      const recordsData = await memoryApi.listRecords(fetchedSchema.id, {
+        search: searchQuery || undefined,
+        limit: limitNum,
+        offset,
+        sortDirection: 'desc',
+      });
+
       setRecords(recordsData);
-      // Use schema recordCount for total, fallback to records length if not available
-      setTotal(foundSchema?.recordCount ?? recordsData.length);
+      setTotal(fetchedSchema.recordCount ?? recordsData.length);
       setError('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {
       setLoading(false);
     }
-  }, [collection, page, limit]);
+  }, [collectionId, page, limit, schema]);
 
   // Debounce search and reset page
   useEffect(() => {
@@ -179,7 +189,7 @@ export function CollectionRecordsPage() {
   };
 
   const handleSubmit = async () => {
-    if (!collection) return;
+    if (!schema) return;
     if (!validateJson(formData.data)) return;
 
     setSaving(true);
@@ -188,13 +198,13 @@ export function CollectionRecordsPage() {
       const payload = JSON.parse(formData.data);
 
       if (editingRecord) {
-        await memoryApi.updateRecord(collection, editingRecord.id, payload);
+        await memoryApi.updateRecord(schema.id, editingRecord.id, payload);
       } else {
-        await memoryApi.createRecord(collection, payload);
+        await memoryApi.createRecord(schema.id, payload);
         setPage(1); // Go to first page after creating new record
       }
       handleCloseModal();
-      loadData(searchDebounced, editingRecord ? page : 1, limit);
+      loadData(searchDebounced, editingRecord ? page : 1, limit, schema);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save record');
     } finally {
@@ -208,16 +218,16 @@ export function CollectionRecordsPage() {
   };
 
   const handleDelete = async () => {
-    if (!deletingRecord || !collection) return;
+    if (!deletingRecord || !schema) return;
     setDeleting(true);
     try {
-      await memoryApi.deleteRecord(collection, deletingRecord.id);
+      await memoryApi.deleteRecord(schema.id, deletingRecord.id);
       closeDeleteModal();
       setDeletingRecord(null);
       // If last item on page, go to previous page
       const newPage = records.length === 1 && page > 1 ? page - 1 : page;
       if (newPage !== page) setPage(newPage);
-      loadData(searchDebounced, newPage, limit);
+      loadData(searchDebounced, newPage, limit, schema);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete record');
     } finally {
@@ -249,7 +259,7 @@ export function CollectionRecordsPage() {
     return (
       <Box>
         <Alert icon={<IconAlertCircle size={16} />} color="red">
-          Collection "{collection}" not found
+          Collection "{collectionId}" not found
         </Alert>
       </Box>
     );
@@ -258,8 +268,12 @@ export function CollectionRecordsPage() {
   return (
     <Box>
       <Breadcrumbs mb="md">
-        <Anchor component={NavLink} to="/collections">Collections</Anchor>
-        <Text>{collection}</Text>
+        <Tooltip label="All Collections">
+          <ActionIcon variant="subtle" color="gray" size="md" component={Link} to="/collections">
+            <IconList size={18} />
+          </ActionIcon>
+        </Tooltip>
+        <Text>{schema.name}</Text>
       </Breadcrumbs>
 
       <Group justify="space-between" mb="md">
@@ -268,9 +282,6 @@ export function CollectionRecordsPage() {
             <Text c="dimmed" size="sm">{schema.description}</Text>
           )}
         </Box>
-        <Group gap="xs">
-          <Text c="dimmed" size="sm">{total} record{total !== 1 ? 's' : ''}</Text>
-        </Group>
       </Group>
 
       <Group mb="md" gap="sm">
@@ -413,12 +424,13 @@ export function CollectionRecordsPage() {
         saving={saving}
       />
 
-      <RecordDeleteModal
+      <DeleteConfirmModal
         opened={deleteModalOpened}
         onClose={closeDeleteModal}
-        record={deletingRecord}
         onDelete={handleDelete}
         deleting={deleting}
+        title="Delete Record"
+        entityName={<>record <Code fz="xs">{deletingRecord?.id}</Code></>}
       />
     </Box>
   );

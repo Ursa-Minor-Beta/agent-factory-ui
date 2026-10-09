@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { NavLink, Tooltip, ActionIcon, AppShell, HoverCard, Stack } from '@mantine/core';
+import { useLocalStorage } from '@mantine/hooks';
 import { IconPlus } from '@tabler/icons-react';
 import type { NavItem } from './types';
 
@@ -12,9 +13,21 @@ interface NavbarLinksProps {
 export function NavbarLinks({ items, collapsed, closeMobile }: NavbarLinksProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const [openedItems, setOpenedItems] = useLocalStorage<string[]>({
+    key: 'nav-opened-items',
+    defaultValue: [],
+  });
+
+  const toggleItem = (path: string) => {
+    setOpenedItems((prev) =>
+      prev.includes(path) ? prev.filter((p) => p !== path) : [...prev, path]
+    );
+  };
 
   const renderParentNavLink = (item: NavItem) => {
     const isActive = location.pathname.startsWith(item.path);
+
+    const isOpened = openedItems.includes(item.path) || isActive;
 
     const navLinkContent = (
       <NavLink
@@ -38,7 +51,8 @@ export function NavbarLinks({ items, collapsed, closeMobile }: NavbarLinksProps)
             </Tooltip>
           ) : undefined
         }
-        defaultOpened={isActive}
+        opened={isOpened}
+        onChange={() => toggleItem(item.path)}
         active={collapsed && isActive}
         onClick={collapsed ? () => navigate(item.path) : undefined}
         style={{

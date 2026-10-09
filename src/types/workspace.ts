@@ -5,6 +5,10 @@ export interface Workspace {
   description?: string;
   createdAt: string;
   updatedAt: string;
+  agentCount?: number;
+  secretCount?: number;
+  providerCount?: number;
+  collectionCount?: number;
 }
 
 export interface WorkspaceQueryOptions {
@@ -31,5 +35,3 @@ export interface UpdateWorkspaceData {
   name?: string;
   description?: string;
 }
-
-export type WorkspaceDeleteMode = 'move-agents' | 'delete-agents';

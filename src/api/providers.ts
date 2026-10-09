@@ -1,6 +1,10 @@
 import { api } from './client';
 import type { ProviderConfig } from '../types';
 
+export interface ListProvidersOptions {
+  workspaceId?: string | null; // string = specific workspace, null = global only, undefined = all
+}
+
 export interface CreateProviderInput {
   provider: 'openai' | 'anthropic' | 'ollama';
   name: string;
@@ -9,6 +13,7 @@ export interface CreateProviderInput {
     apiKey?: string;
     baseUrl?: string;
   };
+  workspaceId?: string;
 }
 
 export interface UpdateProviderInput {
@@ -17,11 +22,18 @@ export interface UpdateProviderInput {
     apiKey?: string;
     baseUrl?: string;
   };
+  workspaceId?: string | null;
 }
 
 export const providersApi = {
-  list: () =>
-    api.get<ProviderConfig[]>('/api/providers'),
+  list: (options?: ListProvidersOptions) => {
+    const params = new URLSearchParams();
+    if (options?.workspaceId !== undefined) {
+      params.append('workspaceId', options.workspaceId === null ? 'null' : options.workspaceId);
+    }
+    const query = params.toString();
+    return api.get<ProviderConfig[]>(`/api/providers${query ? `?${query}` : ''}`);
+  },
 
   getById: (id: string) =>
     api.get<ProviderConfig>(`/api/providers/${id}`),

@@ -40,6 +40,7 @@ export interface Agent {
   editorData?: EditorData;
   status: 'draft' | 'published';
   workspaceId?: string;
+  workspaceName?: string;
   defaultName?: string;
   systemName?: string;
   createdAt: string;
@@ -81,4 +82,82 @@ export interface AgentJsonModalProps {
   agent: Agent | null;
   onClose: () => void;
   onSave: () => void;
+}
+
+// Export types
+export interface ExportedAgent {
+  name: string;
+  description?: string;
+  nodes: AgentNode[];
+  originalId: string;
+}
+
+export interface ExportedCollection {
+  name: string;
+  description?: string | null;
+  fields: unknown[];
+}
+
+export interface ExportedSecret {
+  name: string;
+  description: string;
+}
+
+export interface AgentExportData {
+  version: string;
+  exportedAt: string;
+  workspace?: {
+    name: string;
+    description?: string;
+  };
+  agent: ExportedAgent;
+  dependencies: ExportedAgent[];
+  collections: ExportedCollection[];
+  secrets: ExportedSecret[];
+  providers: string[];
+}
+
+// Import types
+export interface AgentImportRequest {
+  package: AgentExportData;
+  workspaceId?: string;
+}
+
+export interface CreatedCollection {
+  id: string;
+  name: string;
+}
+
+export interface ImportCollectionSchema {
+  name: string;
+  schema: {
+    description?: string;
+    fields: Array<{
+      name: string;
+      type: string;
+      required: boolean;
+      index: boolean;
+      description?: string;
+    }>;
+  };
+}
+
+export interface AgentImportWarnings {
+  missingSecrets?: string[];
+  missingProviders?: string[];
+  collectionsWithoutSchema?: string[];
+  missingCollections?: ImportCollectionSchema[];
+  // Items that exist globally (optional - backend may not provide these)
+  globalSecrets?: string[];
+  globalProviders?: string[];
+  globalCollections?: string[];
+}
+
+export interface AgentImportResponse {
+  workspaceId: string;
+  workspaceName: string;
+  agentId: string;
+  agentIdMap: Record<string, string>;
+  warnings: AgentImportWarnings;
+  createdCollections?: CreatedCollection[];
 }

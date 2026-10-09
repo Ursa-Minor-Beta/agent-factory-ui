@@ -8,6 +8,8 @@ export interface ProviderConfig {
     apiKey?: string;
     baseUrl?: string;
   };
+  workspaceId?: string | null;
+  workspaceName?: string;
   createdAt: string;
   updatedAt: string;
 }
