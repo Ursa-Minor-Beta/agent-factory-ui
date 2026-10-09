@@ -97,7 +97,7 @@ export function Layout() {
 
         <Divider mb={1}/>
 
-        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '8px' }}>
           <NavbarLinks
             items={filteredNavItems}
             collapsed={collapsed}
