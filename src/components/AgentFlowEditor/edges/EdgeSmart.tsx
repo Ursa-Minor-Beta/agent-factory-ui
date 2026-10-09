@@ -1,7 +1,7 @@
 import { BaseEdge, Position, useEdges, useNodes, type Node } from '@xyflow/react';
 
 const radius = 10;
-const baseOffset = 10;
+const baseOffset = 20;
 const edgeGap = 2;
 
 interface Point {
