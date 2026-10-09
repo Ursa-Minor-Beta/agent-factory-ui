@@ -11,6 +11,7 @@ import {
   IconUpload,
   IconBrandGithub,
 } from '@tabler/icons-react';
+import { Link } from 'react-router-dom';
 import type { AgentCardProps } from './types';
 import { WorkspaceBadge } from '../Workspace';
 
@@ -83,10 +84,10 @@ export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExp
       <Group mt="sm" gap="xs" justify="space-between">
         <Box>
           <Button
-            component='a'
+            component={Link}
             size='xs'
             variant='subtle'
-            href={`/agents/${agent.id}/chat`}
+            to={`/agents/${agent.id}/chat`}
             style={{
               padding: '0 4px',
               color: 'var(--mantine-color-cyan-5)',
@@ -102,9 +103,9 @@ export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExp
         <Group gap="xs">
           <Tooltip label="Visual Editor">
             <ActionIcon
-              component='a'
+              component={Link}
               variant='subtle'
-              href={`/agents/${agent.id}/editor`}
+              to={`/agents/${agent.id}/editor`}
               title='Visual editor'
               style={{
                 padding: '0 2px',
