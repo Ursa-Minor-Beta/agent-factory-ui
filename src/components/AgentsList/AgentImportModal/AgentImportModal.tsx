@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Modal, Text, Group, Button, Stack, Textarea, Select } from '@mantine/core';
 import { agentsApi, workspacesApi, secretsApi, providersApi, memoryApi } from '../../../api';
-import type { AgentExportData, AgentImportResponse } from '../../../types';
+import type { AgentExportData, AgentImportResponse, ImportCollectionSchema } from '../../../types';
 import type { Workspace } from '../../../types/workspace';
 import { FileDropZone } from '../../FileDropZone';
 import { ImportSuccessView } from './ImportSuccessView';
@@ -42,6 +42,7 @@ export function AgentImportModal({ opened, onClose, onImported, workspaceId }: A
   const [providerDefaultName, setProviderDefaultName] = useState('');
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
   const [collectionDefaultName, setCollectionDefaultName] = useState('');
+  const [collectionDefaultSchema, setCollectionDefaultSchema] = useState<ImportCollectionSchema['schema'] | undefined>();
 
   // Track created items
   const [createdSecrets, setCreatedSecrets] = useState<Set<string>>(new Set());
@@ -173,6 +174,9 @@ export function AgentImportModal({ opened, onClose, onImported, workspaceId }: A
 
   const handleCreateCollection = (name: string) => {
     setCollectionDefaultName(name);
+    // Find schema from import response if available
+    const collectionData = result?.warnings.missingCollections?.find((c) => c.name === name);
+    setCollectionDefaultSchema(collectionData?.schema);
     setCollectionModalOpen(true);
   };
 
@@ -239,6 +243,7 @@ export function AgentImportModal({ opened, onClose, onImported, workspaceId }: A
           collection={null}
           workspaceId={result.workspaceId}
           defaultName={collectionDefaultName}
+          defaultSchema={collectionDefaultSchema}
           onSuccess={() => {
             setCreatedCollections((prev) => new Set(prev).add(collectionDefaultName));
             setCollectionModalOpen(false);
