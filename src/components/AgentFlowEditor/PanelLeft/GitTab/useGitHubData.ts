@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../../../api/client';
+import type { Agent } from '../../../../types/agent';
 
 interface GitHubSync {
   id: string;
@@ -37,15 +38,18 @@ interface UseGitHubDataResult {
 // Module-level cache that persists across component mount/unmount
 const cache = new Map<string, { syncStatus: GitHubSync; commits: GitHubCommit[] }>();
 
-export function useGitHubData(agentId: string | undefined): UseGitHubDataResult {
+export function useGitHubData(agent: Partial<Agent> | null): UseGitHubDataResult {
   const [syncStatus, setSyncStatus] = useState<GitHubSync | null>(null);
   const [commits, setCommits] = useState<GitHubCommit[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingCommits, setLoadingCommits] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const agentId = agent?.id;
+  const isSubAgent = agent?.github?.rootId && agent.github.rootId !== agent.id;
+
   useEffect(() => {
-    if (!agentId) {
+    if (!agentId || isSubAgent) {
       setSyncStatus(null);
       setCommits([]);
       return;
@@ -61,7 +65,7 @@ export function useGitHubData(agentId: string | undefined): UseGitHubDataResult 
 
     // No cache, fetch data
     loadGitHubStatus();
-  }, [agentId]);
+  }, [agentId, isSubAgent]);
 
   const loadGitHubStatus = async () => {
     if (!agentId) return;

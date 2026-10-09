@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Stack, Alert, Accordion } from '@mantine/core';
-import { IconAlertCircle } from '@tabler/icons-react';
+import { Link } from 'react-router-dom';
+import { Stack, Alert, Accordion, Anchor } from '@mantine/core';
+import { IconAlertCircle, IconGitFork } from '@tabler/icons-react';
 import type { Agent } from '../../../../types/agent';
 import { useGitHubData } from './useGitHubData';
 import { GitHubStatus } from './GitHubStatus';
@@ -13,7 +14,7 @@ interface GitTabProps {
 }
 
 export function GitTab({ agent }: GitTabProps) {
-  const { syncStatus, commits, loading, loadingCommits, error, refresh } = useGitHubData(agent?.id);
+  const { syncStatus, commits, loading, loadingCommits, error, refresh } = useGitHubData(agent);
   const [pushing, setPushing] = useState(false);
   const [pulling, setPulling] = useState(false);
   const [pullingCommit, setPullingCommit] = useState<string | null>(null);
@@ -38,12 +39,32 @@ export function GitTab({ agent }: GitTabProps) {
     );
   }
 
+  const isSubAgent = agent?.github?.rootId && agent.github.rootId !== agent.id;
+
   if (!syncStatus) {
     return (
       <Stack gap="md" p="xs">
-        <Alert color="gray" icon={<IconAlertCircle size={16} />}>
-          This agent is not linked to a GitHub repository
-        </Alert>
+        {isSubAgent && (
+          <Alert color="blue" icon={<IconGitFork size={16} />}>
+            This agent is a dependency of{' '}
+            <Anchor component={Link} to={`/agents/${agent.github?.rootId}/editor`} size="sm">
+              root agent
+            </Anchor>
+            , imported from{' '}
+            <Anchor
+              href={`https://github.com/${agent.github?.repository}`}
+              target="_blank"
+              size="sm"
+            >
+              {agent.github?.repository}
+            </Anchor>
+          </Alert>
+        )}
+        {!isSubAgent && (
+          <Alert color="gray" icon={<IconAlertCircle size={16} />}>
+            This agent is not linked to a GitHub repository
+          </Alert>
+        )}
       </Stack>
     );
   }
@@ -89,6 +110,23 @@ export function GitTab({ agent }: GitTabProps) {
 
   return (
     <Stack gap="xs" p="xs">
+      {isSubAgent && (
+        <Alert color="blue" icon={<IconGitFork size={16} />} p="xs">
+          This agent is a dependency of{' '}
+          <Anchor component={Link} to={`/agents/${agent.github?.rootId}/editor`} size="sm">
+            root agent
+          </Anchor>
+          , imported from{' '}
+          <Anchor
+            href={`https://github.com/${agent.github?.repository}`}
+            target="_blank"
+            size="sm"
+          >
+            {agent.github?.repository}
+          </Anchor>
+        </Alert>
+      )}
+
       <GitSyncActions
         status={syncStatus.status}
         loading={loading || loadingCommits}
