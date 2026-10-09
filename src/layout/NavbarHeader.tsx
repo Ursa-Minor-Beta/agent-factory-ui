@@ -35,7 +35,6 @@ export function NavbarHeader({ collapsed, setCollapsed, mobileOpened, toggleMobi
           </Group>
         </Group>
       </AppShell.Section>
-      <Divider mb="xs" />
     </>
   );
 }

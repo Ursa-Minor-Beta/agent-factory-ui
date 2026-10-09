@@ -79,11 +79,13 @@ export function Layout() {
       padding="md"
     >
       <AppShell.Navbar
-        p="xs"
+        // p="xs"
         style={{
           backgroundColor: 'var(--mantine-color-body)',
           borderRight: '1px solid var(--mantine-color-default-border)',
           transition: 'width 200ms ease',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
         <NavbarHeader
@@ -93,13 +95,17 @@ export function Layout() {
           toggleMobile={toggleMobile}
         />
 
-        <NavbarLinks
-          items={filteredNavItems}
-          collapsed={collapsed}
-          closeMobile={closeMobile}
-        />
+        <Divider mb={1}/>
 
-        <Divider my="xs" />
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+          <NavbarLinks
+            items={filteredNavItems}
+            collapsed={collapsed}
+            closeMobile={closeMobile}
+          />
+        </div>
+
+        <Divider mt={1}/>
 
         <UserMenu collapsed={collapsed} />
       </AppShell.Navbar>
