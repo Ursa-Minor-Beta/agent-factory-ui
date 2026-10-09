@@ -60,17 +60,6 @@ export const runsApi = {
     return api.get<ListRunsResponse>(`/api/executions${query ? `?${query}` : ''}`);
   },
 
-  deleteRuns: (params: DeleteRunsParams) => {
-    const searchParams = new URLSearchParams();
-    if (params.id) {
-      const ids = Array.isArray(params.id) ? params.id : [params.id];
-      ids.forEach((id) => searchParams.append('id', id));
-    }
-    if (params.agentId) {
-      const agentIds = Array.isArray(params.agentId) ? params.agentId : [params.agentId];
-      agentIds.forEach((id) => searchParams.append('agentId', id));
-    }
-    const query = searchParams.toString();
-    return api.delete<DeleteRunsResponse>(`/api/runs${query ? `?${query}` : ''}`);
-  },
+  deleteRuns: (params: DeleteRunsParams) =>
+    api.post<DeleteRunsResponse>('/api/runs/delete', params),
 };

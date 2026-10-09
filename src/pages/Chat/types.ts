@@ -28,6 +28,7 @@ export interface ChatMessage {
 
 export interface ChatHeaderProps {
   agent: Agent;
+  workspaceName?: string;
   isIncognito: boolean;
   isMobile: boolean;
   onOpenSidebar: () => void;
