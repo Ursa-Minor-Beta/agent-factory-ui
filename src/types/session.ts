@@ -2,6 +2,8 @@ export interface Session {
   id: string;
   userId: string;
   agentId: string;
+  agentName?: string;
+  workspaceId?: string;
   title?: string | null;
   status: 'active' | 'archived';
   incognito: boolean;

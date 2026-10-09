@@ -71,6 +71,15 @@ export interface SessionUpdate {
   status?: 'active' | 'archived';
 }
 
+export interface DeleteSessionsParams {
+  id?: string | string[];
+  agentId?: string | string[];
+}
+
+export interface DeleteSessionsResponse {
+  deletedCount: number;
+}
+
 export const sessionsApi = {
   list: (params: SessionsQueryParams = {}) =>
     api.get<Session[]>(`/api/sessions${buildQueryString(params)}`),
@@ -81,8 +90,8 @@ export const sessionsApi = {
   update: (id: string, data: SessionUpdate) =>
     api.patch<Session>(`/api/sessions/${id}`, data),
 
-  delete: (id: string) =>
-    api.delete<void>(`/api/sessions/${id}`),
+  delete: (params: DeleteSessionsParams) =>
+    api.post<DeleteSessionsResponse>('/api/sessions/delete', params),
 
   getMessages: (id: string, limit?: number, offset?: number) => {
     const params = new URLSearchParams();

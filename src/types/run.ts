@@ -31,6 +31,7 @@ export interface Run {
 export interface RunSummary {
   id: string;
   agentId: string;
+  agentName: string;
   userId: string;
   status: RunStatus;
   error: string | null;
