@@ -17,6 +17,14 @@ export interface FileData {
   data: string; // base64 encoded
 }
 
+export interface DeleteFilesParams {
+  id: string | string[];
+}
+
+export interface DeleteFilesResponse {
+  deletedCount: number;
+}
+
 export const filesApi = {
   list: (params?: { limit?: number; offset?: number }) => {
     const searchParams = new URLSearchParams();
@@ -29,6 +37,6 @@ export const filesApi = {
   getById: (id: string) =>
     api.get<FileData>(`/api/files/${id}`),
 
-  delete: (id: string) =>
-    api.delete<void>(`/api/files/${id}`),
+  delete: (params: DeleteFilesParams) =>
+    api.post<DeleteFilesResponse>('/api/files/delete', params),
 };

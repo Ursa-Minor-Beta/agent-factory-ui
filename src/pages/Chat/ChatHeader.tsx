@@ -1,10 +1,11 @@
-import { Box, Card, Group, ActionIcon, Text, Tooltip, useMantineColorScheme } from '@mantine/core';
-import { IconMenu2, IconGhost, IconCode, IconSchema } from '@tabler/icons-react';
+import { Box, Card, Group, ActionIcon, Text, Tooltip, Badge, useMantineColorScheme } from '@mantine/core';
+import { IconMenu2, IconGhost, IconCode, IconSchema, IconFolder } from '@tabler/icons-react';
 import type { ChatHeaderProps } from './types';
 import { Link } from 'react-router-dom';
 
 export function ChatHeader({
   agent,
+  workspaceName,
   isIncognito,
   isMobile,
   onOpenSidebar,
@@ -43,6 +44,19 @@ export function ChatHeader({
               </ActionIcon>
             )}
             <Text fw={600}>{agent.name}</Text>
+            {workspaceName && agent.workspaceId && (
+              <Link to={`/workspaces/${agent.workspaceId}`} style={{ textDecoration: 'none' }}>
+                <Badge
+                  variant="light"
+                  color="gray"
+                  size="sm"
+                  leftSection={<IconFolder size={12} />}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {workspaceName}
+                </Badge>
+              </Link>
+            )}
             {isIncognito && (
               <Tooltip label="Incognito mode - messages won't be saved">
                 <IconGhost size={18} color="var(--mantine-color-violet-5)" />

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Loader, Alert, Center, Modal, Text, Group, Button } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { IconAlertCircle } from '@tabler/icons-react';
-import { agentsApi, sessionsApi, ApiError } from '../../api';
+import { agentsApi, sessionsApi, workspacesApi, ApiError } from '../../api';
 import type { Agent, Session } from '../../types';
 import { ChatHeader } from './ChatHeader';
 import { ChatInput } from './ChatInput';
@@ -367,6 +367,9 @@ export function ChatPage() {
   const [agent, setAgent] = useState<Agent | null>(null);
   const [loadingAgent, setLoadingAgent] = useState(true);
 
+  // Workspace state
+  const [workspaceName, setWorkspaceName] = useState<string | undefined>();
+
   // Input schema derived from agent
   const inputSchema = useMemo(() => (agent ? getInputSchema(agent) : { message: { type: 'string' as const, required: true } }), [agent]);
 
@@ -442,6 +445,26 @@ export function ChatPage() {
 
     loadAgent();
   }, [agentId]);
+
+  // Load workspace when agent has workspaceId
+  useEffect(() => {
+    if (!agent?.workspaceId) {
+      setWorkspaceName(undefined);
+      return;
+    }
+
+    const loadWorkspace = async () => {
+      try {
+        const workspace = await workspacesApi.getById(agent.workspaceId!);
+        setWorkspaceName(workspace.name);
+      } catch {
+        // Silently fail - workspace badge just won't show
+        setWorkspaceName(undefined);
+      }
+    };
+
+    loadWorkspace();
+  }, [agent?.workspaceId]);
 
   // Load sessions for this agent (no auto-select logic here)
   const loadSessions = useCallback(async () => {
@@ -696,7 +719,7 @@ export function ChatPage() {
     if (!sessionToDelete) return;
 
     try {
-      await sessionsApi.delete(sessionToDelete);
+      await sessionsApi.delete({ id: sessionToDelete });
       if (currentSessionId === sessionToDelete) {
         setCurrentSessionId(null);
         setMessages([]);
@@ -801,6 +824,7 @@ export function ChatPage() {
       <Box style={{ flex: 1, position: 'relative', minWidth: 0, overflow: 'hidden' }}>
         <ChatHeader
           agent={agent}
+          workspaceName={workspaceName}
           isIncognito={isIncognitoSession || (isNewChat && startIncognito)}
           isMobile={isMobile}
           onOpenSidebar={() => setSidebarOpen(true)}

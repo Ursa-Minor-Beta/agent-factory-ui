@@ -19,6 +19,7 @@ import {
   Checkbox,
   Paper,
   Transition,
+  CopyButton,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import {
@@ -34,6 +35,7 @@ import {
   IconPlayerStop,
   IconTrash,
   IconSquareCheck,
+  IconCopy,
 } from '@tabler/icons-react';
 import { runsApi } from '../../api';
 import type { ListRunsParams } from '../../api/runs';
@@ -456,7 +458,26 @@ export function RunsPage() {
                     </Badge>
                   </Table.Td>
                   <Table.Td>
-                    <Text size="sm" ff="monospace">{run.agentId}</Text>
+                    <Group gap="xs">
+                      <Text size="sm" ff="monospace">{run.agentName}</Text>
+                      <CopyButton value={run.agentId}>
+                        {({ copied, copy }) => (
+                          <Tooltip label={copied ? 'Copied' : 'Copy Agent ID'}>
+                            <ActionIcon
+                              size="xs"
+                              variant="subtle"
+                              color={copied ? 'teal' : 'gray'}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                copy();
+                              }}
+                            >
+                              {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
+                            </ActionIcon>
+                          </Tooltip>
+                        )}
+                      </CopyButton>
+                    </Group>
                   </Table.Td>
                   <Table.Td>
                     <Text size="sm" c="dimmed">

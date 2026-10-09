@@ -27,3 +27,6 @@ export * from './memory';
 
 // File reference types
 export * from './file';
+
+// Workspace types
+export * from './workspace';
