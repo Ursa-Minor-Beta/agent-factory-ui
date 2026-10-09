@@ -16,8 +16,15 @@ import { IconBrandGithub, IconAlertCircle, IconCheck } from '@tabler/icons-react
 import { githubApi } from '../../api/github';
 import { workspacesApi } from '../../api/workspaces';
 import { providersApi } from '../../api/providers';
+import { secretsApi } from '../../api/secrets';
+import { memoryApi } from '../../api/memory';
 import type { Workspace } from '../../types/workspace';
 import type { ProviderConfig } from '../../types/provider';
+import type { GitHubImportResponse, ImportCollectionSchema } from '../../types';
+import { ImportSuccessView } from './ModalAgentImport/ImportSuccessView';
+import { SecretModal } from '../Secrets/SecretModal';
+import { ProviderModal } from '../Providers/ProviderModal';
+import { CollectionModal } from '../Collections/CollectionModal';
 
 const NEW_WORKSPACE_VALUE = '__new__';
 
@@ -67,7 +74,7 @@ export function ModalGitHubImport({
   const [branch, setBranch] = useState('main');
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState<{ agentId: string; message: string } | null>(null);
+  const [result, setResult] = useState<GitHubImportResponse | null>(null);
 
   // Workspace selection
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -77,6 +84,25 @@ export function ModalGitHubImport({
 
   // GitHub providers
   const [githubProviders, setGithubProviders] = useState<ProviderConfig[]>([]);
+
+  // Create modals state
+  const [secretModalOpen, setSecretModalOpen] = useState(false);
+  const [secretDefaultName, setSecretDefaultName] = useState('');
+  const [providerModalOpen, setProviderModalOpen] = useState(false);
+  const [providerDefaultName, setProviderDefaultName] = useState('');
+  const [collectionModalOpen, setCollectionModalOpen] = useState(false);
+  const [collectionDefaultName, setCollectionDefaultName] = useState('');
+  const [collectionDefaultSchema, setCollectionDefaultSchema] = useState<ImportCollectionSchema['schema'] | undefined>();
+
+  // Track created items
+  const [createdSecrets, setCreatedSecrets] = useState<Set<string>>(new Set());
+  const [createdProviders, setCreatedProviders] = useState<Set<string>>(new Set());
+  const [createdCollections, setCreatedCollections] = useState<Set<string>>(new Set());
+
+  // Track global items (fetched after import)
+  const [globalSecrets, setGlobalSecrets] = useState<Set<string>>(new Set());
+  const [globalProviders, setGlobalProviders] = useState<Set<string>>(new Set());
+  const [globalCollections, setGlobalCollections] = useState<Set<string>>(new Set());
 
   // Load workspaces and GitHub providers when modal opens
   useEffect(() => {
@@ -104,8 +130,14 @@ export function ModalGitHubImport({
     setPath('');
     setBranch('main');
     setError('');
-    setSuccess(null);
+    setResult(null);
     setSelectedWorkspace(workspaceId || NEW_WORKSPACE_VALUE);
+    setCreatedSecrets(new Set());
+    setCreatedProviders(new Set());
+    setCreatedCollections(new Set());
+    setGlobalSecrets(new Set());
+    setGlobalProviders(new Set());
+    setGlobalCollections(new Set());
   };
 
   const handleClose = () => {
@@ -139,7 +171,28 @@ export function ModalGitHubImport({
         workspaceId: targetWorkspaceId,
       });
 
-      setSuccess(response);
+      setResult(response);
+
+      // Fetch global items to check if missing items exist globally
+      const [globals, globalProvs, globalColls] = await Promise.all([
+        secretsApi.list({ workspaceId: null }),
+        providersApi.list({ workspaceId: null }),
+        memoryApi.listSchemas({ workspaceId: null }),
+      ]);
+      setGlobalSecrets(new Set(globals.map((s) => s.name)));
+      setGlobalProviders(new Set(globalProvs.map((p) => p.provider)));
+      setGlobalCollections(new Set(globalColls.map((c) => c.name)));
+
+      // Notify sidebar about the new workspace (only if we created a new one)
+      if (selectedWorkspace === NEW_WORKSPACE_VALUE) {
+        const workspaceName = response.workspaceName;
+        if (workspaceName) {
+          window.dispatchEvent(new CustomEvent('workspace-created', {
+            detail: { workspace: { id: response.workspaceId, name: workspaceName } }
+          }));
+        }
+      }
+
       onImported();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to import agent from GitHub');
@@ -148,41 +201,102 @@ export function ModalGitHubImport({
     }
   };
 
-  const handleOpenAgent = () => {
-    if (success) {
+  const handleNavigateToWorkspace = () => {
+    if (result) {
       handleClose();
-      navigate(`/agents/${success.agentId}/editor`);
+      navigate(`/workspaces/${result.workspaceId}`);
     }
   };
 
-  // Success state
-  if (success) {
-    return (
-      <Modal
-        opened={opened}
-        onClose={handleClose}
-        title={
-          <Group gap="xs">
-            <IconCheck size={20} color="var(--mantine-color-green-6)" />
-            <Text fw={500}>Agent imported successfully</Text>
-          </Group>
-        }
-        centered
-        size="md"
-      >
-        <Stack gap="md">
-          <Text size="sm" c="dimmed">
-            {success.message}
-          </Text>
+  // Handlers for opening create modals
+  const handleCreateSecret = (name: string) => {
+    setSecretDefaultName(name);
+    setSecretModalOpen(true);
+  };
 
-          <Group justify="flex-end" gap="sm">
-            <Button variant="default" onClick={handleClose}>
-              Close
-            </Button>
-            <Button onClick={handleOpenAgent}>Open Agent</Button>
-          </Group>
-        </Stack>
-      </Modal>
+  const handleCreateProvider = (name: string) => {
+    setProviderDefaultName(name);
+    setProviderModalOpen(true);
+  };
+
+  const handleCreateCollection = (name: string) => {
+    setCollectionDefaultName(name);
+    // Find schema from import response if available
+    const collectionData = result?.warnings.missingCollections?.find((c) => c.name === name);
+    setCollectionDefaultSchema(collectionData?.schema as ImportCollectionSchema['schema'] | undefined);
+    setCollectionModalOpen(true);
+  };
+
+  // Success state
+  if (result) {
+    return (
+      <>
+        <Modal
+          opened={opened}
+          onClose={handleClose}
+          title={
+            <Group gap="xs">
+              <IconCheck size={20} color="var(--mantine-color-green-6)" />
+              <Text fw={500}>
+                Agent imported to workspace <Text span c="cyan" inherit>{result.workspaceName}</Text>
+              </Text>
+            </Group>
+          }
+          centered
+          size="xl"
+        >
+          <ImportSuccessView
+            result={result}
+            onClose={handleClose}
+            onNavigateToWorkspace={handleNavigateToWorkspace}
+            onCreateSecret={handleCreateSecret}
+            onCreateProvider={handleCreateProvider}
+            onCreateCollection={handleCreateCollection}
+            createdSecrets={createdSecrets}
+            createdProviders={createdProviders}
+            createdCollections={createdCollections}
+            globalSecrets={globalSecrets}
+            globalProviders={globalProviders}
+            globalCollections={globalCollections}
+          />
+        </Modal>
+
+        <SecretModal
+          opened={secretModalOpen}
+          onClose={() => setSecretModalOpen(false)}
+          secret={null}
+          workspaceId={result.workspaceId}
+          defaultName={secretDefaultName}
+          onSuccess={() => {
+            setCreatedSecrets((prev) => new Set(prev).add(secretDefaultName));
+            setSecretModalOpen(false);
+          }}
+        />
+
+        <ProviderModal
+          opened={providerModalOpen}
+          onClose={() => setProviderModalOpen(false)}
+          workspaceId={result.workspaceId}
+          defaultName={providerDefaultName}
+          onSuccess={() => {
+            setCreatedProviders((prev) => new Set(prev).add(providerDefaultName));
+            setProviderModalOpen(false);
+          }}
+        />
+
+        <CollectionModal
+          opened={collectionModalOpen}
+          onClose={() => setCollectionModalOpen(false)}
+          collection={null}
+          workspaceId={result.workspaceId}
+          defaultName={collectionDefaultName}
+          defaultSchema={collectionDefaultSchema}
+          onSuccess={() => {
+            setCreatedCollections((prev) => new Set(prev).add(collectionDefaultName));
+            setCollectionModalOpen(false);
+          }}
+        />
+      </>
     );
   }
 

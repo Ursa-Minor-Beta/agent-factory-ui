@@ -1,3 +1,5 @@
+import type { ImportCollectionSchema } from './agent';
+
 // GitHub Sync entity types
 export const GitHubSyncEntity = {
   AGENT: 'agent',
@@ -56,6 +58,14 @@ export interface GitHubImportRequest {
 
 export interface GitHubImportResponse {
   agentId: string;
+  workspaceId: string;
+  workspaceName: string;
+  agentIdMap: Record<string, string>;
+  warnings: {
+    missingSecrets?: string[];
+    missingProviders?: string[];
+    missingCollections?: ImportCollectionSchema[];
+  };
   message: string;
 }
 
