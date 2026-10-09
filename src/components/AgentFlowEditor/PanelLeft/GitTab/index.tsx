@@ -1,4 +1,4 @@
-import { Stack, Alert, Accordion, ActionIcon, Badge, Group, Tooltip, Text } from '@mantine/core';
+import { Stack, Alert, Accordion, ActionIcon, Badge, Group, Tooltip, Text, ButtonGroup, Card } from '@mantine/core';
 import { IconAlertCircle, IconRefresh } from '@tabler/icons-react';
 import type { Agent } from '../../../../types/agent';
 import { useGitHubData } from './useGitHubData';
@@ -53,35 +53,35 @@ export function GitTab({ agent }: GitTabProps) {
 
   return (
     <Stack gap="xs" p="xs">
+
+      <Card withBorder p='xs'>
+        <Group gap="xs" justify="space-between">
+          <Badge color={loading || loadingCommits ? '' : getStatusColor(syncStatus.status)} variant="light" size="sm">
+            {loading || loadingCommits ? 'Updating...' : syncStatus.status}
+          </Badge>
+          <Group gap="xs">
+            <Tooltip label="Refresh GitHub data">
+              <ActionIcon
+                loading={loading || loadingCommits}
+                onClick={ (e) => {
+                  e.stopPropagation()
+                  refresh()
+                }}
+              >
+                <IconRefresh size={16} />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
+        </Group>
+      </Card>
+
       <Accordion
         multiple={true}
         defaultValue={["status"]} 
         variant="separated" 
         >
         <Accordion.Item value="status">
-          <Accordion.Control>
-            <Group gap='xs'>
-                <Text>Status</Text>
-                <Badge color={loading || loadingCommits ? '' : getStatusColor(syncStatus.status)} variant="light" size="sm">
-                  {loading || loadingCommits ? 'Updating...' : syncStatus.status}
-                </Badge>
-                {!(loading || loadingCommits) && 
-                  <Tooltip label="Refresh GitHub data">
-                    <ActionIcon
-                      component='div'
-                      variant="subtle"
-                      color="gray"
-                      onClick={ (e) => {
-                        e.stopPropagation()
-                        refresh()
-                      }}
-                    >
-                      <IconRefresh size={16} />
-                    </ActionIcon>
-                  </Tooltip>
-                }
-            </Group>
-          </Accordion.Control>
+          <Accordion.Control>Info</Accordion.Control>
           <Accordion.Panel>
             <GitHubStatus syncStatus={syncStatus} onRefresh={refresh} isLoading={loading || loadingCommits}/>
           </Accordion.Panel>
