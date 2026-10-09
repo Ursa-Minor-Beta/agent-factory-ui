@@ -55,6 +55,12 @@ export interface ListRecordsOptions {
   search?: string;
 }
 
+// Paginated records response
+export interface ListRecordsResponse {
+  records: MemoryRecord[];
+  total: number;
+}
+
 export const memoryApi = {
   // Schema operations
   listSchemas: (options?: ListSchemasOptions) => {
@@ -90,7 +96,7 @@ export const memoryApi = {
     if (options?.sortDirection) params.append('sortDirection', options.sortDirection);
     if (options?.search) params.append('search', options.search);
     const query = params.toString();
-    return api.get<MemoryRecord[]>(`/api/memory/${collectionId}/records${query ? `?${query}` : ''}`);
+    return api.get<ListRecordsResponse>(`/api/memory/${collectionId}/records${query ? `?${query}` : ''}`);
   },
 
   getRecord: (collectionId: string, id: string) =>
