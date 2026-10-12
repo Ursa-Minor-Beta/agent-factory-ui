@@ -1,8 +1,10 @@
 import { Group, Text, ActionIcon } from '@mantine/core';
 import { IconDeviceFloppy, IconPlayerPlay, IconLayoutSidebar } from '@tabler/icons-react';
+import { WorkspaceBadge } from '../Workspace';
 
 interface EditorToolbarProps {
   agentName: string;
+  workspaceName?: string | null;
   saving: boolean;
   isPaletteOpen: boolean;
   onSave: () => void;
@@ -19,6 +21,7 @@ const glassStyle = {
 
 export function EditorToolbar({
   agentName,
+  workspaceName,
   saving,
   isPaletteOpen,
   onSave,
@@ -62,6 +65,7 @@ export function EditorToolbar({
         <Text fw={600} size="sm">
           {agentName || 'Untitled Agent'}
         </Text>
+        <WorkspaceBadge workspaceName={workspaceName} size="xs" />
 
         <Group gap="xs">
           <ActionIcon
