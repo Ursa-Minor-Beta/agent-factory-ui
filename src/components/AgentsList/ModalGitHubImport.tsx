@@ -44,7 +44,7 @@ function parseGitHubInput(input: string): { repository: string; branch?: string;
     return {
       repository: `${urlMatch[1]}/${urlMatch[2]}`,
       branch: urlMatch[3],
-      path: urlMatch[4],
+      path: urlMatch[4] ? decodeURIComponent(urlMatch[4]) : undefined,
     };
   }
 
