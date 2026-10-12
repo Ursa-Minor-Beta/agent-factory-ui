@@ -31,6 +31,12 @@ export interface EditorData {
   [key: string]: unknown;
 }
 
+export interface AgentGitHubInfo {
+  repository: string;
+  path: string;
+  rootId?: string;
+}
+
 export interface Agent {
   id: string;
   userId: string;
@@ -43,6 +49,8 @@ export interface Agent {
   workspaceName?: string;
   defaultName?: string;
   systemName?: string;
+  github?: AgentGitHubInfo | null;
+  nodesCount?: number;
   createdAt: string;
   updatedAt: string;
 }

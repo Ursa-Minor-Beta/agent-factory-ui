@@ -1,12 +1,13 @@
 import { api } from './client';
-import type { ProviderConfig } from '../types';
+import type { ProviderConfig, ProviderType } from '../types';
 
 export interface ListProvidersOptions {
+  provider?: ProviderType; // Filter by provider type (e.g., 'github', 'openai')
   workspaceId?: string | null; // string = specific workspace, null = global only, undefined = all
 }
 
 export interface CreateProviderInput {
-  provider: 'openai' | 'anthropic' | 'ollama';
+  provider: ProviderType;
   name: string;
   isDefault?: boolean;
   config?: {
@@ -28,6 +29,9 @@ export interface UpdateProviderInput {
 export const providersApi = {
   list: (options?: ListProvidersOptions) => {
     const params = new URLSearchParams();
+    if (options?.provider) {
+      params.append('provider', options.provider);
+    }
     if (options?.workspaceId !== undefined) {
       params.append('workspaceId', options.workspaceId === null ? 'null' : options.workspaceId);
     }

@@ -198,7 +198,7 @@ export function WorkspaceDetailPage() {
             workspaceId={workspaceId}
             showFilters={false}
             showPagination={false}
-            showCreateButton={true}
+            showCreateButton={false}
             onCreate={loadWorkspace}
             onDelete={loadWorkspace}
           />

@@ -1,6 +1,7 @@
 import { Text, Group, Button, Stack, Card, Badge } from '@mantine/core';
 import { IconCircleCheck, IconCircleDashed, IconKey, IconCloud, IconDatabase, IconPlus, IconCircleHalf2, IconRobot } from '@tabler/icons-react';
 import type { AgentImportResponse } from '../../../types';
+import type { GitHubImportResponse } from '../../../types/github';
 
 interface ConfigItemProps {
   name: string;
@@ -80,7 +81,7 @@ function ConfigSection({ title, icon, items, createdItems, globalItems, onCreate
 }
 
 interface ImportSuccessViewProps {
-  result: AgentImportResponse;
+  result: AgentImportResponse | GitHubImportResponse;
   onClose: () => void;
   onNavigateToWorkspace: () => void;
   onCreateSecret?: (name: string) => void;

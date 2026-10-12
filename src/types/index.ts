@@ -30,3 +30,6 @@ export * from './file';
 
 // Workspace types
 export * from './workspace';
+
+// GitHub sync types
+export * from './github';

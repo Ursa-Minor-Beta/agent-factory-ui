@@ -8,6 +8,7 @@ import { NodesTab } from './NodesTab';
 import { SettingsTab } from './SettingsTab';
 import { RunTab } from './RunTab';
 import { TemplatesTab } from './TemplatesTab';
+import { GitTab } from './GitTab';
 
 const MIN_WIDTH = 120;
 const MAX_WIDTH_RATIO = 0.4; // 40% of viewport
@@ -22,6 +23,7 @@ interface PanelLeftProps {
   agent: Partial<Agent> | null;
   hasNodes: boolean;
   activeTab?: string | null;
+  savedAt?: number;
   onActiveTabChange?: (tab: string | null) => void;
   onAddNode: (nodeType: NodeType, exampleIndex?: number) => void;
   onEdgeTypeChange: (value: string) => void;
@@ -31,9 +33,10 @@ interface PanelLeftProps {
   onClose: () => void;
   onExport?: () => void;
   exporting?: boolean;
+  onReloadAgent?: () => void;
 }
 
-export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onLoadTemplate, onClose, onExport, exporting }: PanelLeftProps) {
+export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, savedAt, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onLoadTemplate, onClose, onExport, exporting, onReloadAgent }: PanelLeftProps) {
   const [viewingNodeType, setViewingNodeType] = useState<NodeType | null>(null);
   const [internalActiveTab, setInternalActiveTab] = useState<string | null>(() => {
     const saved = localStorage.getItem(TAB_STORAGE_KEY);
@@ -154,6 +157,7 @@ export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, layoutDirect
               <Tabs.Tab value="templates">Templates</Tabs.Tab>
               <Tabs.Tab value="settings">Settings</Tabs.Tab>
               <Tabs.Tab value="run">Run</Tabs.Tab>
+              <Tabs.Tab value="git">Git</Tabs.Tab>
             </Tabs.List>
 
             <Tabs.Panel value="nodes" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
@@ -186,6 +190,10 @@ export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, layoutDirect
                 onExport={onExport}
                 exporting={exporting}
               />
+            </Tabs.Panel>
+
+            <Tabs.Panel value="git" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+              <GitTab agent={agent} savedAt={savedAt} onReloadAgent={onReloadAgent} />
             </Tabs.Panel>
           </Tabs>
         </>

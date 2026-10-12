@@ -22,6 +22,7 @@ import {
   IconSchema,
   IconCode,
   IconDownload,
+  IconBrandGithub,
 } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { agentsApi } from '../../api';
@@ -32,7 +33,8 @@ import { AgentCard } from './AgentCard';
 import { AgentFilters } from './AgentFilters';
 import { AgentDeleteModal } from './AgentDeleteModal';
 import { AgentWorkspaceModal } from './AgentWorkspaceModal';
-import { AgentImportModal } from './AgentImportModal/AgentImportModal';
+import { ModalAgentImport } from './ModalAgentImport/ModalAgentImport';
+import { ModalGitHubImport } from './ModalGitHubImport';
 import { useAgentModal } from '../AgentCreateModal';
 
 const ITEMS_PER_PAGE = 12;
@@ -79,6 +81,7 @@ export function AgentsList({
   const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
   const [agentForWorkspace, setAgentForWorkspace] = useState<Agent | null>(null);
   const [importModalOpened, setImportModalOpened] = useState(false);
+  const [githubImportModalOpened, setGithubImportModalOpened] = useState(false);
 
   // Filter panel
   const [filtersOpened, { toggle: toggleFilters }] = useDisclosure(false);
@@ -330,6 +333,14 @@ export function AgentsList({
                     <IconDownload size={16} />
                   </Button>
                 </Tooltip>
+                <Tooltip label="Clone from GitHub">
+                  <Button
+                    variant="default"
+                    onClick={() => setGithubImportModalOpened(true)}
+                  >
+                    <IconBrandGithub size={16} />
+                  </Button>
+                </Tooltip>
               </Button.Group>
             </Group>
           </Group>
@@ -376,11 +387,12 @@ export function AgentsList({
       )}
 
       {/* Results info */}
-      {!loading && (
+      {/* {!loading && (
         <Text size="sm" c="dimmed" mb="md">
           {total} agent{total !== 1 ? 's' : ''} found
         </Text>
-      )}
+      )} */}
+      <Box mb="xl" />
 
       {loading ? (
         <Center py="xl">
@@ -435,9 +447,16 @@ export function AgentsList({
         onSaved={loadAgents}
       />
 
-      <AgentImportModal
+      <ModalAgentImport
         opened={importModalOpened}
         onClose={() => setImportModalOpened(false)}
+        onImported={() => { loadAgents(); onCreate?.(); }}
+        workspaceId={workspaceId}
+      />
+
+      <ModalGitHubImport
+        opened={githubImportModalOpened}
+        onClose={() => setGithubImportModalOpened(false)}
         onImported={() => { loadAgents(); onCreate?.(); }}
         workspaceId={workspaceId}
       />

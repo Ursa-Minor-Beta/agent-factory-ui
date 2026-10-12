@@ -50,58 +50,61 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
     fetchNodeTypes();
   }, []);
 
+  // Fetch agent function - extracted for reuse
+  const fetchAgent = useCallback(async () => {
+    if (!agentId || agentId === 'new') return;
+
+    setLoading(true);
+    try {
+      const data = await agentsApi.getById(agentId);
+      setAgent(data);
+
+      // Convert agent nodes to flow nodes
+      const flowNodes = data.nodes.map((n, i) => toFlowNode(n, i));
+
+      // Extract edges from node data
+      const flowEdges = extractEdges(flowNodes);
+
+      // Get layout direction from agent or localStorage fallback
+      const savedDirection = data.editorData?.canvasSettings?.layoutDirection
+        ?? localStorage.getItem(DEFAULT_LAYOUT_DIRECTION_KEY);
+      const direction: LayoutDirection = (savedDirection === 'LR' || savedDirection === 'TB') ? savedDirection : 'LR';
+
+      // Determine handle positions based on direction
+      const sourcePosition = direction === 'LR' ? Position.Right : Position.Bottom;
+      const targetPosition = direction === 'LR' ? Position.Left : Position.Top;
+
+      // Apply saved positions from editorData if available, otherwise use auto-layout
+      const nodePositions = data.editorData?.nodePositions;
+      const positionedNodes = nodePositions
+        ? flowNodes.map((node) => ({
+            ...node,
+            sourcePosition,
+            targetPosition,
+            position: nodePositions[node.id] || node.position,
+          }))
+        : autoLayoutNodes(flowNodes, flowEdges, direction);
+
+      setNodes(positionedNodes);
+      setEdges(flowEdges);
+    } catch (err) {
+      console.error('Failed to fetch agent:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [agentId, setNodes, setEdges]);
+
   // Fetch agent on mount
   useEffect(() => {
     if (!agentId) return;
 
     if (agentId === 'new') {
-      setAgent({})
+      setAgent({});
       return;
     }
 
-    async function fetchAgent() {
-      setLoading(true);
-      try {
-        const data = await agentsApi.getById(agentId!);
-        setAgent(data);
-
-        // Convert agent nodes to flow nodes
-        const flowNodes = data.nodes.map((n, i) => toFlowNode(n, i));
-
-        // Extract edges from node data
-        const flowEdges = extractEdges(flowNodes);
-
-        // Get layout direction from agent or localStorage fallback
-        const savedDirection = data.editorData?.canvasSettings?.layoutDirection
-          ?? localStorage.getItem(DEFAULT_LAYOUT_DIRECTION_KEY);
-        const direction: LayoutDirection = (savedDirection === 'LR' || savedDirection === 'TB') ? savedDirection : 'LR';
-
-        // Determine handle positions based on direction
-        const sourcePosition = direction === 'LR' ? Position.Right : Position.Bottom;
-        const targetPosition = direction === 'LR' ? Position.Left : Position.Top;
-
-        // Apply saved positions from editorData if available, otherwise use auto-layout
-        const nodePositions = data.editorData?.nodePositions;
-        const positionedNodes = nodePositions
-          ? flowNodes.map((node) => ({
-              ...node,
-              sourcePosition,
-              targetPosition,
-              position: nodePositions[node.id] || node.position,
-            }))
-          : autoLayoutNodes(flowNodes, flowEdges, direction);
-
-        setNodes(positionedNodes);
-        setEdges(flowEdges);
-      } catch (err) {
-        console.error('Failed to fetch agent:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
     fetchAgent();
-  }, [agentId, setNodes, setEdges]);
+  }, [agentId, fetchAgent]);
 
   // Handle connection
   const onConnect = useCallback(
@@ -111,9 +114,9 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
     [setEdges]
   );
 
-  // Save agent
-  const saveAgent = useCallback(async () => {
-    if (!agent) return;
+  // Save agent - returns true on success
+  const saveAgent = useCallback(async (): Promise<boolean> => {
+    if (!agent) return false;
 
     setSaving(true);
     try {
@@ -145,8 +148,10 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
         // Navigate to the new agent's editor
         navigate(`/agents/${newAgent.id}/editor`, { replace: true });
       }
+      return true;
     } catch (err) {
       console.error('Failed to save agent:', err);
+      return false;
     } finally {
       setSaving(false);
     }
@@ -240,7 +245,8 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
 
   // Handle node click
   const onNodeClick = useCallback(
-    (_event: React.MouseEvent, node: Node) => {
+    (event: React.MouseEvent, node: Node) => {
+      if (event.ctrlKey || event.metaKey) return;
       setSelectedNodeId(node.id);
     },
     []
@@ -430,5 +436,6 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
     changeLayoutDirection,
     changeEdgeType,
     loadTemplate,
+    reloadAgent: fetchAgent,
   };
 }
