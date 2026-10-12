@@ -16,7 +16,7 @@ export function WorkspaceBadge({
     : 'Global';
 
   return (
-      <Tooltip label={workspaceName + ' Workspace scope'}>
+      <Tooltip label={displayName + ' Workspace scope'}>
         <Badge
           variant="light"
           color={workspaceName ? 'blue' : 'gray'}
