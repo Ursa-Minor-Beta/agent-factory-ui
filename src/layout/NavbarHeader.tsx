@@ -1,4 +1,4 @@
-import { Group, Burger, Text, ActionIcon, Tooltip, AppShell, Divider } from '@mantine/core';
+import { Group, Burger, Text, ActionIcon, Tooltip, AppShell } from '@mantine/core';
 import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 
 interface NavbarHeaderProps {
