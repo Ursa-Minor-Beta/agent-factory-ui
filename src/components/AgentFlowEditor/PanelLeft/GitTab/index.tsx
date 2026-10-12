@@ -1,13 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Stack, Alert, Accordion, Anchor } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import { IconAlertCircle, IconGitFork } from '@tabler/icons-react';
 import type { Agent } from '../../../../types/agent';
 import { useGitHubData } from './useGitHubData';
 import { GitHubStatus } from './GitHubStatus';
 import { CommitHistory } from './CommitHistory';
 import { GitSyncActions } from './GitSyncActions';
+import { GitSyncSettingsModal } from './GitSyncSettingsModal';
 import { githubApi } from '../../../../api/github';
+
+const ACCORDION_STORAGE_KEY = 'agent-editor-git-accordion';
 
 interface GitTabProps {
   agent: Partial<Agent> | null;
@@ -21,6 +25,16 @@ export function GitTab({ agent, savedAt, onReloadAgent }: GitTabProps) {
   const [pulling, setPulling] = useState(false);
   const [pullingCommit, setPullingCommit] = useState<string | null>(null);
   const initialSavedAt = useRef(savedAt);
+  const [settingsOpened, { open: openSettings, close: closeSettings }] = useDisclosure(false);
+  const [accordionValue, setAccordionValue] = useState<string[]>(() => {
+    const saved = localStorage.getItem(ACCORDION_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : ['commits'];
+  });
+
+  const handleAccordionChange = (value: string[]) => {
+    setAccordionValue(value);
+    localStorage.setItem(ACCORDION_STORAGE_KEY, JSON.stringify(value));
+  };
 
   // Refresh git data when save completes
   useEffect(() => {
@@ -125,15 +139,17 @@ export function GitTab({ agent, savedAt, onReloadAgent }: GitTabProps) {
         onRefresh={refresh}
         onPush={handlePush}
         onPull={handlePull}
+        onSettings={openSettings}
       />
 
       <Accordion
         multiple={true}
-        defaultValue={["commits"]}
+        value={accordionValue}
+        onChange={handleAccordionChange}
         variant="separated"
         >
         <Accordion.Item value="status">
-          <Accordion.Control>Info</Accordion.Control>
+          <Accordion.Control>Sync Info</Accordion.Control>
           <Accordion.Panel>
             <GitHubStatus
               syncStatus={syncStatus}
@@ -162,6 +178,16 @@ export function GitTab({ agent, savedAt, onReloadAgent }: GitTabProps) {
           </Accordion.Panel>
         </Accordion.Item>
       </Accordion>
+
+      {syncAgentId && (
+        <GitSyncSettingsModal
+          opened={settingsOpened}
+          onClose={closeSettings}
+          agentId={syncAgentId}
+          syncStatus={syncStatus}
+          onSuccess={refresh}
+        />
+      )}
     </Stack>
   );
 }

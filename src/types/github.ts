@@ -86,3 +86,11 @@ export interface GitHubPullResponse {
   agentId: string;
   message: string;
 }
+
+export interface GitHubUpdateSettingsRequest {
+  providerName?: string;
+  publicRepo?: boolean;
+  repository?: string;
+  branch?: string;
+  path?: string;
+}

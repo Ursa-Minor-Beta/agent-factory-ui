@@ -9,6 +9,7 @@ import type {
   GitHubPushResponse,
   GitHubPullRequest,
   GitHubPullResponse,
+  GitHubUpdateSettingsRequest,
 } from '../types/github';
 
 export const githubApi = {
@@ -39,4 +40,8 @@ export const githubApi = {
   // List commits for an agent's linked repository
   listAgentCommits: (agentId: string): Promise<GitHubCommit[]> =>
     api.get(`/api/agents/${agentId}/github/commits`),
+
+  // Update GitHub sync settings
+  updateSettings: (agentId: string, data: GitHubUpdateSettingsRequest): Promise<GitHubSync> =>
+    api.put(`/api/agents/${agentId}/github`, data),
 };

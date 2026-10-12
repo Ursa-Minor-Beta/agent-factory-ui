@@ -1,5 +1,5 @@
 import { ActionIcon, Badge, Card, Group, Tooltip } from '@mantine/core';
-import { IconRefresh, IconCloudUpload, IconCloudDownload } from '@tabler/icons-react';
+import { IconRefresh, IconCloudUpload, IconCloudDownload, IconSettings } from '@tabler/icons-react';
 import { GitHubSyncStatus } from '../../../../types/github';
 
 interface GitSyncActionsProps {
@@ -11,6 +11,7 @@ interface GitSyncActionsProps {
   onRefresh: () => void;
   onPush: () => void;
   onPull: () => void;
+  onSettings: () => void;
 }
 
 const getStatusColor = (status: string) => {
@@ -32,6 +33,7 @@ export function GitSyncActions({
   onRefresh,
   onPush,
   onPull,
+  onSettings,
 }: GitSyncActionsProps) {
   const isPushActive = status === GitHubSyncStatus.LOCAL_AHEAD;
   const isPullActive = status === GitHubSyncStatus.REMOTE_AHEAD;
@@ -70,6 +72,14 @@ export function GitSyncActions({
               onClick={onPull}
             >
               <IconCloudDownload size={16} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Sync settings">
+            <ActionIcon
+              variant="default"
+              onClick={onSettings}
+            >
+              <IconSettings size={16} />
             </ActionIcon>
           </Tooltip>
         </Group>
