@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Box, Text, Group, ActionIcon } from '@mantine/core';
-import { IconX } from '@tabler/icons-react';
+import { Box, Text, Group, ActionIcon, Tooltip, Modal, Button } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
+import { IconTrash, IconX } from '@tabler/icons-react';
 import type { Node } from '@xyflow/react';
 import type { NodeType } from '../../../api';
 import { NodeSettingsForm } from './NodeSettingsForm';
@@ -15,10 +16,12 @@ interface PanelRightProps {
   nodeTypes: NodeType[];
   onUpdate: (nodeId: string, data: Record<string, unknown>) => void;
   onReplace: (nodeId: string, data: Record<string, unknown>) => void;
+  onRemove: (nodeId: string) => void;
   onClose: () => void;
 }
 
-export function PanelRight({ node, nodes, nodeTypes, onUpdate, onReplace, onClose }: PanelRightProps) {
+export function PanelRight({ node, nodes, nodeTypes, onUpdate, onReplace, onRemove, onClose }: PanelRightProps) {
+  const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
   const [width, setWidth] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     return saved ? parseInt(saved, 10) : 280;
@@ -101,9 +104,16 @@ export function PanelRight({ node, nodes, nodeTypes, onUpdate, onReplace, onClos
       >
         <Group p="md" justify="space-between" style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}>
           <Text fw={600} size="sm">Node Settings</Text>
-          <ActionIcon size="xs" variant="subtle" onClick={onClose}>
-            <IconX size={14} />
-          </ActionIcon>
+          <Group gap="lg">
+            <Tooltip label="Remove node">
+              <ActionIcon size="xs" variant="subtle" color="red" onClick={openDeleteModal}>
+                <IconTrash size={14} />
+              </ActionIcon>
+            </Tooltip>
+            <ActionIcon size="xs" variant="subtle" onClick={onClose}>
+              <IconX size={14} />
+            </ActionIcon>
+          </Group>
         </Group>
 
         <NodeSettingsForm
@@ -114,6 +124,16 @@ export function PanelRight({ node, nodes, nodeTypes, onUpdate, onReplace, onClos
             onReplace={onReplace}
             />
       </Box>
+
+      <Modal opened={deleteModalOpened} onClose={closeDeleteModal} title="Remove Node" centered size="sm">
+        <Text size="sm" mb="lg">
+          Are you sure you want to remove <strong>{node.id}</strong>? This action cannot be undone.
+        </Text>
+        <Group justify="flex-end">
+          <Button variant="default" onClick={closeDeleteModal}>Cancel</Button>
+          <Button color="red" onClick={() => { onRemove(node.id); closeDeleteModal(); }}>Remove</Button>
+        </Group>
+      </Modal>
     </Box>
   );
 }
