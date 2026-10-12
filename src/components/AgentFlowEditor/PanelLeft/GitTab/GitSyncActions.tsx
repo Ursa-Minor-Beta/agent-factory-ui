@@ -52,18 +52,16 @@ export function GitSyncActions({
               <IconRefresh size={16} />
             </ActionIcon>
           </Tooltip>
-          {!publicRepo && (
-            <Tooltip label="Push local changes to GitHub">
-              <ActionIcon
-                variant="default"
-                disabled={!isPushActive}
-                loading={pushing}
-                onClick={onPush}
-              >
-                <IconCloudUpload size={16} />
-              </ActionIcon>
-            </Tooltip>
-          )}
+          <Tooltip label={publicRepo ? "Push disabled for public repositories" : "Push local changes to GitHub"}>
+            <ActionIcon
+              variant="default"
+              disabled={!isPushActive || publicRepo}
+              loading={pushing}
+              onClick={onPush}
+            >
+              <IconCloudUpload size={16} />
+            </ActionIcon>
+          </Tooltip>
           <Tooltip label="Pull remote changes from GitHub">
             <ActionIcon
               variant="default"

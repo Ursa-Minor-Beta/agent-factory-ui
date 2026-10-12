@@ -47,16 +47,18 @@ export function useGitHubData(agent: Partial<Agent> | null): UseGitHubDataResult
 
   const agentId = agent?.id;
   const isSubAgent = agent?.github?.rootId && agent.github.rootId !== agent.id;
+  // For sub-agents, use the root agent's ID for sync status
+  const syncAgentId = isSubAgent ? agent?.github?.rootId : agentId;
 
   useEffect(() => {
-    if (!agentId || isSubAgent) {
+    if (!syncAgentId) {
       setSyncStatus(null);
       setCommits([]);
       return;
     }
 
     // Check if we have cached data for this agent
-    const cached = cache.get(agentId);
+    const cached = cache.get(syncAgentId);
     if (cached) {
       setSyncStatus(cached.syncStatus);
       setCommits(cached.commits);
@@ -65,16 +67,16 @@ export function useGitHubData(agent: Partial<Agent> | null): UseGitHubDataResult
 
     // No cache, fetch data
     loadGitHubStatus();
-  }, [agentId, isSubAgent]);
+  }, [syncAgentId]);
 
   const loadGitHubStatus = async () => {
-    if (!agentId) return;
+    if (!syncAgentId) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      const response = await api.get<GitHubSync | null>(`/api/agents/${agentId}/github`);
+      const response = await api.get<GitHubSync | null>(`/api/agents/${syncAgentId}/github`);
 
       if (response) {
         setSyncStatus(response);
@@ -83,11 +85,12 @@ export function useGitHubData(agent: Partial<Agent> | null): UseGitHubDataResult
         const commitsData = await loadCommits();
 
         // Cache the data
-        cache.set(agentId, {
+        cache.set(syncAgentId, {
           syncStatus: response,
           commits: commitsData,
         });
-      } else {
+      } 
+      else {
         setSyncStatus(null);
         setCommits([]);
       }
@@ -99,12 +102,12 @@ export function useGitHubData(agent: Partial<Agent> | null): UseGitHubDataResult
   };
 
   const loadCommits = async (): Promise<GitHubCommit[]> => {
-    if (!agentId) return [];
+    if (!syncAgentId) return [];
 
     setLoadingCommits(true);
 
     try {
-      const response = await api.get<GitHubCommit[]>(`/api/agents/${agentId}/github/commits`);
+      const response = await api.get<GitHubCommit[]>(`/api/agents/${syncAgentId}/github/commits`);
       setCommits(response);
       return response;
     } catch (err) {
@@ -117,8 +120,8 @@ export function useGitHubData(agent: Partial<Agent> | null): UseGitHubDataResult
   };
 
   const refresh = () => {
-    if (agentId) {
-      cache.delete(agentId);
+    if (syncAgentId) {
+      cache.delete(syncAgentId);
       loadGitHubStatus();
     }
   };

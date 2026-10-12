@@ -333,7 +333,7 @@ export function AgentsList({
                     <IconDownload size={16} />
                   </Button>
                 </Tooltip>
-                <Tooltip label="Import from GitHub">
+                <Tooltip label="Clone from GitHub">
                   <Button
                     variant="default"
                     onClick={() => setGithubImportModalOpened(true)}

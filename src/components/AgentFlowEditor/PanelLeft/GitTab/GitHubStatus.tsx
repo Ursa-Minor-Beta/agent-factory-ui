@@ -1,4 +1,5 @@
-import { Text, Badge } from '@mantine/core';
+import { Link } from 'react-router-dom';
+import { Text, Badge, Anchor } from '@mantine/core';
 import { InfoTable } from '../../../common/InfoTable';
 
 interface GitHubSync {
@@ -21,7 +22,9 @@ interface GitHubSync {
 interface GitHubStatusProps {
   syncStatus: GitHubSync;
   isLoading: boolean;
-  onRefresh: () => void
+  onRefresh: () => void;
+  isSubAgent?: boolean;
+  rootId?: string;
 }
 
 const formatDate = (date: string | null) => {
@@ -29,28 +32,26 @@ const formatDate = (date: string | null) => {
   return new Date(date).toLocaleString();
 };
 
-export function GitHubStatus({ syncStatus, isLoading }: GitHubStatusProps) {
+export function GitHubStatus({ syncStatus, isLoading, isSubAgent, rootId }: GitHubStatusProps) {
   return (
     <InfoTable
         rows={[
-          ...(isLoading ? [] : [{
+          ...(isLoading ? [] : [
+            ...(isSubAgent && rootId ? [{
+              label: 'Root agent',
+              value: (
+                <Anchor component={Link} to={`/agents/${rootId}/editor`} size="xs">
+                  {rootId}
+                </Anchor>
+              ),
+            }] : []),
+            {
               label: 'Repository',
               value: (
-                <>
-                  <Text size="xs" style={{ wordBreak: 'break-all' }}>
-                    {syncStatus.repository}
-                  </Text>
-                  {syncStatus.publicRepo && (
-                    <Badge size="xs" color="blue" variant="light" mt={4}>
-                      Public
-                    </Badge>
-                  )}
-                </>
+                <Text size="xs" style={{ wordBreak: 'break-all' }}>
+                  {syncStatus.repository}
+                </Text>
               ),
-            },
-            {
-              label: 'Branch',
-              value: syncStatus.branch,
             },
             {
               label: 'Path',
@@ -61,9 +62,21 @@ export function GitHubStatus({ syncStatus, isLoading }: GitHubStatusProps) {
               ),
             },
             {
+              label: 'Branch',
+              value: syncStatus.branch,
+            },
+            {
+              label: 'Visibility',
+              value: (
+                <Text size="xs">
+                  {syncStatus.publicRepo ? 'Public' : 'Private'}
+                </Text>
+              ),
+            },
+            {
               label: 'Last Commit',
               value: (
-                <Text size="xs" ff="monospace" c="dimmed">
+                <Text size="xs">
                   {syncStatus.lastCommitSha?.substring(0, 7)}
                 </Text>
               ),
@@ -79,7 +92,6 @@ export function GitHubStatus({ syncStatus, isLoading }: GitHubStatusProps) {
               hide: !syncStatus.providerName,
             }]
           )
-
         ]}
       />
   );

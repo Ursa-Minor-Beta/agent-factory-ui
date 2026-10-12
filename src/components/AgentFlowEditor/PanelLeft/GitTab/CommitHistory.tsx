@@ -1,5 +1,5 @@
 import { Text, Stack, Loader, Timeline, Group, ActionIcon, Tooltip, Anchor } from '@mantine/core';
-import { IconGitCommit, IconCloudUpload, IconCloudDownload } from '@tabler/icons-react';
+import { IconGitCommit, IconCloudUpload, IconCloudDownload, IconEdit } from '@tabler/icons-react';
 import { GitHubSyncStatus } from '../../../../types/github';
 
 interface GitHubCommit {
@@ -17,9 +17,10 @@ interface CommitHistoryProps {
   pullingCommit?: string | null;
   onPullCommit?: (sha: string) => void;
   repository?: string;
+  publicRepo?: boolean;
 }
 
-export function CommitHistory({ commits, loading, status, currentCommitSha, pullingCommit, onPullCommit, repository }: CommitHistoryProps) {
+export function CommitHistory({ commits, loading, status, currentCommitSha, pullingCommit, onPullCommit, repository, publicRepo }: CommitHistoryProps) {
   const getCommitUrl = (sha: string) => {
     if (!repository) return null;
     return `https://github.com/${repository}/commit/${sha}`;
@@ -39,21 +40,21 @@ export function CommitHistory({ commits, loading, status, currentCommitSha, pull
         <Timeline active={hasUnpushedChanges ? 0 : -1} bulletSize={20} lineWidth={2}>
           {hasUnpushedChanges && (
             <Timeline.Item
-              bullet={<IconCloudUpload size={12} />}
+              bullet={publicRepo ? <IconEdit size={12} /> : <IconCloudUpload size={12} />}
               color="orange"
               title={
                 <Text size="xs" c="orange" fw={500}>
-                  Unpushed local changes
+                  {publicRepo ? 'Local changes' : 'Unpushed local changes'}
                 </Text>
               }
             >
               <Text size="xs" c="dimmed" mt={4}>
-                Push to sync with remote
+                {publicRepo ? 'Local changes are not synced with the repository' : 'Push to sync with remote'}
               </Text>
             </Timeline.Item>
           )}
           {commits.slice(0, 10).map((commit) => {
-            const isCurrent = currentCommitSha === commit.sha;
+            const isCurrent = currentCommitSha === commit.sha && !hasUnpushedChanges;
             return (
               <Timeline.Item
                 key={commit.sha}
@@ -70,9 +71,9 @@ export function CommitHistory({ commits, loading, status, currentCommitSha, pull
                       </Text>
                     )}
                     {!isCurrent && onPullCommit && (
-                      <Tooltip label="Checkout this commit">
+                      <Tooltip label="Load this version">
                         <ActionIcon
-                          size="sm"
+                          size="xs"
                           variant="subtle"
                           loading={pullingCommit === commit.sha}
                           onClick={() => onPullCommit(commit.sha)}

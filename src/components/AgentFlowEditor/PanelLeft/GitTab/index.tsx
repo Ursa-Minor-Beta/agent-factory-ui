@@ -40,6 +40,8 @@ export function GitTab({ agent }: GitTabProps) {
   }
 
   const isSubAgent = agent?.github?.rootId && agent.github.rootId !== agent.id;
+  // For sub-agents, use the root agent's ID for sync operations
+  const syncAgentId = isSubAgent ? agent.github?.rootId : agent.id;
 
   if (!syncStatus) {
     return (
@@ -50,30 +52,20 @@ export function GitTab({ agent }: GitTabProps) {
             <Anchor component={Link} to={`/agents/${agent.github?.rootId}/editor`} size="sm">
               root agent
             </Anchor>
-            , imported from{' '}
-            <Anchor
-              href={`https://github.com/${agent.github?.repository}`}
-              target="_blank"
-              size="sm"
-            >
-              {agent.github?.repository}
-            </Anchor>
           </Alert>
         )}
-        {!isSubAgent && (
-          <Alert color="gray" icon={<IconAlertCircle size={16} />}>
-            This agent is not linked to a GitHub repository
-          </Alert>
-        )}
+        <Alert color="gray" icon={<IconAlertCircle size={16} />}>
+          This agent is not linked to a GitHub repository
+        </Alert>
       </Stack>
     );
   }
 
   const handlePush = async () => {
-    if (!agent?.id) return;
+    if (!syncAgentId) return;
     setPushing(true);
     try {
-      await githubApi.pushAgent(agent.id, {});
+      await githubApi.pushAgent(syncAgentId, {});
       refresh();
     } catch (err) {
       console.error('Push failed:', err);
@@ -83,10 +75,10 @@ export function GitTab({ agent }: GitTabProps) {
   };
 
   const handlePull = async () => {
-    if (!agent?.id) return;
+    if (!syncAgentId) return;
     setPulling(true);
     try {
-      await githubApi.pullAgent(agent.id);
+      await githubApi.pullAgent(syncAgentId);
       refresh();
     } catch (err) {
       console.error('Pull failed:', err);
@@ -96,10 +88,10 @@ export function GitTab({ agent }: GitTabProps) {
   };
 
   const handlePullCommit = async (commitSha: string) => {
-    if (!agent?.id) return;
+    if (!syncAgentId) return;
     setPullingCommit(commitSha);
     try {
-      await githubApi.pullAgent(agent.id, { commitSha });
+      await githubApi.pullAgent(syncAgentId, { commitSha });
       refresh();
     } catch (err) {
       console.error('Pull commit failed:', err);
@@ -110,22 +102,6 @@ export function GitTab({ agent }: GitTabProps) {
 
   return (
     <Stack gap="xs" p="xs">
-      {isSubAgent && (
-        <Alert color="blue" icon={<IconGitFork size={16} />} p="xs">
-          This agent is a dependency of{' '}
-          <Anchor component={Link} to={`/agents/${agent.github?.rootId}/editor`} size="sm">
-            root agent
-          </Anchor>
-          , imported from{' '}
-          <Anchor
-            href={`https://github.com/${agent.github?.repository}`}
-            target="_blank"
-            size="sm"
-          >
-            {agent.github?.repository}
-          </Anchor>
-        </Alert>
-      )}
 
       <GitSyncActions
         status={syncStatus.status}
@@ -140,13 +116,19 @@ export function GitTab({ agent }: GitTabProps) {
 
       <Accordion
         multiple={true}
-        defaultValue={["commits"]} 
-        variant="separated" 
+        defaultValue={["commits"]}
+        variant="separated"
         >
         <Accordion.Item value="status">
           <Accordion.Control>Info</Accordion.Control>
           <Accordion.Panel>
-            <GitHubStatus syncStatus={syncStatus} onRefresh={refresh} isLoading={loading || loadingCommits}/>
+            <GitHubStatus
+              syncStatus={syncStatus}
+              onRefresh={refresh}
+              isLoading={loading || loadingCommits}
+              isSubAgent={isSubAgent}
+              rootId={agent.github?.rootId}
+            />
           </Accordion.Panel>
         </Accordion.Item>
 
@@ -161,6 +143,7 @@ export function GitTab({ agent }: GitTabProps) {
               pullingCommit={pullingCommit}
               onPullCommit={handlePullCommit}
               repository={syncStatus.repository}
+              publicRepo={syncStatus.publicRepo}
             />
           </Accordion.Panel>
         </Accordion.Item>

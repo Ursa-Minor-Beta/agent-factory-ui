@@ -155,7 +155,9 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
       <div style={{ width: '100%', height: '100%', position: 'relative' }}>
         <EditorToolbar
           agentName={agent?.name || ''}
+          agentId={agent?.id}
           workspaceName={agent?.workspaceName}
+          github={agent?.github}
           saving={saving}
           isPaletteOpen={isPaletteOpen}
           onSave={saveAgent}

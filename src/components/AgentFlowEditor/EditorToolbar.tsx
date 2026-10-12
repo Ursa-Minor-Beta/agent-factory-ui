@@ -1,10 +1,13 @@
-import { Group, Text, ActionIcon } from '@mantine/core';
-import { IconDeviceFloppy, IconPlayerPlay, IconLayoutSidebar } from '@tabler/icons-react';
+import { Group, Text, ActionIcon, Badge, Tooltip } from '@mantine/core';
+import { IconDeviceFloppy, IconPlayerPlay, IconLayoutSidebar, IconBrandGithub } from '@tabler/icons-react';
 import { WorkspaceBadge } from '../Workspace';
+import type { AgentGitHubInfo } from '../../types/agent';
 
 interface EditorToolbarProps {
   agentName: string;
+  agentId?: string;
   workspaceName?: string | null;
+  github?: AgentGitHubInfo | null;
   saving: boolean;
   isPaletteOpen: boolean;
   onSave: () => void;
@@ -21,13 +24,16 @@ const glassStyle = {
 
 export function EditorToolbar({
   agentName,
+  agentId,
   workspaceName,
+  github,
   saving,
   isPaletteOpen,
   onSave,
   onRun,
   onTogglePalette,
 }: EditorToolbarProps) {
+  const isSubAgent = github?.rootId && github.rootId !== agentId;
   return (
     <>
       {/* Left toggle button - only show when palette is closed */}
@@ -65,7 +71,22 @@ export function EditorToolbar({
         <Text fw={600} size="sm">
           {agentName || 'Untitled Agent'}
         </Text>
-        <WorkspaceBadge workspaceName={workspaceName} size="xs" />
+
+        <Group gap='xs'>
+            <WorkspaceBadge workspaceName={workspaceName} size="xs" />
+            {github && (
+              <Tooltip label={`${isSubAgent ? 'Sub' : 'Root'} agent: ${github.repository}/${github.path}`}>
+                <Badge
+                  size="xs"
+                  variant={isSubAgent ? 'outline' : 'light'}
+                  color="gray"
+                  leftSection={<IconBrandGithub size={10} />}
+                >
+                  {isSubAgent ? 'sub' : 'root'}
+                </Badge>
+              </Tooltip>
+            )}
+        </Group>
 
         <Group gap="xs">
           <ActionIcon
