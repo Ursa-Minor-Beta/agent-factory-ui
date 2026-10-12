@@ -8,14 +8,18 @@ Visual platform for building and managing AI agents through a no-code/low-code i
 
 ## Features
 
-- **Visual Agent Builder** - Drag-and-drop node editor with 15+ node types (LLM, HTTP, JavaScript, Branch, Memory, etc.)
-- **Real-Time Chat** - Stream responses with live execution status and session management
-- **Memory & Collections** - Structured data storage with vector embeddings and semantic search
-- **Execution Monitoring** - Detailed run tracking with node-level timing and error logs
-- **Secrets & Files** - Secure credential storage and file management
-- **API Keys** - Generate keys with granular permissions for programmatic access
-- **User Management** - Role-based access control (Admin/User)
-- **Workspaces** - Organize agents into workspaces with flexible deletion options
+- **Node Graph Workflows** - Visual drag-and-drop editor with 11 node types
+- **Composable Agents** - Agents can call other agents as sub-workflows or llm-tools
+- **Multi-Provider LLM** - OpenAI, Anthropic, Ollama support
+- **Memory & Collections** - Structured storage with semantic search
+- **Streaming Chat** - Real-time SSE streaming with session management
+- **GitHub Sync** - Clone/Link agents to repos with push/pull support
+- **Export/Import** - Export agents to JSON packages with dependencies
+- **Execution Monitoring** - Run tracking with node-level timing and logss
+- **Encrypted Secrets** - Secure credential storage (AES-256-GCM)
+- **File Storage** - Built-in file management for agent artifacts
+- **Workspaces** - Organize agents and resources into isolated workspaces
+- **Multi-User** - JWT auth, API keys, and role-based access (Admin/User)
 - **Dark/Light Theme** - Responsive design for desktop, tablet, and mobile
 
 ## Getting Started
