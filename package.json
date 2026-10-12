@@ -41,9 +41,9 @@
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.18.3",
     "react-virtuoso": "^4.18.13",
-    "rehype-katex": "^7.0.1",
+    "rehype-katex": "^1.2.0",
     "remark-gfm": "^4.0.1",
-    "remark-math": "^6.0.0"
+    "remark-math": "^3.0.1"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",
