@@ -62,7 +62,7 @@ export function CommitHistory({ commits, loading, status, currentCommitSha, pull
                 color={isCurrent ? 'teal' : undefined}
                 title={
                   <Group gap="xs" justify="space-between" align="flex-start" wrap="nowrap">
-                    <Text size="xs" lineClamp={2} c={isCurrent ? 'teal' : undefined} fw={isCurrent ? 500 : undefined} style={{ flex: 1, minWidth: 0 }}>
+                    <Text size="xs" lineClamp={1} c={isCurrent ? 'teal' : undefined} fw={isCurrent ? 500 : undefined} style={{ flex: 1, minWidth: 0 }}>
                       {commit.message}
                     </Text>
                     {isCurrent && (
