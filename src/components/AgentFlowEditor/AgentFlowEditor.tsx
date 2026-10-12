@@ -12,6 +12,7 @@ import type { NodeType } from '../../api';
 import { agentsApi } from '../../api';
 import { PanelLeft } from './PanelLeft';
 import { PanelRight } from './PanelRight';
+import { clearGitHubCache } from './PanelLeft/GitTab/useGitHubData';
 
 function downloadJson(data: unknown, filename: string) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -37,6 +38,7 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
     return saved || 'nodes';
   });
   const [exporting, setExporting] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | undefined>();
 
   const handleActiveTabChange = useCallback((tab: string | null) => {
     setActiveTab(tab);
@@ -101,6 +103,7 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
     changeEdgeType,
     addNode,
     loadTemplate,
+    reloadAgent,
   } = useAgentEditor({ agentId });
 
   // Compute set of node types already on the canvas
@@ -141,6 +144,17 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
     [addNode]
   );
 
+  // Wrap save to also refresh git data
+  const handleSave = useCallback(async () => {
+    const success = await saveAgent();
+    if (success && agent?.id) {
+      // Clear git cache for this agent (use rootId for sub-agents)
+      const syncAgentId = agent.github?.rootId || agent.id;
+      clearGitHubCache(syncAgentId);
+      setSavedAt(Date.now());
+    }
+  }, [saveAgent, agent?.id, agent?.github?.rootId]);
+
   if (loading) {
     return (
       <Center style={{ width: '100%', height: '100%' }}>
@@ -160,7 +174,7 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
           github={agent?.github}
           saving={saving}
           isPaletteOpen={isPaletteOpen}
-          onSave={saveAgent}
+          onSave={handleSave}
           onRun={handleRunClick}
           onTogglePalette={togglePalette}
         />
@@ -203,6 +217,7 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
           hasNodes={nodes.length > 0}
           layoutDirection={layoutDirection}
           nodeTypes={availableNodeTypes}
+          savedAt={savedAt}
           onActiveTabChange={handleActiveTabChange}
           onAddNode={handleAddNode}
           onAgentInfoChange={updateAgentInfo}
@@ -211,6 +226,7 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
           onExport={handleExport}
           onLayoutDirectionChange={changeLayoutDirection}
           onLoadTemplate={loadTemplate}
+          onReloadAgent={reloadAgent}
           />
       }
 

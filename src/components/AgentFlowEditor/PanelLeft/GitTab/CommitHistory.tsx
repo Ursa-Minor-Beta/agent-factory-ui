@@ -1,5 +1,5 @@
-import { Text, Stack, Loader, Timeline, Group, ActionIcon, Tooltip, Anchor } from '@mantine/core';
-import { IconGitCommit, IconCloudUpload, IconCloudDownload, IconEdit } from '@tabler/icons-react';
+import { Text, Stack, Loader, Timeline, Group, ActionIcon, Tooltip, Anchor, Alert } from '@mantine/core';
+import { IconGitCommit, IconCloudUpload, IconCloudDownload, IconEdit, IconAlertCircle } from '@tabler/icons-react';
 import { GitHubSyncStatus } from '../../../../types/github';
 
 interface GitHubCommit {
@@ -18,9 +18,10 @@ interface CommitHistoryProps {
   onPullCommit?: (sha: string) => void;
   repository?: string;
   publicRepo?: boolean;
+  error?: string | null;
 }
 
-export function CommitHistory({ commits, loading, status, currentCommitSha, pullingCommit, onPullCommit, repository, publicRepo }: CommitHistoryProps) {
+export function CommitHistory({ commits, loading, status, currentCommitSha, pullingCommit, onPullCommit, repository, publicRepo, error }: CommitHistoryProps) {
   const getCommitUrl = (sha: string) => {
     if (!repository) return null;
     return `https://github.com/${repository}/commit/${sha}`;
@@ -29,7 +30,11 @@ export function CommitHistory({ commits, loading, status, currentCommitSha, pull
 
   return (
     <>
-      {loading ? (
+      {error ? (
+        <Alert color="red" icon={<IconAlertCircle size={16} />} p="xs">
+          {error}
+        </Alert>
+      ) : loading ? (
         <Stack align="center" py="md">
           <Loader size="sm" />
           <Text size="xs" c="dimmed">Loading commits...</Text>

@@ -32,11 +32,17 @@ interface UseGitHubDataResult {
   loading: boolean;
   loadingCommits: boolean;
   error: string | null;
+  commitsError: string | null;
   refresh: () => void;
 }
 
 // Module-level cache that persists across component mount/unmount
 const cache = new Map<string, { syncStatus: GitHubSync; commits: GitHubCommit[] }>();
+
+// Export function to clear cache from outside the hook
+export function clearGitHubCache(agentId: string) {
+  cache.delete(agentId);
+}
 
 export function useGitHubData(agent: Partial<Agent> | null): UseGitHubDataResult {
   const [syncStatus, setSyncStatus] = useState<GitHubSync | null>(null);
@@ -44,6 +50,7 @@ export function useGitHubData(agent: Partial<Agent> | null): UseGitHubDataResult
   const [loading, setLoading] = useState(false);
   const [loadingCommits, setLoadingCommits] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [commitsError, setCommitsError] = useState<string | null>(null);
 
   const agentId = agent?.id;
   const isSubAgent = agent?.github?.rootId && agent.github.rootId !== agent.id;
@@ -105,13 +112,15 @@ export function useGitHubData(agent: Partial<Agent> | null): UseGitHubDataResult
     if (!syncAgentId) return [];
 
     setLoadingCommits(true);
+    setCommitsError(null);
 
     try {
       const response = await api.get<GitHubCommit[]>(`/api/agents/${syncAgentId}/github/commits`);
       setCommits(response);
       return response;
     } catch (err) {
-      console.error('Failed to load commits:', err);
+      const message = err instanceof Error ? err.message : 'Failed to load commits';
+      setCommitsError(message);
       setCommits([]);
       return [];
     } finally {
@@ -132,6 +141,7 @@ export function useGitHubData(agent: Partial<Agent> | null): UseGitHubDataResult
     loading,
     loadingCommits,
     error,
+    commitsError,
     refresh,
   };
 }

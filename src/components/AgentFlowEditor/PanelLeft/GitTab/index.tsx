@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Stack, Alert, Accordion, Anchor } from '@mantine/core';
 import { IconAlertCircle, IconGitFork } from '@tabler/icons-react';
@@ -11,13 +11,24 @@ import { githubApi } from '../../../../api/github';
 
 interface GitTabProps {
   agent: Partial<Agent> | null;
+  savedAt?: number;
+  onReloadAgent?: () => void;
 }
 
-export function GitTab({ agent }: GitTabProps) {
-  const { syncStatus, commits, loading, loadingCommits, error, refresh } = useGitHubData(agent);
+export function GitTab({ agent, savedAt, onReloadAgent }: GitTabProps) {
+  const { syncStatus, commits, loading, loadingCommits, error, commitsError, refresh } = useGitHubData(agent);
   const [pushing, setPushing] = useState(false);
   const [pulling, setPulling] = useState(false);
   const [pullingCommit, setPullingCommit] = useState<string | null>(null);
+  const initialSavedAt = useRef(savedAt);
+
+  // Refresh git data when save completes
+  useEffect(() => {
+    if (savedAt && savedAt !== initialSavedAt.current) {
+      initialSavedAt.current = savedAt;
+      refresh();
+    }
+  }, [savedAt, refresh]);
 
   if (!agent?.id) {
     return (
@@ -80,6 +91,7 @@ export function GitTab({ agent }: GitTabProps) {
     try {
       await githubApi.pullAgent(syncAgentId);
       refresh();
+      onReloadAgent?.();
     } catch (err) {
       console.error('Pull failed:', err);
     } finally {
@@ -93,6 +105,7 @@ export function GitTab({ agent }: GitTabProps) {
     try {
       await githubApi.pullAgent(syncAgentId, { commitSha });
       refresh();
+      onReloadAgent?.();
     } catch (err) {
       console.error('Pull commit failed:', err);
     } finally {
@@ -144,6 +157,7 @@ export function GitTab({ agent }: GitTabProps) {
               onPullCommit={handlePullCommit}
               repository={syncStatus.repository}
               publicRepo={syncStatus.publicRepo}
+              error={commitsError}
             />
           </Accordion.Panel>
         </Accordion.Item>
