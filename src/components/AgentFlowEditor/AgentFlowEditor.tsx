@@ -95,6 +95,7 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
     saveAgent,
     updateNodeData,
     replaceNodeData,
+    deleteNode,
     updateAgentInfo,
     changeLayoutDirection,
     changeEdgeType,
@@ -217,6 +218,7 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
           nodeTypes={availableNodeTypes}
           onUpdate={updateNodeData}
           onReplace={replaceNodeData}
+          onRemove={(nodeId) => { deleteNode(nodeId); onPaneClick(); }}
           onClose={onPaneClick}
           />
       )}
