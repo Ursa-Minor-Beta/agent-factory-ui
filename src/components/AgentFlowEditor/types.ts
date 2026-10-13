@@ -3,6 +3,7 @@ import type { Agent } from '../../types/agent';
 
 export interface AgentFlowEditorProps {
   agentId?: string;
+  workspaceId?: string;
 }
 
 export interface UseAgentEditorReturn {

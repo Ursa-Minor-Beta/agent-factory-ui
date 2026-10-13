@@ -56,6 +56,9 @@ export function ModalAgentImport({ opened, onClose, onImported, workspaceId }: A
   const [globalProviders, setGlobalProviders] = useState<Set<string>>(new Set());
   const [globalCollections, setGlobalCollections] = useState<Set<string>>(new Set());
 
+  // Track newly created workspace to notify sidebar on close/navigate
+  const [newWorkspaceInfo, setNewWorkspaceInfo] = useState<{ id: string; name: string } | null>(null);
+
   // Load workspaces when modal opens
   useEffect(() => {
     if (!opened) return;
@@ -83,6 +86,7 @@ export function ModalAgentImport({ opened, onClose, onImported, workspaceId }: A
     setGlobalProviders(new Set());
     setGlobalCollections(new Set());
     setUrlInput('');
+    setNewWorkspaceInfo(null);
   };
 
   const convertToRawUrl = (url: string): string => {
@@ -117,7 +121,19 @@ export function ModalAgentImport({ opened, onClose, onImported, workspaceId }: A
     }
   };
 
+  const notifyWorkspaceCreated = () => {
+    if (newWorkspaceInfo) {
+      window.dispatchEvent(new CustomEvent('workspace-created', {
+        detail: { workspace: newWorkspaceInfo }
+      }));
+    }
+  };
+
   const handleClose = () => {
+    if (result) {
+      notifyWorkspaceCreated();
+      onImported();
+    }
     resetState();
     onClose();
   };
@@ -171,17 +187,13 @@ export function ModalAgentImport({ opened, onClose, onImported, workspaceId }: A
       setGlobalProviders(new Set(globalProvs.map((p) => p.provider)));
       setGlobalCollections(new Set(globalColls.map((c) => c.name)));
 
-      // Notify sidebar about the new workspace (only if we created a new one)
+      // Store new workspace info to notify sidebar on close/navigate
       if (selectedWorkspace === NEW_WORKSPACE_VALUE) {
         const workspaceName = response.workspaceName || parsed.workspace?.name;
         if (workspaceName) {
-          window.dispatchEvent(new CustomEvent('workspace-created', {
-            detail: { workspace: { id: response.workspaceId, name: workspaceName } }
-          }));
+          setNewWorkspaceInfo({ id: response.workspaceId, name: workspaceName });
         }
       }
-
-      onImported();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to import agent');
     } finally {

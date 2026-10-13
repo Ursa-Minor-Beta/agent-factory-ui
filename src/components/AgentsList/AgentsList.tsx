@@ -311,7 +311,7 @@ export function AgentsList({
                 <Tooltip label="Visual Editor">
                   <Button
                     component={Link}
-                    to="/agents/new/editor"
+                    to={workspaceId ? `/agents/new/editor?workspaceId=${workspaceId}` : '/agents/new/editor'}
                     variant="default"
                   >
                     <IconSchema size={16} style={{ color: 'var(--mantine-color-violet-5)' }} />

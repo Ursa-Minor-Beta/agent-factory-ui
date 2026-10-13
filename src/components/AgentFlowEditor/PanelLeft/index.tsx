@@ -29,6 +29,7 @@ interface PanelLeftProps {
   onEdgeTypeChange: (value: string) => void;
   onLayoutDirectionChange: (value: LayoutDirection) => void;
   onAgentInfoChange: (data: { name?: string; description?: string }) => Promise<void>;
+  onWorkspaceChange?: (workspaceId: string | null) => Promise<void>;
   onLoadTemplate: (template: AgentExample) => void;
   onClose: () => void;
   onExport?: () => void;
@@ -36,7 +37,7 @@ interface PanelLeftProps {
   onReloadAgent?: () => void;
 }
 
-export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, savedAt, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onLoadTemplate, onClose, onExport, exporting, onReloadAgent }: PanelLeftProps) {
+export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, savedAt, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onWorkspaceChange, onLoadTemplate, onClose, onExport, exporting, onReloadAgent }: PanelLeftProps) {
   const [viewingNodeType, setViewingNodeType] = useState<NodeType | null>(null);
   const [internalActiveTab, setInternalActiveTab] = useState<string | null>(() => {
     const saved = localStorage.getItem(TAB_STORAGE_KEY);
@@ -156,8 +157,8 @@ export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, layoutDirect
               <Tabs.Tab value="nodes">Nodes</Tabs.Tab>
               <Tabs.Tab value="templates">Templates</Tabs.Tab>
               <Tabs.Tab value="settings">Settings</Tabs.Tab>
-              <Tabs.Tab value="run">Run</Tabs.Tab>
               <Tabs.Tab value="git">Git</Tabs.Tab>
+              <Tabs.Tab value="run">Run</Tabs.Tab>
             </Tabs.List>
 
             <Tabs.Panel value="nodes" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
@@ -187,6 +188,7 @@ export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, layoutDirect
                 onAgentInfoChange={onAgentInfoChange}
                 onEdgeTypeChange={onEdgeTypeChange}
                 onLayoutDirectionChange={onLayoutDirectionChange}
+                onWorkspaceChange={onWorkspaceChange}
                 onExport={onExport}
                 exporting={exporting}
               />

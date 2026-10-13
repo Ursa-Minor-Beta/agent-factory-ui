@@ -1,9 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Stack, TextInput, Textarea, Group, Code, ActionIcon, Tooltip, CopyButton, Text, Select, Divider, Button } from '@mantine/core';
 import { IconCheck, IconCopy, IconUpload } from '@tabler/icons-react';
 import { useForm } from 'react-hook-form';
 import type { Agent } from '../../../types/agent';
+import type { Workspace } from '../../../types/workspace';
 import type { LayoutDirection } from '../utils/converters';
+import { workspacesApi } from '../../../api/workspaces';
 
 const EDGE_TYPE_OPTIONS = [
   { value: 'default', label: 'Bezier' },
@@ -25,6 +27,7 @@ interface SettingsTabProps {
   onAgentInfoChange: (data: { name?: string; description?: string }) => Promise<void>;
   onEdgeTypeChange: (value: string) => void;
   onLayoutDirectionChange: (value: LayoutDirection) => void;
+  onWorkspaceChange?: (workspaceId: string | null) => Promise<void>;
   onExport?: () => void;
   exporting?: boolean;
 }
@@ -34,7 +37,10 @@ interface SettingsForm {
   description: string;
 }
 
-export function SettingsTab({ agent, edgeType, layoutDirection, onAgentInfoChange, onEdgeTypeChange, onLayoutDirectionChange, onExport, exporting }: SettingsTabProps) {
+export function SettingsTab({ agent, edgeType, layoutDirection, onAgentInfoChange, onEdgeTypeChange, onLayoutDirectionChange, onWorkspaceChange, onExport, exporting }: SettingsTabProps) {
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [workspacesLoading, setWorkspacesLoading] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -46,6 +52,22 @@ export function SettingsTab({ agent, edgeType, layoutDirection, onAgentInfoChang
       description: agent?.description || '',
     },
   });
+
+  // Load workspaces
+  useEffect(() => {
+    const loadWorkspaces = async () => {
+      setWorkspacesLoading(true);
+      try {
+        const data = await workspacesApi.list({ limit: 100, sortBy: 'name', sortOrder: 'asc' });
+        setWorkspaces(data.workspaces);
+      } catch (err) {
+        console.error('Failed to load workspaces:', err);
+      } finally {
+        setWorkspacesLoading(false);
+      }
+    };
+    loadWorkspaces();
+  }, []);
 
   // Reset form when agent changes
   useEffect(() => {
@@ -94,6 +116,16 @@ export function SettingsTab({ agent, edgeType, layoutDirection, onAgentInfoChang
         maxRows={8}
         {...register('description')}
         onBlur={onBlur}
+      />
+      <Select
+        label="Workspace"
+        placeholder={workspacesLoading ? 'Loading...' : 'Select workspace (optional)'}
+        value={agent?.workspaceId || ''}
+        onChange={(val) => onWorkspaceChange?.(val || null)}
+        data={workspaces.map((ws) => ({ value: ws.id, label: ws.name }))}
+        disabled={workspacesLoading}
+        searchable
+        clearable
       />
       <Divider />
       <Text size="sm" fw={500}>Canvas Settings</Text>

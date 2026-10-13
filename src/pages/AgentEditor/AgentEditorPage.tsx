@@ -1,10 +1,12 @@
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { ReactFlowProvider } from '@xyflow/react';
 import { Box } from '@mantine/core';
 import { AgentFlowEditor } from '../../components/AgentFlowEditor';
 
 export function AgentEditorPage() {
   const { agentId } = useParams<{ agentId: string }>();
+  const [searchParams] = useSearchParams();
+  const workspaceId = searchParams.get('workspaceId') || undefined;
 
   return (
     <Box
@@ -14,7 +16,7 @@ export function AgentEditorPage() {
       }}
     >
       <ReactFlowProvider>
-        <AgentFlowEditor agentId={agentId} />
+        <AgentFlowEditor agentId={agentId} workspaceId={workspaceId} />
       </ReactFlowProvider>
     </Box>
   );

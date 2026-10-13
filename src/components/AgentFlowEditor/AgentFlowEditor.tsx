@@ -27,7 +27,7 @@ function downloadJson(data: unknown, filename: string) {
 const PALETTE_STORAGE_KEY = 'agent-editor-palette-open';
 const TAB_STORAGE_KEY = 'agent-editor-active-tab';
 
-export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
+export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) {
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
   const [isPaletteOpen, setIsPaletteOpen] = useState(() => {
     const saved = localStorage.getItem(PALETTE_STORAGE_KEY);
@@ -99,12 +99,13 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
     replaceNodeData,
     deleteNode,
     updateAgentInfo,
+    updateWorkspace,
     changeLayoutDirection,
     changeEdgeType,
     addNode,
     loadTemplate,
     reloadAgent,
-  } = useAgentEditor({ agentId });
+  } = useAgentEditor({ agentId, workspaceId });
 
   // Compute set of node types already on the canvas
   const existingNodeTypes = useMemo(() => {
@@ -221,6 +222,7 @@ export function AgentFlowEditor({ agentId }: AgentFlowEditorProps) {
           onActiveTabChange={handleActiveTabChange}
           onAddNode={handleAddNode}
           onAgentInfoChange={updateAgentInfo}
+          onWorkspaceChange={updateWorkspace}
           onClose={togglePalette}
           onEdgeTypeChange={changeEdgeType}
           onExport={handleExport}

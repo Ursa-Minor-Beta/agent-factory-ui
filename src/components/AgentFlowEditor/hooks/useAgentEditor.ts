@@ -18,9 +18,10 @@ const DEFAULT_LAYOUT_DIRECTION_KEY = 'agent-editor-default-layout-direction';
 
 interface UseAgentEditorOptions {
   agentId?: string;
+  workspaceId?: string;
 }
 
-export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
+export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) {
   const navigate = useNavigate();
   const [agent, setAgent] = useState<Partial<Agent> | null>(null);
   const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
@@ -99,12 +100,12 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
     if (!agentId) return;
 
     if (agentId === 'new') {
-      setAgent({});
+      setAgent({ workspaceId });
       return;
     }
 
     fetchAgent();
-  }, [agentId, fetchAgent]);
+  }, [agentId, fetchAgent, workspaceId]);
 
   // Handle connection
   const onConnect = useCallback(
@@ -144,6 +145,7 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
           description: agent.description || undefined,
           nodes: agentNodes,
           editorData,
+          workspaceId,
         });
         // Navigate to the new agent's editor
         navigate(`/agents/${newAgent.id}/editor`, { replace: true });
@@ -155,7 +157,7 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
     } finally {
       setSaving(false);
     }
-  }, [agent, nodes, navigate]);
+  }, [agent, nodes, navigate, workspaceId]);
 
   // Update agent info (name, description)
   const updateAgentInfo = useCallback(
@@ -175,6 +177,31 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
         setAgent(updatedAgent);
       } catch (err) {
         console.error('Failed to update agent info:', err);
+      } finally {
+        setSaving(false);
+      }
+    },
+    [agent]
+  );
+
+  // Update workspace
+  const updateWorkspace = useCallback(
+    async (newWorkspaceId: string | null) => {
+      if (!agent) return;
+
+      // For new agents (no id), just update local state
+      if (!agent.id) {
+        setAgent({ ...agent, workspaceId: newWorkspaceId || undefined });
+        return;
+      }
+
+      // For existing agents, persist to backend
+      setSaving(true);
+      try {
+        const updatedAgent = await agentsApi.update(agent.id, { workspaceId: newWorkspaceId });
+        setAgent(updatedAgent);
+      } catch (err) {
+        console.error('Failed to update workspace:', err);
       } finally {
         setSaving(false);
       }
@@ -433,6 +460,7 @@ export function useAgentEditor({ agentId }: UseAgentEditorOptions) {
     updateNodeData,
     replaceNodeData,
     updateAgentInfo,
+    updateWorkspace,
     changeLayoutDirection,
     changeEdgeType,
     loadTemplate,
