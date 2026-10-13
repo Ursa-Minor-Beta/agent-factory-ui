@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Card, Text, Group, Stack, ActionIcon, Tooltip, Menu, Box, Button, Badge, Anchor } from '@mantine/core';
+import { Card, Text, Group, Stack, ActionIcon, Tooltip, Menu, Box, Button, Badge } from '@mantine/core';
 import {
   IconTrash,
   IconMessageCircle,

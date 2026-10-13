@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Text, Badge, Anchor } from '@mantine/core';
+import { Text, Anchor } from '@mantine/core';
 import { InfoTable } from '../../../common/InfoTable';
 
 interface GitHubSync {

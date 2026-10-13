@@ -64,7 +64,7 @@ export function GitTab({ agent, savedAt, onReloadAgent }: GitTabProps) {
     );
   }
 
-  const isSubAgent = agent?.github?.rootId && agent.github.rootId !== agent.id;
+  const isSubAgent = !!(agent?.github?.rootId && agent.github.rootId !== agent.id);
   // For sub-agents, use the root agent's ID for sync operations
   const syncAgentId = isSubAgent ? agent.github?.rootId : agent.id;
 
