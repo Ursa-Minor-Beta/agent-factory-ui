@@ -73,7 +73,10 @@ export function EditorToolbar({
         </Text>
 
         <Group gap='xs'>
-            <WorkspaceBadge workspaceName={workspaceName} size="xs" />
+            {!!agentId  
+                ? <WorkspaceBadge workspaceName={workspaceName} size="xs" />
+                : <Text fz="xs" c="dimmed">Not saved</Text>
+            }
             {github && (
               <Tooltip label={`${isSubAgent ? 'Sub' : 'Root'} agent: ${github.repository}/${github.path}`}>
                 <Badge
