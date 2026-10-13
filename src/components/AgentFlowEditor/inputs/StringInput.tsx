@@ -1,10 +1,12 @@
 import { memo } from 'react';
-import { TextInput, Box, Text } from '@mantine/core';
+import { TextInput, Box, Text, Tooltip, Group, ThemeIcon } from '@mantine/core';
+import { IconQuestionMark } from '@tabler/icons-react';
 import { TemplateInputWrapper } from './TemplateInputWrapper';
 import type { NodeMetadata } from './templateUtils';
 
 interface StringInputProps {
   name: string;
+  description?: string;
   nodeLabel?: string;
   value: string;
   /** @deprecated Use nodes instead */
@@ -13,10 +15,19 @@ interface StringInputProps {
   onChange: (value: string) => void;
 }
 
-export const StringInput = memo(function StringInput({ name, value, nodes, onChange }: StringInputProps) {
+export const StringInput = memo(function StringInput({ name, description, value, nodes, onChange }: StringInputProps) {
   return (
     <Box>
-      <Text size="xs" c="dimmed" mb={4}>{name}</Text>
+      <Group gap="md" mb="xs" justify="space-between">
+        <Text size="xs" c="dimmed">{name}</Text>
+        {description && (
+          <Tooltip label={description} multiline maw={300}>
+            <ThemeIcon size={14} radius="xl" color="gray" variant="light">
+              <IconQuestionMark size={10} />
+            </ThemeIcon>
+          </Tooltip>
+        )}
+      </Group>
       <TemplateInputWrapper
         value={value}
         nodes={nodes}

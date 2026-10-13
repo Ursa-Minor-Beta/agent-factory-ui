@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect, memo } from 'react';
-import { Box, Text, Group, ActionIcon, Modal } from '@mantine/core';
-import { IconArrowsMaximize } from '@tabler/icons-react';
+import { Box, Text, Group, ActionIcon, Modal, Tooltip, ThemeIcon } from '@mantine/core';
+import { IconArrowsMaximize, IconQuestionMark } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import { JsonEditor } from '../../JsonEditor';
 
@@ -12,13 +12,14 @@ const DEBOUNCE_MS = 300;
 interface EditorInputProps {
   nodeId: string;
   name: string;
+  description?: string;
   nodeLabel?: string;
   value: unknown;
   mode: "javascript" | "json";
   onChange: (value: unknown) => void;
 }
 
-export const EditorInput = memo(function EditorInput({ nodeId, name, nodeLabel, value, mode, onChange }: EditorInputProps) {
+export const EditorInput = memo(function EditorInput({ nodeId, name, description, nodeLabel, value, mode, onChange }: EditorInputProps) {
   const storageKey = STORAGE_KEY_PREFIX + name;
   const [height, setHeight] = useState(() => {
     const saved = localStorage.getItem(storageKey);
@@ -122,12 +123,19 @@ export const EditorInput = memo(function EditorInput({ nodeId, name, nodeLabel, 
   return (
     <Box>
       <Group justify="space-between" mb={4}>
-        <Group gap={6}>
-          <Text size="xs" c="dimmed">{name}</Text>
+        <Text size="xs" c="dimmed">{name}</Text>
+        <Group gap={4}>
+          {description && (
+            <Tooltip label={description} multiline maw={300}>
+              <ThemeIcon size={14} radius="xl" color="gray" variant="light">
+                <IconQuestionMark size={10} />
+              </ThemeIcon>
+            </Tooltip>
+          )}
+          <ActionIcon size="xs" variant="subtle" onClick={openModal} title="Edit in modal">
+            <IconArrowsMaximize size={12} />
+          </ActionIcon>
         </Group>
-        <ActionIcon size="xs" variant="subtle" onClick={openModal} title="Edit in modal">
-          <IconArrowsMaximize size={12} />
-        </ActionIcon>
       </Group>
       <Box style={{ position: 'relative' }}>
         <JsonEditor

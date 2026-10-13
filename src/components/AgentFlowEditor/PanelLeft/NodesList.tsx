@@ -41,17 +41,17 @@ export function NodesList({ nodeTypes, existingNodeTypes, onAddNode, onNodeClick
           const isDisabled = SINGLETON_NODE_TYPES.has(nodeType.type) && existingNodeTypes.has(nodeType.type);
 
           return (
-            <Box
-              key={nodeType.type}
-              style={{
-                padding: '6px 8px',
-                borderRadius: 'var(--mantine-radius-sm)',
-                border: '1px solid var(--mantine-color-default-border)',
-                cursor: 'pointer',
-                opacity: isDisabled ? 0.5 : 1,
-              }}
-              onClick={() => onNodeClick(nodeType)}
-            >
+            <Tooltip key={nodeType.type} label="Click to see node definition and examples" position="right" openDelay={500}>
+              <Box
+                style={{
+                  padding: '6px 8px',
+                  borderRadius: 'var(--mantine-radius-sm)',
+                  border: '1px solid var(--mantine-color-default-border)',
+                  cursor: 'pointer',
+                  opacity: isDisabled ? 0.5 : 1,
+                }}
+                onClick={() => onNodeClick(nodeType)}
+              >
               <Group justify="space-between" wrap="nowrap" gap={4}>
                 <Text size="xs" truncate style={{ flex: 1 }}>
                   {nodeType.name || nodeType.type}
@@ -107,6 +107,7 @@ export function NodesList({ nodeTypes, existingNodeTypes, onAddNode, onNodeClick
                 </div>
               </Group>
             </Box>
+            </Tooltip>
           );
         })}
       </Stack>

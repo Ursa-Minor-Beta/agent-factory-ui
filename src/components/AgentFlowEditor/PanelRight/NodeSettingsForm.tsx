@@ -1,7 +1,7 @@
 import { useEffect, useRef, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { TextInput as MantineTextInput, Stack, Divider, ScrollArea, Group, Text, ActionIcon } from '@mantine/core';
-import { IconPencil } from '@tabler/icons-react';
+import { TextInput as MantineTextInput, Stack, Divider, ScrollArea, Group, Text, ActionIcon, Tooltip, ThemeIcon } from '@mantine/core';
+import { IconPencil, IconQuestionMark } from '@tabler/icons-react';
 import type { Node } from '@xyflow/react';
 import type { NodeType, NodeTypeOption } from '../../../api';
 import type { NodeMetadata } from '../inputs/templateUtils';
@@ -185,7 +185,7 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, onUpdate, onReplace }
 
   return (
     <ScrollArea flex={1}>
-      <Stack gap="md" p="lg">
+      <Stack gap="lg" p="lg">
         <MantineTextInput
           label="Label"
           size="xs"
@@ -194,17 +194,25 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, onUpdate, onReplace }
 
         <MantineTextInput
           ref={idInputRef}
+          labelProps={{ style: {width: '100%'} }}
           label={
-            <Group gap={4}>
+            <Group gap="xs" justify="space-between">
               <Text size="xs" fw={500}>ID</Text>
-              <ActionIcon
-                size="xs"
-                variant="subtle"
-                onClick={() => setIdEditEnabled( prev => !prev )}
-                title="Edit ID"
-              >
-                <IconPencil size={12} />
-              </ActionIcon>
+              <Group gap={4}>
+                <Tooltip label="Updating the node ID will break any references to this node in other nodes (e.g., template variables like {{nodeId.output}})" multiline maw={300}>
+                  <ThemeIcon size={14} radius="xl" color="gray" variant="light">
+                    <IconQuestionMark size={10} />
+                  </ThemeIcon>
+                </Tooltip>
+                <ActionIcon
+                  size="xs"
+                  variant="subtle"
+                  onClick={() => setIdEditEnabled( prev => !prev )}
+                  title="Edit ID"
+                >
+                  <IconPencil size={12} />
+                </ActionIcon>
+              </Group>
             </Group>
           }
           size="xs"
@@ -214,11 +222,6 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, onUpdate, onReplace }
           onBlur={handleIdBlur}
           disabled={!idEditEnabled}
         />
-
-        <Group gap="xs" align="flex-start">
-          <Text size="xs" c="dimmed" mb={4}>Type: {node.type?.toUpperCase()}</Text>
-          <Text size="xs" c="dimmed" mb={4}>Index: {nodes?.findIndex( n => n.id === node.id )}</Text>
-        </Group>
 
         <Divider />
 

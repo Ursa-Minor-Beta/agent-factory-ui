@@ -1,15 +1,17 @@
 import { memo, useRef, useEffect } from 'react';
-import { NumberInput as MantineNumberInput, Box, Text } from '@mantine/core';
+import { NumberInput as MantineNumberInput, Box, Text, Tooltip, Group, ThemeIcon } from '@mantine/core';
+import { IconQuestionMark } from '@tabler/icons-react';
 
 const DEBOUNCE_MS = 300;
 
 interface NumberInputProps {
   name: string;
+  description?: string;
   value: number | undefined;
   onChange: (value: number | undefined) => void;
 }
 
-export const NumberInput = memo(function NumberInput({ name, value, onChange }: NumberInputProps) {
+export const NumberInput = memo(function NumberInput({ name, description, value, onChange }: NumberInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const onChangeRef = useRef(onChange);
   const debounceRef = useRef<number | null>(null);
@@ -62,7 +64,16 @@ export const NumberInput = memo(function NumberInput({ name, value, onChange }: 
 
   return (
     <Box>
-      <Text size="xs" c="dimmed" mb={4}>{name}</Text>
+      <Group gap={4} mb={4} justify="space-between" >
+        <Text size="xs" c="dimmed">{name}</Text>
+        {description && (
+          <Tooltip label={description} multiline maw={300}>
+            <ThemeIcon size={14} radius="xl" color="gray" variant="light">
+              <IconQuestionMark size={10} />
+            </ThemeIcon>
+          </Tooltip>
+        )}
+      </Group>
       <MantineNumberInput
         ref={inputRef}
         size="xs"

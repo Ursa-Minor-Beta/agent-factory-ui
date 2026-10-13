@@ -1,6 +1,6 @@
 import { memo, useRef, useCallback } from 'react';
-import { Box, Text, Group, ActionIcon, Modal, Textarea } from '@mantine/core';
-import { IconArrowsMaximize, IconList, IconListNumbers } from '@tabler/icons-react';
+import { Box, Text, Group, ActionIcon, Modal, Textarea, Tooltip, ThemeIcon } from '@mantine/core';
+import { IconArrowsMaximize, IconList, IconListNumbers, IconQuestionMark } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import { TemplateInputWrapper } from '../TemplateInputWrapper';
 import { TemplateTextEditorFull } from './TemplateTextEditorFull';
@@ -8,6 +8,7 @@ import type { NodeMetadata } from '../templateUtils';
 
 interface TextInputProps {
   name: string;
+  description?: string;
   nodeLabel?: string;
   value: string;
   /** @deprecated Use nodes instead */
@@ -16,7 +17,7 @@ interface TextInputProps {
   onChange: (value: string) => void;
 }
 
-export const TextInput = memo(function TextInput({ name, nodeLabel, value, nodeIds, nodes, onChange }: TextInputProps) {
+export const TextInput = memo(function TextInput({ name, description, nodeLabel, value, nodeIds, nodes, onChange }: TextInputProps) {
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
   const highlightRef = useRef<HTMLDivElement>(null);
 
@@ -31,10 +32,19 @@ export const TextInput = memo(function TextInput({ name, nodeLabel, value, nodeI
   return (
     <Box>
       <Group justify="space-between" mb={4}>
-        <Text size="xs" c="dimmed">{name}</Text>
-        <ActionIcon size="xs" variant="subtle" onClick={openModal} title="Edit in modal">
-          <IconArrowsMaximize size={12} />
-        </ActionIcon>
+          <Text size="xs" c="dimmed">{name}</Text>
+        <Group gap={4} >
+          {description && (
+            <Tooltip label={description} multiline maw={300}>
+              <ThemeIcon size={14} radius="xl" color="gray" variant="light">
+                <IconQuestionMark size={10} />
+              </ThemeIcon>
+            </Tooltip>
+          )}
+          <ActionIcon size="xs" variant="subtle" onClick={openModal} title="Edit in modal">
+            <IconArrowsMaximize size={12} />
+          </ActionIcon>
+        </Group>
       </Group>
 
       <TemplateInputWrapper

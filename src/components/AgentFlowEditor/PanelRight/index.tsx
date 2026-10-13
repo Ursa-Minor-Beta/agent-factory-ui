@@ -103,7 +103,13 @@ export function PanelRight({ node, nodes, nodeTypes, onUpdate, onReplace, onRemo
         }}
       >
         <Group p="md" justify="space-between" style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}>
-          <Text fw={600} size="sm">Node Settings</Text>
+
+          <Group gap="xs">
+            <Text fw={600} size="sm">Node Settings. </Text>
+            <Text size="xs" c="dimmed" >Type: {node.type?.toUpperCase()},</Text>
+            <Text size="xs" c="dimmed" >Index: {nodes?.findIndex( n => n.id === node.id )}</Text>
+          </Group>
+
           <Group gap="lg">
             <Tooltip label="Remove node">
               <ActionIcon size="xs" variant="subtle" color="red" onClick={openDeleteModal}>

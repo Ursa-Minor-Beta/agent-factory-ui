@@ -59,6 +59,7 @@ export const FieldInput = memo(function FieldInput({
     return (
       <MultiEnumInput
         name={fieldKey}
+        description={option.description}
         value={arrayValue}
         values={option.values}
         onChange={handleChange}
@@ -71,6 +72,7 @@ export const FieldInput = memo(function FieldInput({
     return (
       <EnumInput
         name={fieldKey}
+        description={option.description}
         value={String(value ?? option?.default ?? '')}
         values={option.values}
         onChange={handleChange}
@@ -83,6 +85,7 @@ export const FieldInput = memo(function FieldInput({
     return (
       <NumberInput
         name={fieldKey}
+        description={option?.description}
         value={typeof value === 'number' ? value : (option?.default as number | undefined)}
         onChange={handleChangeDebounced}
       />
@@ -94,6 +97,7 @@ export const FieldInput = memo(function FieldInput({
     return (
       <TextInput
         name={fieldKey}
+        description={option?.description}
         nodeLabel={nodeLabel}
         value={String(value ?? option?.default ?? '')}
         nodes={nodes}
@@ -109,6 +113,7 @@ export const FieldInput = memo(function FieldInput({
         mode='javascript'
         nodeId={nodeId}
         name={fieldKey}
+        description={option?.description}
         nodeLabel={nodeLabel}
         value={String(value ?? option?.default ?? '')}
         onChange={handleChangeDebounced}
@@ -126,6 +131,7 @@ export const FieldInput = memo(function FieldInput({
         mode='json'
         nodeId={nodeId}
         name={fieldKey}
+        description={option?.description}
         nodeLabel={nodeLabel}
         value={value ?? (fieldType === 'array' ? [] : {})}
         onChange={handleChangeDebounced}
@@ -137,6 +143,7 @@ export const FieldInput = memo(function FieldInput({
   return (
     <StringInput
       name={fieldKey}
+      description={option?.description}
       nodeLabel={nodeLabel}
       value={String(value ?? option?.default ?? '')}
       nodes={nodes}
