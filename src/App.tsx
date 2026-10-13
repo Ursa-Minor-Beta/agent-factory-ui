@@ -69,6 +69,11 @@ const theme = createTheme({
         },
       },
     },
+    Loader: {
+      defaultProps: {
+        type: "dots"
+      }
+    }
   },
 });
 

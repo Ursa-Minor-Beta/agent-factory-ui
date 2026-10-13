@@ -133,11 +133,11 @@ export const ObjectInput = memo(function ObjectInput({ name, nodeLabel, value, o
       </Box>
 
       <Modal opened={modalOpened} onClose={closeModal} title={`${nodeLabel || 'Node'} / ${name}`} size="xl" fullScreen centered>
-        <JsonEditor
+        {modalOpened && <JsonEditor
           value={value}
           height="calc(100vh - 100px)"
           onChange={handleEditorChange}
-        />
+        />}
       </Modal>
     </Box>
   );

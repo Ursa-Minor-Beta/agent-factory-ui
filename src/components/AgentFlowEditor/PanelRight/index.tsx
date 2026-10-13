@@ -1,10 +1,13 @@
-import { useEffect, useState, useCallback, useRef, memo } from 'react';
-import { Box, Text, Group, ActionIcon, Tooltip, Modal, Button } from '@mantine/core';
+import { useEffect, useState, useCallback, useRef, memo, lazy, Suspense } from 'react';
+import { Box, Text, Group, ActionIcon, Tooltip, Modal, Button, Loader, Center } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconTrash, IconX } from '@tabler/icons-react';
 import type { Node } from '@xyflow/react';
 import type { NodeType } from '../../../api';
-import { NodeSettingsForm } from './NodeSettingsForm';
+
+const NodeSettingsForm = lazy(() =>
+  import('./NodeSettingsForm').then((m) => ({ default: m.NodeSettingsForm }))
+);
 
 const MIN_WIDTH = 200;
 const MAX_WIDTH_RATIO = 0.4; // 40% of viewport
@@ -123,13 +126,15 @@ export const PanelRight = memo( function({ node, nodes, nodeTypes, onUpdate, onR
           </Group>
         </Group>
 
-        <NodeSettingsForm
+        <Suspense fallback={<Center h={200}><Loader size="sm" /></Center>}>
+          <NodeSettingsForm
             node={node}
             nodes={nodes}
             nodeTypes={nodeTypes}
             onUpdate={onUpdate}
             onReplace={onReplace}
-            />
+          />
+        </Suspense>
       </Box>
 
       <Modal opened={deleteModalOpened} onClose={closeDeleteModal} title="Remove Node" centered size="sm">

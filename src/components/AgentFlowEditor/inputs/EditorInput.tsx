@@ -180,14 +180,14 @@ export const EditorInput = memo(function EditorInput({ nodeId, name, description
         fullScreen 
         centered
         >
-        <Box onKeyDown={(e) => e.stopPropagation()}>
+        {modalOpened && <Box onKeyDown={(e) => e.stopPropagation()}>
           <JsonEditor
             value={value}
             height="calc(100vh - 100px)"
             mode={mode}
             onChange={handleEditorChange}
           />
-        </Box>
+        </Box>}
       </Modal>
     </Box>
   );

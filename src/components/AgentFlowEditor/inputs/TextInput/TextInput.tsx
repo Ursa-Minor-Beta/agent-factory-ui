@@ -1,10 +1,13 @@
-import { memo, useRef, useCallback } from 'react';
-import { Box, Text, Group, ActionIcon, Modal, Textarea, Tooltip, ThemeIcon } from '@mantine/core';
+import { memo, useRef, useCallback, lazy, Suspense } from 'react';
+import { Box, Text, Group, ActionIcon, Modal, Textarea, Tooltip, ThemeIcon, Loader, Center } from '@mantine/core';
 import { IconArrowsMaximize, IconList, IconListNumbers, IconQuestionMark } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import { TemplateInputWrapper } from '../TemplateInputWrapper';
-import { TemplateTextEditorFull } from './TemplateTextEditorFull';
 import type { NodeMetadata } from '../templateUtils';
+
+const TemplateTextEditorFull = lazy(() =>
+  import('./TemplateTextEditorFull').then((m) => ({ default: m.TemplateTextEditorFull }))
+);
 
 interface TextInputProps {
   name: string;
@@ -102,37 +105,40 @@ export const TextInput = memo(function TextInput({ name, description, nodeLabel,
           },
         }}
       >
-      <Box onKeyDown={(e) => e.stopPropagation()} style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
-        <TemplateTextEditorFull
-          formFieldName={name}
-          getValues={() => value}
-          setValue={(_, newValue) => onChange(newValue)}
-          nodes={nodes}
-          nodeIds={nodeIds}
-          toolbarFormatBtns={[
-            {
-              title: 'H1',
-              tip: 'Heading H1',
-              onClick: (editor) => editor.chain().focus().toggleHeading({ level: 1 }).run(),
-            },
-            {
-              title: 'B',
-              tip: 'Bold',
-              onClick: (editor) => editor.chain().focus().toggleBold().run(),
-            },
-            {
-              Icon: IconList,
-              tip: 'Unordered list',
-              onClick: (editor) => editor.chain().focus().toggleBulletList().run(),
-            },
-            {
-              Icon: IconListNumbers,
-              tip: 'Ordered list',
-              onClick: (editor) => editor.chain().focus().toggleOrderedList().run(),
-            },
-          ]}
-        />
-        </Box>
+        
+      {modalOpened && <Box onKeyDown={(e) => e.stopPropagation()} style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+        <Suspense fallback={<Center h="100%"><Loader /></Center>}>
+          <TemplateTextEditorFull
+            formFieldName={name}
+            getValues={() => value}
+            setValue={(_, newValue) => onChange(newValue)}
+            nodes={nodes}
+            nodeIds={nodeIds}
+            toolbarFormatBtns={[
+              {
+                title: 'H1',
+                tip: 'Heading H1',
+                onClick: (editor) => editor.chain().focus().toggleHeading({ level: 1 }).run(),
+              },
+              {
+                title: 'B',
+                tip: 'Bold',
+                onClick: (editor) => editor.chain().focus().toggleBold().run(),
+              },
+              {
+                Icon: IconList,
+                tip: 'Unordered list',
+                onClick: (editor) => editor.chain().focus().toggleBulletList().run(),
+              },
+              {
+                Icon: IconListNumbers,
+                tip: 'Ordered list',
+                onClick: (editor) => editor.chain().focus().toggleOrderedList().run(),
+              },
+            ]}
+          />
+        </Suspense>
+        </Box>}
       </Modal>
     </Box>
   );
