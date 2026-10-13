@@ -67,16 +67,15 @@ export function FilesPage() {
   // Pagination state
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
-  const [hasMore, setHasMore] = useState(true);
+  const [total, setTotal] = useState(0);
 
   const loadFiles = useCallback(async (currentPage: number, limit: number) => {
     try {
       setLoading(true);
       const offset = (currentPage - 1) * limit;
-      const data = await filesApi.list({ limit, offset });
-      setFiles(data);
-      // If we got fewer items than requested, we're at the last page
-      setHasMore(data.length >= limit);
+      const { files, total } = await filesApi.list({ limit, offset });
+      setFiles(files);
+      setTotal(total);
       setError('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load files');
@@ -185,15 +184,15 @@ export function FilesPage() {
     }
   };
 
-  // Calculate total pages (estimate based on hasMore)
-  const totalPages = hasMore ? page + 1 : page;
+  // Calculate total pages from total count
+  const totalPages = Math.ceil(total / pageSize);
   const allSelected = files.length > 0 && selectedFileIds.size === files.length;
   const deleteCount = deletingFile ? 1 : selectedFileIds.size;
 
   return (
     <Box>
       <Text c="dimmed" size="sm" mb="md">
-        File storage
+        File storage{total > 0 && ` · ${total} ${total === 1 ? 'file' : 'files'}`}
       </Text>
 
       {/* Bulk actions bar */}

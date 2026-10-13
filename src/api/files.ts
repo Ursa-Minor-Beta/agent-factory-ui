@@ -17,6 +17,11 @@ export interface FileData {
   data: string; // base64 encoded
 }
 
+export interface FileListResponse {
+  files: FileListItem[];
+  total: number;
+}
+
 export interface DeleteFilesParams {
   id: string | string[];
 }
@@ -31,7 +36,7 @@ export const filesApi = {
     if (params?.limit) searchParams.set('limit', String(params.limit));
     if (params?.offset) searchParams.set('offset', String(params.offset));
     const query = searchParams.toString();
-    return api.get<FileListItem[]>(`/api/files${query ? `?${query}` : ''}`);
+    return api.get<FileListResponse>(`/api/files${query ? `?${query}` : ''}`);
   },
 
   getById: (id: string) =>
