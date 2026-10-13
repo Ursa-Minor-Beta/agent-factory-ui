@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, memo } from 'react';
 import { Box, Text, Group, ActionIcon, Tooltip, Modal, Button } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconTrash, IconX } from '@tabler/icons-react';
@@ -14,13 +14,14 @@ interface PanelRightProps {
   node: Node;
   nodes: Node[];
   nodeTypes: NodeType[];
+  isNodesDragging: boolean;
   onUpdate: (nodeId: string, data: Record<string, unknown>) => void;
   onReplace: (nodeId: string, data: Record<string, unknown>) => void;
   onRemove: (nodeId: string) => void;
   onClose: () => void;
 }
 
-export function PanelRight({ node, nodes, nodeTypes, onUpdate, onReplace, onRemove, onClose }: PanelRightProps) {
+export const PanelRight = memo( function({ node, nodes, nodeTypes, onUpdate, onReplace, onRemove, onClose }: PanelRightProps) {
   const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
   const [width, setWidth] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -142,4 +143,5 @@ export function PanelRight({ node, nodes, nodeTypes, onUpdate, onReplace, onRemo
       </Modal>
     </Box>
   );
-}
+}, 
+({ isNodesDragging }: PanelRightProps) => isNodesDragging )

@@ -40,6 +40,8 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
   const [exporting, setExporting] = useState(false);
   const [savedAt, setSavedAt] = useState<number | undefined>();
 
+  const [isNodesDragging, setIsNodesDragging] = useState(false);
+
   const handleActiveTabChange = useCallback((tab: string | null) => {
     setActiveTab(tab);
     if (tab) {
@@ -190,8 +192,12 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
           onConnect={onConnect}
           onNodeClick={onNodeClick}
           onPaneClick={onPaneClick}
+          onNodeDragStart={ () => setIsNodesDragging(true) }
+          onNodeDragStop={ () => setIsNodesDragging(false) }
           onInit={(instance) => { reactFlowInstance.current = instance; }}
           fitView
+          nodeDragThreshold={10}
+          onlyRenderVisibleElements={true}
           style={{ background: 'transparent' }}
         >
           { !selectedNode && 
@@ -234,6 +240,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
 
       {selectedNode && (
         <PanelRight
+          isNodesDragging={isNodesDragging}
           node={selectedNode}
           nodes={nodes}
           nodeTypes={availableNodeTypes}
