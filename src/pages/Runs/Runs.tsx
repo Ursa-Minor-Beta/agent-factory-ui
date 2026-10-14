@@ -37,7 +37,7 @@ import {
   IconSquareCheck,
   IconCopy,
 } from '@tabler/icons-react';
-import { runsApi } from '../../api';
+import { runsApi, sessionsApi } from '../../api';
 import type { ListRunsParams } from '../../api/runs';
 import type { RunSummary, RunStatus } from '../../types';
 import { useRunDetailsModal } from '../../components/RunDetailsModal';
@@ -70,6 +70,9 @@ export function RunsPage() {
   const [deleting, setDeleting] = useState(false);
   const [runToDelete, setRunToDelete] = useState<string | null>(null);
   const [deleteByAgentIds, setDeleteByAgentIds] = useState<string[]>([]);
+
+  // Cancel run
+  const [cancellingRunId, setCancellingRunId] = useState<string | null>(null);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
@@ -243,6 +246,29 @@ export function RunsPage() {
     setDeleteByAgentIds([]);
   };
 
+  // Cancel run handler
+  const handleCancelRun = async (agentId: string, runId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    try {
+      setCancellingRunId(runId);
+      // const response = await runsApi.cancel(runId);
+      const response = await sessionsApi.cancelChat(agentId, runId);
+      const ids = new Set([ runId, ...response.cancelledChildRunIds]);
+      setRuns((prev) =>
+        prev.map((run) => 
+          ids.has(run.id) ? { ...run, status: 'cancelled' } : run
+        )
+      );
+      setError('');
+    } 
+    catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to cancel run');
+    } 
+    finally {
+      setCancellingRunId(null);
+    }
+  };
+
   const hasFilters = statusFilter || agentFilter.trim() || startedAfter || startedBefore;
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const allSelected = runs.length > 0 && selectedRunIds.size === runs.length;
@@ -402,7 +428,7 @@ export function RunsPage() {
       )}
 
       <Card withBorder>
-        {loading ? (
+        {(loading && !runs?.length) ? (
           <Center py="xl">
             <Loader />
           </Center>
@@ -419,6 +445,7 @@ export function RunsPage() {
                   />
                 </Table.Th>
                 <Table.Th>Status</Table.Th>
+                <Table.Th>Status Manager</Table.Th>
                 <Table.Th>Agent ID</Table.Th>
                 <Table.Th>Started</Table.Th>
                 <Table.Th>Duration</Table.Th>
@@ -456,6 +483,9 @@ export function RunsPage() {
                     >
                       {run.status}
                     </Badge>
+                  </Table.Td>
+                  <Table.Td>
+                      {run.serviceStatus}
                   </Table.Td>
                   <Table.Td>
                     <Group gap="xs">
@@ -508,15 +538,29 @@ export function RunsPage() {
                     </Table.Td>
                   )}
                   <Table.Td onClick={(e) => e.stopPropagation()}>
-                    <Tooltip label="Delete run">
-                      <ActionIcon
-                        color="red"
-                        variant="subtle"
-                        onClick={(e) => handleDeleteSingleRun(run.id, e)}
-                      >
-                        <IconTrash size={16} />
-                      </ActionIcon>
-                    </Tooltip>
+                    <Group gap={4} wrap="nowrap" justify="flex-end">
+                      {(run.status === 'pending' || run.status === 'running') && (
+                        <Tooltip label="Cancel run">
+                          <ActionIcon
+                            color="orange"
+                            variant="subtle"
+                            loading={cancellingRunId === run.id}
+                            onClick={(e) => handleCancelRun(run.agentId, run.id, e)}
+                          >
+                            <IconPlayerStop size={16} />
+                          </ActionIcon>
+                        </Tooltip>
+                      )}
+                      <Tooltip label="Delete run">
+                        <ActionIcon
+                          color="red"
+                          variant="subtle"
+                          onClick={(e) => handleDeleteSingleRun(run.id, e)}
+                        >
+                          <IconTrash size={16} />
+                        </ActionIcon>
+                      </Tooltip>
+                    </Group>
                   </Table.Td>
                 </Table.Tr>
                 );

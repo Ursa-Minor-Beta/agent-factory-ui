@@ -37,9 +37,8 @@ export interface ChatStreamCallbacks {
 }
 
 export interface CancelChatResponse {
-  success: boolean;
   cancelled: boolean;
-  message: string;
+  cancelledChildRunIds: string[];
 }
 
 export interface SessionsQueryParams {
@@ -184,8 +183,9 @@ export const sessionsApi = {
                   }
               }
               currentEventType = ''; // Reset after processing
-            } catch {
-              // Ignore parse errors
+            } 
+            catch (e){
+              console.error('chatStream', e)
             }
           }
         }

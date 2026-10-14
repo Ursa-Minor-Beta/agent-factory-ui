@@ -146,9 +146,11 @@ export function WorkspaceDetailPage() {
             <Text fw={500} size="lg">
               Workspace: {workspace.name}
             </Text>
-            <Text c="dimmed" size="sm">
-              — {workspace.description}
-            </Text>
+            {workspace.description && 
+              <Text c="dimmed" size="sm">
+                — {workspace.description}
+              </Text>
+            }
           </Group>
         </Group>
         <Group gap="xs">

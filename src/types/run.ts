@@ -34,6 +34,7 @@ export interface RunSummary {
   agentName: string;
   userId: string;
   status: RunStatus;
+  serviceStatus: 'active' | 'inactive';
   error: string | null;
   startedAt: string;
   completedAt: string | null;
