@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, memo } from 'react';
 import { Box, Text, Group, ActionIcon, Divider, Tabs } from '@mantine/core';
 import { IconLayoutSidebar } from '@tabler/icons-react';
 import type { NodeType, AgentExample } from '../../../api';
@@ -16,6 +16,7 @@ const STORAGE_KEY = 'agent-editor-palette-width';
 const TAB_STORAGE_KEY = 'agent-editor-active-tab';
 
 interface PanelLeftProps {
+  isNodesDragging: boolean;
   nodeTypes: NodeType[];
   existingNodeTypes: Set<string>;
   edgeType: string;
@@ -37,7 +38,7 @@ interface PanelLeftProps {
   onReloadAgent?: () => void;
 }
 
-export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, savedAt, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onWorkspaceChange, onLoadTemplate, onClose, onExport, exporting, onReloadAgent }: PanelLeftProps) {
+export const PanelLeft = memo(function({ nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, savedAt, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onWorkspaceChange, onLoadTemplate, onClose, onExport, exporting, onReloadAgent }: PanelLeftProps) {
   const [viewingNodeType, setViewingNodeType] = useState<NodeType | null>(null);
   const [internalActiveTab, setInternalActiveTab] = useState<string | null>(() => {
     const saved = localStorage.getItem(TAB_STORAGE_KEY);
@@ -224,4 +225,5 @@ export function PanelLeft({ nodeTypes, existingNodeTypes, edgeType, layoutDirect
       </Box>
     </Box>
   );
-}
+}, 
+({ isNodesDragging }: PanelLeftProps) => isNodesDragging )

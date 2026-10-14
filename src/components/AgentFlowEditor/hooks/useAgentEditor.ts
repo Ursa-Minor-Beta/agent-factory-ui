@@ -237,23 +237,20 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
   );
 
   // Add new node
-  const addNode = useCallback(
-    (type: string, position?: { x: number; y: number }, data?: Record<string, unknown>) => {
-      const id = generateNodeId(type, nodes);
-      // Default position at center if not provided
-      const pos = position || { x: 200, y: 200 };
-      const newNode: Node = {
-        id,
-        type,
-        position: pos,
-        sourcePosition: Position.Right,
-        targetPosition: Position.Left,
-        data: { label: type.toUpperCase(), ...data },
-      };
-      setNodes((nds) => [...nds, newNode]);
-    },
-    [nodes, setNodes]
-  );
+  const addNode = (type: string, position?: { x: number; y: number }, data?: Record<string, unknown>) => {
+    const id = generateNodeId(type, nodes);
+    // Default position at center if not provided
+    const pos = position || { x: 200, y: 200 };
+    const newNode: Node = {
+      id,
+      type,
+      position: pos,
+      sourcePosition: Position.Right,
+      targetPosition: Position.Left,
+      data: { label: type.toUpperCase(), ...data },
+    };
+    setNodes((nds) => [...nds, newNode]);
+  }
 
   // Delete node
   const deleteNode = useCallback(

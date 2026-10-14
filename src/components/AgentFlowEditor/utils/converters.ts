@@ -73,8 +73,7 @@ export function generateNodeId(type: string, existingNodes: Node[]): string {
   if (type === 'input' || type === 'output') {
     return type;
   }
-
-  const typeNodes = existingNodes.filter((n) => n.id.startsWith(`${type}-`));
+  const typeNodes = existingNodes.filter((n) => n.id.startsWith(`${type}`));
   return `${type}-${typeNodes.length + 1}`;
 }
 

@@ -216,6 +216,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
 
       {isPaletteOpen &&
         <PanelLeft
+          isNodesDragging={isNodesDragging}
           activeTab={activeTab}
           agent={agent}
           edgeType={edgeType}
