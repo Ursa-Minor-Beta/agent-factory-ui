@@ -84,25 +84,31 @@ export const router = createBrowserRouter([
           </Suspense>
         ),
       },
+      
       {
-        path: 'providers',
-        element: <ProvidersPage />,
-      },
-      {
-        path: 'secrets',
-        element: <SecretsPage />,
-      },
-      {
-        path: 'files',
-        element: <FilesPage />,
-      },
-      {
-        path: 'collections',
-        element: <CollectionsPage />,
-      },
-      {
-        path: 'collections/:collectionId/records',
-        element: <CollectionRecordsPage />,
+        path: 'configurations',
+        children: [
+          {
+            index: true,
+            element: <Navigate to="/configurations/providers" replace />,
+          },
+          {
+            path: 'providers',
+            element: <ProvidersPage />,
+          },
+          {
+            path: 'secrets',
+            element: <SecretsPage />,
+          },
+          {
+            path: 'collections',
+            element: <CollectionsPage />,
+          },
+          {
+            path: 'collections/:collectionId/records',
+            element: <CollectionRecordsPage />,
+          },
+        ],
       },
       {
         path: 'workspaces',
@@ -118,19 +124,32 @@ export const router = createBrowserRouter([
         ],
       },
       {
-        path: 'runs',
-        element: <RunsPage />,
-      },
-      {
-        path: 'sessions',
-        element: <SessionsPage />,
+        path: 'monitoring',
+        children: [
+          {
+            index: true,
+            element: <Navigate to="/monitoring/runs" replace />,
+          },
+          {
+            path: 'sessions',
+            element: <SessionsPage />,
+          },
+          {
+            path: 'runs',
+            element: <RunsPage />,
+          },
+          {
+            path: 'files',
+            element: <FilesPage />,
+          },
+        ],
       },
       {
         path: 'settings',
         children: [
           {
             index: true,
-            element: <Navigate to="/settings/api-keys" replace />,
+            element: <Navigate to="/settings/system" replace />,
           },
           {
             path: 'system',

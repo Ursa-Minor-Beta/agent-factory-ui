@@ -25,9 +25,9 @@ export const getBaseNavItems = (): NavItem[] => [
     path: '/configurations',
     icon: <IconSettings size={20} />,
     children: [
-      { label: 'Providers', path: '/providers', icon: <IconCloud size={18} /> },
-      { label: 'Secrets', path: '/secrets', icon: <IconLock size={18} /> },
-      { label: 'Collections', path: '/collections', icon: <IconDatabase size={18} /> },
+      { label: 'Providers', path: '/configurations/providers', icon: <IconCloud size={18} /> },
+      { label: 'Secrets', path: '/configurations/secrets', icon: <IconLock size={18} /> },
+      { label: 'Collections', path: '/configurations/collections', icon: <IconDatabase size={18} /> },
     ],
   },
   
@@ -36,9 +36,9 @@ export const getBaseNavItems = (): NavItem[] => [
     path: '/monitoring',
     icon: <IconHistory size={20} />,
     children: [
-      { label: 'Sessions', path: '/sessions', icon: <IconMessages size={18} /> },
-      { label: 'Runs', path: '/runs', icon: <IconHistory size={18} /> },
-      { label: 'Files', path: '/files', icon: <IconFiles size={18} /> },
+      { label: 'Sessions', path: '/monitoring/sessions', icon: <IconMessages size={18} /> },
+      { label: 'Runs', path: '/monitoring/runs', icon: <IconHistory size={18} /> },
+      { label: 'Files', path: '/monitoring/files', icon: <IconFiles size={18} /> },
     ],
   },
   
