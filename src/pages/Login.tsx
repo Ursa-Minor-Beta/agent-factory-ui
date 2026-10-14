@@ -13,6 +13,7 @@ import {
 } from '@mantine/core';
 import { IconAlertCircle } from '@tabler/icons-react';
 import { useAuth } from '../contexts/AuthContext';
+import { config } from '../config';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -70,7 +71,7 @@ export function LoginPage() {
         }}
       >
         <Title order={2} ta="center" mb="xs">
-          Agent Factory
+          {config.appName}
         </Title>
         <Text c="dimmed" size="sm" ta="center" mb="lg">
           Sign in to your account

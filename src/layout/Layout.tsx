@@ -8,6 +8,7 @@ import { NavbarHeader } from './NavbarHeader';
 import { NavbarLinks } from './NavbarLinks';
 import { UserMenu } from './UserMenu';
 import type { NavItem } from './types';
+import { config } from '../config';
 
 // Lazy load global modals
 const RunDetailsModal = lazy(() =>
@@ -49,7 +50,7 @@ export function Layout() {
     };
 
     const pageLabel = findLabel(navItems, location.pathname);
-    document.title = pageLabel ? `Agent Factory | ${pageLabel}` : 'Agent Factory';
+    document.title = pageLabel ? `${config.appName} | ${pageLabel}` : config.appName;
   }, [location.pathname, navItems]);
 
   const filterNavItems = (items: NavItem[]): NavItem[] => {

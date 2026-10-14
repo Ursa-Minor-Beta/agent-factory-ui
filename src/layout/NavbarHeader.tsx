@@ -1,5 +1,6 @@
 import { Group, Burger, Text, ActionIcon, Tooltip, AppShell } from '@mantine/core';
 import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
+import { config } from '../config';
 
 interface NavbarHeaderProps {
   collapsed: boolean;
@@ -14,7 +15,7 @@ export function NavbarHeader({ collapsed, setCollapsed, mobileOpened, toggleMobi
       <AppShell.Section>
         <Group justify={collapsed ? 'center' : 'space-between'} px={collapsed ? 0 : 'xs'} py="xs">
           {!collapsed && (
-            <Text fw={600} size="lg">Agent Factory</Text>
+            <Text fw={600} size="lg">{config.appName}</Text>
           )}
           <Group gap="xs">
             <Burger
