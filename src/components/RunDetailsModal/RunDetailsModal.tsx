@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Modal,
@@ -32,8 +32,9 @@ import {
   IconSubtask,
   IconExternalLink,
   IconArrowLeft,
+  IconPlayerStop,
 } from '@tabler/icons-react';
-import { runsApi } from '../../api';
+import { runsApi, sessionsApi } from '../../api';
 import type { Run } from '../../types';
 import { statusColors, nodeStatusColors, formatDuration, resolveRunOutput } from '../../types';
 import { DataWithFileRefs } from './utils';
@@ -44,6 +45,8 @@ export function RunDetailsModal() {
   const [run, setRun] = useState<Run | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const to = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Fetch run data when opened or runId changes
   useEffect(() => {
@@ -88,6 +91,33 @@ export function RunDetailsModal() {
     }
   };
 
+  const handleCancel = async () => {
+    if (!runId || !run?.agentId || cancelling) return;
+    try {
+      setCancelling(true);
+      await sessionsApi.cancelChat(run.agentId, runId);
+      // Refresh to get updated status
+      const data = await runsApi.getById(runId, true);
+      setRun(data);
+    } catch {
+      // Ignore cancel errors
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  useEffect( () => {
+      if (!loading && run?.status === 'running') {
+          to.current = setTimeout( handleRefresh, 1_000);
+      }
+  }, [run])
+
+  useEffect( () => {
+      if (to.current) {
+          clearTimeout(to.current)
+      }
+  }, [])
+
   return (
     <Modal
       opened={isOpen}
@@ -105,6 +135,13 @@ export function RunDetailsModal() {
               <Badge color={statusColors[run.status]} variant="light">
                 {run.status}
               </Badge>
+              {(run.status === 'pending' || run.status === 'running') && (
+                <Tooltip label="Stop">
+                  <ActionIcon variant="subtle" size="sm" color="red" onClick={handleCancel} loading={cancelling}>
+                    <IconPlayerStop size={16} />
+                  </ActionIcon>
+                </Tooltip>
+              )}
               {(run.status === 'pending' || run.status === 'running' || run.status === 'cancelling') && (
                 <Tooltip label="Refresh">
                   <ActionIcon variant="subtle" size="sm" onClick={handleRefresh} loading={loading}>
@@ -131,7 +168,7 @@ export function RunDetailsModal() {
         <Alert icon={<IconAlertCircle size={16} />} color="red" variant="light">
           {error}
         </Alert>
-      ) : loading || !run ? (
+      ) : !run ? (
         <Center py="xl">
           <Loader />
         </Center>

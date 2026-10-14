@@ -56,6 +56,7 @@ export function getInputSchema(agent: Agent): InputSchema {
 }
 
 export interface ChatMessagesProps {
+  currentRunId?: string;
   messages: ChatMessage[];
   loading: boolean;
   sending: boolean;

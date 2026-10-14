@@ -6,6 +6,7 @@ import type { ChatMessagesProps } from '../types';
 import { MessageBubble } from './MessageBubble';
 
 export function ChatMessages({
+  currentRunId,
   messages,
   loading,
   sending,
@@ -163,20 +164,49 @@ export function ChatMessages({
                 {sending && (
                   <Box
                     style={{ display: 'flex', justifyContent: 'flex-start' }}
-                    px="md"
+                    ms="xs"
+                    px="sm"
                     pb="xs"
                   >
                     <Paper
-                      p="sm"
+                      py="xs"
+                      px="md"
                       radius="lg"
-                      style={{ backgroundColor: 'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))', minWidth: 100 }}
+                      className="chat-status-bubble"
+                      style={{ 
+                          minWidth: '140px', 
+                          backgroundColor: 'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))', 
+                        }}
                     >
-                      <Group gap="xs">
+                      <style>{`
+                        .chat-status-bubble .run-details-btn { display: none; }
+                        .chat-status-bubble .status-content { display: flex; }
+                        .chat-status-bubble:hover .run-details-btn { display: flex; }
+                        .chat-status-bubble:hover .status-content { display: none; }
+                      `}</style>
+                      <Group 
+                        gap="sm" 
+                        align='center'
+                        style={{ 
+                          height: '2rem'
+                        }}
+                        wrap="nowrap"
+                        >
                         <Loader type="dots" size="xs" />
                         {statusText && (
-                          <Text size="xs" c="dimmed">
+                          <Text size="xs" c="dimmed" className="status-content">
                             {statusText}
                           </Text>
+                        )}
+                        {currentRunId && (
+                            <Button
+                              size="xs"
+                              className="run-details-btn"
+                              leftSection={<IconListDetails size={12} />}
+                              style={{ width: '100%'}}
+                              onClick={() => onViewRun(currentRunId)}
+                              >Run Details
+                            </Button>
                         )}
                       </Group>
                     </Paper>

@@ -586,6 +586,7 @@ export function ChatPage() {
     setLastInput(input);
     setCurrentRunId(null);
     setCancelling(false);
+    setStatusText('Sending...')
 
     const shouldBeIncognito = isNewChat && startIncognito;
 
@@ -615,7 +616,7 @@ export function ChatPage() {
           },
           onStatus: (data) => {
             // Update status text for display
-            setStatusText(data.statusText);
+            setStatusText(data.statusText || 'Preparing...');
           },
           onDone: (data) => {
             if (data.cancelled) {
@@ -832,6 +833,7 @@ export function ChatPage() {
         />
 
         <ChatMessages
+          currentRunId={currentRunId ?? undefined}
           messages={messages}
           loading={loadingMessages}
           sending={sending}
