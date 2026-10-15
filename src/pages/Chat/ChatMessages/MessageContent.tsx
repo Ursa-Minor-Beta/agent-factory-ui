@@ -183,13 +183,15 @@ interface MessageContentProps {
   attachments?: MessageAttachment[];
   /** Pre-parsed file refs (if already parsed) */
   fileRefs?: FileRef[];
+  /** Message ID for persisting UI state across Virtuoso remounts */
+  messageId?: string;
 }
 
 /**
  * Reusable component for displaying message content with markdown, attachments, and file refs.
  * Handles parsing of raw response content to extract file references.
  */
-export function MessageContent({ content, attachments, fileRefs: providedFileRefs }: MessageContentProps) {
+export function MessageContent({ content, attachments, fileRefs: providedFileRefs, messageId }: MessageContentProps) {
   // Parse content if needed
   const { text, fileRefs: parsedFileRefs } = useMemo(() => {
     // If content is already a plain string without file refs, skip parsing
@@ -204,8 +206,8 @@ export function MessageContent({ content, attachments, fileRefs: providedFileRef
 
   return (
     <>
-      {text && 
-        <CollapsibleContent content={text} />
+      {text &&
+        <CollapsibleContent content={text} messageId={messageId} />
       }
       {attachments && attachments.length > 0 && (
         <Box mt={text ? 'sm' : 0}>

@@ -60,6 +60,7 @@ export function MessageBubble({ message, isFirst, showRetry, onViewRun, onRepeat
           content={message.content}
           attachments={message.attachments}
           fileRefs={message.fileRefs}
+          messageId={message.id}
         />
         {message.createdAt && (
           <Text size="xs" c="dimmed" mt={4} style={{ textAlign: message.role === 'user' ? 'right' : 'left' }}>

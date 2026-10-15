@@ -129,7 +129,7 @@ export function ChatMessages({
         data={messages}
         style={{ height: '100%' }}
         initialTopMostItemIndex={messages.length - 1}
-        followOutput="smooth"
+        followOutput={false}
         atBottomStateChange={(atBottom) => {
           isAtBottomRef.current = atBottom;
         }}

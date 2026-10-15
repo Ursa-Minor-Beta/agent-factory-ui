@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Button, Group, ScrollArea, Code, Box } from '@mantine/core';
 import { IconChevronDown, IconChevronUp, IconExternalLink, IconPlayerPlay } from '@tabler/icons-react';
 import { MarkdownRenderer } from '../../../components/MarkdownRenderer';
@@ -7,6 +7,9 @@ const MAX_PREVIEW_LENGTH = 5000;
 const MAX_MARKDOWN_LENGTH = 50000;
 const CONTENT_HEIGHT = '70vh';
 const CONTENT_HEIGHT_EXPANDED = '100vh';
+
+// Persist HTML preview state across Virtuoso remounts
+const htmlPreviewState = new Map<string, boolean>();
 
 function isHtmlContent(content: string): boolean {
   const trimmed = content.trim().toLowerCase();
@@ -68,7 +71,7 @@ function HtmlRenderer({
               width: '100%',
               height: expanded ? CONTENT_HEIGHT_EXPANDED : CONTENT_HEIGHT,
               border: 'none',
-              backgroundColor: 'white',
+              backgroundColor: "transparent",
             }}
             title="HTML Preview"
           />
@@ -103,9 +106,20 @@ function HtmlRenderer({
   );
 }
 
-export function CollapsibleContent({ content }: { content: string }) {
+export function CollapsibleContent({ content, messageId }: { content: string; messageId?: string }) {
   const [expanded, setExpanded] = useState(false);
-  const [showHtmlPreview, setShowHtmlPreview] = useState(false);
+  // Use persisted state if messageId provided (survives Virtuoso remounts)
+  const [showHtmlPreview, setShowHtmlPreviewState] = useState(() =>
+    messageId ? htmlPreviewState.get(messageId) ?? false : false
+  );
+
+  const setShowHtmlPreview = useCallback((value: boolean) => {
+    setShowHtmlPreviewState(value);
+    if (messageId) {
+      htmlPreviewState.set(messageId, value);
+    }
+  }, [messageId]);
+
   const isHtml = isHtmlContent(content);
   const embeddedHtml = extractHtmlFromCodeBlock(content);
   const isLong = content.length > MAX_PREVIEW_LENGTH;
