@@ -1,8 +1,7 @@
-import { BaseEdge, Position, useEdges, useNodes, type Node } from '@xyflow/react';
+import { BaseEdge, Position, useNodes, type Node } from '@xyflow/react';
 
 const radius = 10;
 const baseOffset = 15;
-const edgeGap = 2;
 
 interface Point {
   key: 'L' | 'M'; // svg command keys
@@ -59,18 +58,6 @@ function useFindSourceTarget(sourceNodeId: string, targetNodeId: string) {
   return { nodesToConnect };
 }
 
-function useCountConnectedEdges(sourceId: string, targetId: string) {
-  const edges = useEdges();
-  const sourceEdgesIds: string[] = [];
-  const targetEdgesIds: string[] = [];
-
-  for (const edge of edges) {
-    if (edge.source === sourceId) sourceEdgesIds.push(edge.id);
-    if (edge.target === targetId) targetEdgesIds.push(edge.id);
-  }
-
-  return { sourceEdgesIds, targetEdgesIds };
-}
 
 function getBox(x: number, y: number, w: number, h: number) {
   return {
@@ -87,8 +74,6 @@ interface GetPointsParams {
   targetX: number;
   targetY: number;
   sourceNodeBox: ReturnType<typeof getBox>;
-  edgeNumInSource: number;
-  edgeNumInTarget: number;
   isVertical?: boolean;
 }
 
@@ -98,15 +83,11 @@ function getPoints({
   targetX,
   targetY,
   sourceNodeBox,
-  edgeNumInSource,
-  edgeNumInTarget,
 }: GetPointsParams): Point[] {
-  const sourceBoxOffset = baseOffset + edgeNumInSource * edgeGap;
-  const targetBoxOffset = baseOffset + edgeNumInTarget * edgeGap;
 
   const pointStart: Point = { key: 'M', x: sourceX, y: sourceY }; // start
-  const pointStartOffset: Point = { key: 'L', x: sourceX + sourceBoxOffset, y: sourceY, length: sourceBoxOffset };
-  const pointFinishOffset: Point = { key: 'L', x: targetX - targetBoxOffset, y: targetY };
+  const pointStartOffset: Point = { key: 'L', x: sourceX + baseOffset, y: sourceY, length: baseOffset };
+  const pointFinishOffset: Point = { key: 'L', x: targetX - baseOffset, y: targetY };
   const pointFinish: Point = { key: 'L', x: targetX, y: targetY }; // finish
 
   const points: Point[] = [pointStart, pointStartOffset];
@@ -117,15 +98,15 @@ function getPoints({
 
     if (pointStart.y < pointFinish.y) {
       y =
-        sourceNodeBox.c.y + sourceBoxOffset + baseOffset < pointFinish.y
-          ? sourceNodeBox.c.y + sourceBoxOffset
+        sourceNodeBox.c.y + baseOffset + baseOffset < pointFinish.y
+          ? sourceNodeBox.c.y + baseOffset
           : pointStart.y + (pointFinish.y - pointStart.y) / 2;
 
       length = y - pointStartOffset.y;
     } else {
       y =
-        sourceNodeBox.b.y - sourceBoxOffset - baseOffset > pointFinish.y
-          ? sourceNodeBox.b.y - sourceBoxOffset
+        sourceNodeBox.b.y - baseOffset - baseOffset > pointFinish.y
+          ? sourceNodeBox.b.y - baseOffset
           : pointFinish.y + (pointStart.y - pointFinish.y) / 2;
 
       length = pointStartOffset.y - y;
@@ -152,15 +133,11 @@ function getPointsVertical({
   targetX,
   targetY,
   sourceNodeBox,
-  edgeNumInSource,
-  edgeNumInTarget,
 }: GetPointsParams): Point[] {
-  const sourceBoxOffset = baseOffset + edgeNumInSource * edgeGap;
-  const targetBoxOffset = baseOffset + edgeNumInTarget * edgeGap;
 
   const pointStart: Point = { key: 'M', x: sourceX, y: sourceY };
-  const pointStartOffset: Point = { key: 'L', x: sourceX, y: sourceY + sourceBoxOffset, length: sourceBoxOffset };
-  const pointFinishOffset: Point = { key: 'L', x: targetX, y: targetY - targetBoxOffset };
+  const pointStartOffset: Point = { key: 'L', x: sourceX, y: sourceY + baseOffset, length: baseOffset };
+  const pointFinishOffset: Point = { key: 'L', x: targetX, y: targetY - baseOffset };
   const pointFinish: Point = { key: 'L', x: targetX, y: targetY };
 
   const points: Point[] = [pointStart, pointStartOffset];
@@ -171,15 +148,15 @@ function getPointsVertical({
 
     if (pointStart.x < pointFinish.x) {
       x =
-        sourceNodeBox.c.x + sourceBoxOffset + baseOffset < pointFinish.x
-          ? sourceNodeBox.c.x + sourceBoxOffset
+        sourceNodeBox.c.x + baseOffset + baseOffset < pointFinish.x
+          ? sourceNodeBox.c.x + baseOffset
           : pointStart.x + (pointFinish.x - pointStart.x) / 2;
 
       length = x - pointStartOffset.x;
     } else {
       x =
-        sourceNodeBox.a.x - sourceBoxOffset - baseOffset > pointFinish.x
-          ? sourceNodeBox.a.x - sourceBoxOffset
+        sourceNodeBox.a.x - baseOffset - baseOffset > pointFinish.x
+          ? sourceNodeBox.a.x - baseOffset
           : pointFinish.x + (pointStart.x - pointFinish.x) / 2;
 
       length = pointStartOffset.x - x;
@@ -256,39 +233,12 @@ export function EdgeSmart(edgeProps: EdgeProps) {
   const isVertical =
     edgeProps.sourcePosition === Position.Bottom || edgeProps.targetPosition === Position.Top;
 
-  // compare positions based on flow direction
-  const isSourceHigherTarget = isVertical
-    ? edgeProps.sourceY < edgeProps.targetY
-    : edgeProps.sourceX < edgeProps.targetX;
-
-  // count all edges in source and target
-  const { sourceEdgesIds, targetEdgesIds } = useCountConnectedEdges(edgeProps.source, edgeProps.target);
-
-  const edgeIndexInSource = sourceEdgesIds.findIndex((output) => output === edgeProps.id);
-  const edgeIndexInTarget = targetEdgesIds.findIndex((input) => input === edgeProps.id);
-
-  const edgeNumInSource =
-    sourceEdgesIds.length === 1
-      ? 1
-      : isSourceHigherTarget
-        ? sourceEdgesIds.length - (edgeIndexInSource - 0.5)
-        : edgeIndexInSource;
-
-  const edgeNumInTarget =
-    targetEdgesIds.length === 1
-      ? 1
-      : isSourceHigherTarget
-        ? edgeIndexInTarget
-        : targetEdgesIds.length - (edgeIndexInTarget - 0.5);
-
   const edgePathParams: GetPointsParams = {
     sourceX: edgeProps.sourceX,
     sourceY: edgeProps.sourceY,
     targetX: edgeProps.targetX,
     targetY: edgeProps.targetY,
     sourceNodeBox,
-    edgeNumInSource,
-    edgeNumInTarget,
     isVertical,
   };
 

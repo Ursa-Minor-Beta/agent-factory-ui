@@ -104,7 +104,8 @@ export function ChatInput({ onSend, sending, inputSchema, draftKey, isMobile, on
     let hasAllRequired = true;
 
     for (const [key, schema] of fields) {
-      const value = values[key]?.trim() || '';
+      // const value = values[key]?.trim() || '';
+      const value = values[key] || '';
       // Field is truly required only if required=true AND no default
       const isTrulyRequired = schema.required && schema.default === undefined;
       if (isTrulyRequired && !value) {

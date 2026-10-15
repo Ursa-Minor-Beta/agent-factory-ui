@@ -276,17 +276,45 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     []
   );
 
+  // Update node ID and all related edges
+  const updateNodeId = (oldId: string, newId: string) => {
+    if (oldId === newId) return;
+
+    // Update node ID
+    setNodes((nds) =>
+      nds.map((n) => (n.id === oldId ? { ...n, id: newId } : n))
+    );
+
+    // Update selected node ID if needed
+    setSelectedNodeId((prev) => (prev === oldId ? newId : prev));
+
+    // Update all edges referencing this node
+    setEdges((eds) =>
+      eds.map((e) => ({
+        ...e,
+        id: e.source === oldId || e.target === oldId
+          ? `${e.source === oldId ? newId : e.source}-${e.target === oldId ? newId : e.target}`
+          : e.id,
+        source: e.source === oldId ? newId : e.source,
+        target: e.target === oldId ? newId : e.target,
+      }))
+    );
+  };
+
   const updateNodeData = useCallback(
     (nodeId: string, data: Record<string, unknown>) => {
-      // Handle ID change
-      const targetId = data.id && data.id !== nodeId ? (data.id as string) : nodeId;
-
+      // Handle ID change via dedicated method
       if (data.id && data.id !== nodeId) {
         const newId = data.id as string;
-        setNodes((nds) =>
-          nds.map((n) => (n.id === nodeId ? { ...n, id: newId, data: { ...n.data, ...data } } : n))
-        );
-        setSelectedNodeId((prev) => (prev === nodeId ? newId : prev));
+        updateNodeId(nodeId, newId);
+        // Remove id from data to avoid redundant update
+        const { id: _, ...restData } = data;
+        if (Object.keys(restData).length > 0) {
+          setNodes((nds) =>
+            nds.map((n) => (n.id === newId ? { ...n, data: { ...n.data, ...restData } } : n))
+          );
+        }
+        nodeId = newId; // Use new ID for edge management below
       } else {
         setNodes((nds) =>
           nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, ...data } } : n))
@@ -303,28 +331,28 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
         const referencedIds = extractReferencedNodeIds(mergedData as Record<string, unknown>);
 
         // Get existing node IDs for validation
-        const existingNodeIds = new Set(nodes.map((n) => (n.id === nodeId ? targetId : n.id)));
+        const existingNodeIds = new Set(nodes.map((n) => n.id));
 
         // Current edges targeting this node
         const currentSourceIds = new Set(
-          eds.filter((e) => e.target === nodeId || e.target === targetId).map((e) => e.source)
+          eds.filter((e) => e.target === nodeId).map((e) => e.source)
         );
 
         // Remove edges for references that no longer exist
         let updatedEdges = eds.filter((e) => {
-          if (e.target !== nodeId && e.target !== targetId) return true;
+          if (e.target !== nodeId) return true;
           return referencedIds.has(e.source);
         });
 
         // Add new edges for new references (only if source node exists)
         referencedIds.forEach((sourceId) => {
           if (!currentSourceIds.has(sourceId) && existingNodeIds.has(sourceId)) {
-            const edgeId = `${sourceId}-${targetId}`;
+            const edgeId = `${sourceId}-${nodeId}`;
             if (!updatedEdges.some((e) => e.id === edgeId)) {
               updatedEdges.push({
                 id: edgeId,
                 source: sourceId,
-                target: targetId,
+                target: nodeId,
               });
             }
           }
@@ -333,7 +361,7 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
         return updatedEdges;
       });
     },
-    [setNodes, setEdges, nodes]
+    [setNodes, setEdges, nodes, updateNodeId]
   );
 
   const replaceNodeData = useCallback(
@@ -454,6 +482,7 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     addNode,
     deleteNode,
     runAgent,
+    updateNodeId,
     updateNodeData,
     replaceNodeData,
     updateAgentInfo,

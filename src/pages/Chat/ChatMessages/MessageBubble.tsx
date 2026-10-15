@@ -33,7 +33,7 @@ export function MessageBubble({ message, isFirst, showRetry, onViewRun, onRepeat
         radius="lg"
         style={{
           minWidth: '40px',
-          maxWidth: '80%',
+          maxWidth: '90%',
           position: 'relative',
           backgroundColor:
             message.role === 'user'

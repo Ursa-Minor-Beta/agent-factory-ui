@@ -204,7 +204,9 @@ export function MessageContent({ content, attachments, fileRefs: providedFileRef
 
   return (
     <>
-      {text && <CollapsibleContent content={text} />}
+      {text && 
+        <CollapsibleContent content={text} />
+      }
       {attachments && attachments.length > 0 && (
         <Box mt={text ? 'sm' : 0}>
           <AttachmentPreview attachments={attachments} />
