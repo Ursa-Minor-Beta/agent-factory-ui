@@ -1,7 +1,20 @@
-import { Box, Paper, ActionIcon, Tooltip, Group, CopyButton } from '@mantine/core';
+import { Box, Paper, ActionIcon, Tooltip, Group, CopyButton, Text } from '@mantine/core';
 import { IconCopy, IconCheck, IconListDetails, IconRepeat } from '@tabler/icons-react';
 import type { ChatMessage } from '../types';
 import { MessageContent } from './MessageContent';
+
+function formatMessageDate(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const isToday = date.toDateString() === now.toDateString();
+
+  if (isToday) {
+    // Today: show only time
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  // Other days: show date + time
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -48,6 +61,11 @@ export function MessageBubble({ message, isFirst, showRetry, onViewRun, onRepeat
           attachments={message.attachments}
           fileRefs={message.fileRefs}
         />
+        {message.createdAt && (
+          <Text size="xs" c="dimmed" mt={4} style={{ textAlign: message.role === 'user' ? 'right' : 'left' }}>
+            {formatMessageDate(message.createdAt)}
+          </Text>
+        )}
         <Group
           gap={4}
           className="message-hover-btns"

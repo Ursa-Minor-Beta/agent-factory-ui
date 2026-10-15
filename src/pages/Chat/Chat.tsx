@@ -522,7 +522,7 @@ export function ChatPage() {
       try {
         setLoadingMessages(true);
         const data = await sessionsApi.getMessages(currentSessionId, MESSAGES_PER_PAGE, 0);
-        setMessages(data.map(mapApiMessageToChatMessage));
+        setMessages(data.map(mapApiMessageToChatMessage).reverse());
         setHasMoreMessages(data.length === MESSAGES_PER_PAGE);
       } catch (err) {
         console.error('Failed to load messages:', err);

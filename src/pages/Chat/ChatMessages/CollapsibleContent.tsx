@@ -5,9 +5,8 @@ import { MarkdownRenderer } from '../../../components/MarkdownRenderer';
 
 const MAX_PREVIEW_LENGTH = 5000;
 const MAX_MARKDOWN_LENGTH = 50000;
-const MAX_EXPANDED_HEIGHT = 1200;
-const HTML_IFRAME_HEIGHT = '70vh';
-const HTML_IFRAME_HEIGHT_EXPANDED = '100vh';
+const CONTENT_HEIGHT = '70vh';
+const CONTENT_HEIGHT_EXPANDED = '100vh';
 
 function isHtmlContent(content: string): boolean {
   const trimmed = content.trim().toLowerCase();
@@ -56,7 +55,7 @@ function HtmlRenderer({
         }}
       >
         {showCode ? (
-          <ScrollArea.Autosize mah={expanded ? HTML_IFRAME_HEIGHT_EXPANDED : HTML_IFRAME_HEIGHT}>
+          <ScrollArea.Autosize mah={expanded ? CONTENT_HEIGHT_EXPANDED : CONTENT_HEIGHT}>
             <Code block style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12 }}>
               {content}
             </Code>
@@ -67,7 +66,7 @@ function HtmlRenderer({
             sandbox="allow-scripts"
             style={{
               width: '100%',
-              height: expanded ? HTML_IFRAME_HEIGHT_EXPANDED : HTML_IFRAME_HEIGHT,
+              height: expanded ? CONTENT_HEIGHT_EXPANDED : CONTENT_HEIGHT,
               border: 'none',
               backgroundColor: 'white',
             }}
@@ -170,7 +169,7 @@ export function CollapsibleContent({ content }: { content: string }) {
     const preview = content.slice(0, MAX_PREVIEW_LENGTH);
     return (
       <>
-        <ScrollArea.Autosize mah={expanded ? MAX_EXPANDED_HEIGHT : undefined}>
+        <ScrollArea.Autosize mah={expanded ? CONTENT_HEIGHT_EXPANDED : undefined}>
           <Code block style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12 }}>
             {expanded ? content : preview + '...'}
           </Code>
@@ -203,7 +202,7 @@ export function CollapsibleContent({ content }: { content: string }) {
   return (
     <>
       {expanded ? (
-        <ScrollArea.Autosize mah={MAX_EXPANDED_HEIGHT}>
+        <ScrollArea.Autosize mah={CONTENT_HEIGHT_EXPANDED}>
           <MarkdownRenderer>{content}</MarkdownRenderer>
         </ScrollArea.Autosize>
       ) : (
