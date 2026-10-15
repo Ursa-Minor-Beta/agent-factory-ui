@@ -1,769 +1,19 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Loader, Alert, Center, Modal, Text, Group, Button } from '@mantine/core';
-import { useMediaQuery } from '@mantine/hooks';
 import { IconAlertCircle } from '@tabler/icons-react';
-import { agentsApi, sessionsApi, workspacesApi, ApiError } from '../../api';
-import type { Agent, Session } from '../../types';
 import { ChatHeader } from './ChatHeader';
 import { ChatInput } from './ChatInput';
 import { ChatMessages } from './ChatMessages';
 import { ChatSidebar } from './ChatSidebar';
 import { useAgentModal } from '../../components/AgentCreateModal';
-import { useRunDetailsModal, guessMimeType } from '../../components/RunDetailsModal';
-import { getInputSchema, type ChatMessage, type FileRef } from './types';
-
-// Helper to format field name as readable label
-function formatLabel(key: string): string {
-  return key
-    .replace(/_/g, ' ')
-    .replace(/([A-Z])/g, ' $1')
-    .trim();
-}
-
-// Check if string is an inner file reference
-// Supports both old format (inner:<fileId>) and new format ({{inner:<fileId>}})
-function isInnerFileRef(str: string): boolean {
-  if (typeof str !== 'string') return false;
-  return str.startsWith('inner:') || /\{\{inner:[a-f0-9]+\}\}/.test(str);
-}
-
-// Parse inner file reference to FileRef
-// Supports: "inner:<fileId>:<fieldName>" or "{{inner:<fileId>}}"
-function parseInnerRef(str: string, fieldName: string): FileRef | null {
-  if (!isInnerFileRef(str)) return null;
-
-  // New format: {{inner:<fileId>}}
-  const newMatch = str.match(/^\{\{inner:([a-f0-9]+)\}\}$/);
-  if (newMatch) {
-    return { index: 0, fileId: newMatch[1], fieldName, mimeType: guessMimeType(fieldName) };
-  }
-
-  // Old format: inner:<fileId>:<fieldName>
-  const parts = str.split(':');
-  if (parts.length < 2) return null;
-  const fileId = parts[1];
-  const refFieldName = parts.slice(2).join(':') || fieldName;
-  return { index: 0, fileId, fieldName: refFieldName, mimeType: guessMimeType(fieldName) };
-}
-
-// Extract inner file refs from object recursively
-function extractFileRefs(
-  data: Record<string, unknown>,
-  fileRefs: FileRef[],
-  prefix = ''
-): Record<string, unknown> {
-  const cleaned: Record<string, unknown> = {};
-
-  for (const [key, value] of Object.entries(data)) {
-    const fullKey = prefix ? `${prefix}.${key}` : key;
-
-    if (typeof value === 'string' && isInnerFileRef(value)) {
-      const ref = parseInnerRef(value, fullKey);
-      if (ref) {
-        ref.index = fileRefs.length;
-        fileRefs.push(ref);
-      }
-    } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      const nestedFileRefs: FileRef[] = [];
-      const cleanedNested = extractFileRefs(value as Record<string, unknown>, nestedFileRefs, fullKey);
-      nestedFileRefs.forEach(ref => {
-        ref.index = fileRefs.length;
-        fileRefs.push(ref);
-      });
-      if (Object.keys(cleanedNested).length > 0) {
-        cleaned[key] = cleanedNested;
-      }
-    } else if (Array.isArray(value)) {
-      const cleanedArray: unknown[] = [];
-      value.forEach((item, index) => {
-        if (typeof item === 'string' && isInnerFileRef(item)) {
-          const ref = parseInnerRef(item, `${fullKey}[${index}]`);
-          if (ref) {
-            ref.index = fileRefs.length;
-            fileRefs.push(ref);
-          }
-        } else if (typeof item === 'object' && item !== null) {
-          const nestedFileRefs: FileRef[] = [];
-          const cleanedItem = extractFileRefs(item as Record<string, unknown>, nestedFileRefs, `${fullKey}[${index}]`);
-          nestedFileRefs.forEach(ref => {
-            ref.index = fileRefs.length;
-            fileRefs.push(ref);
-          });
-          if (Object.keys(cleanedItem).length > 0) {
-            cleanedArray.push(cleanedItem);
-          }
-        } else {
-          cleanedArray.push(item);
-        }
-      });
-      if (cleanedArray.length > 0) {
-        cleaned[key] = cleanedArray;
-      }
-    } else {
-      cleaned[key] = value;
-    }
-  }
-
-  return cleaned;
-}
-
-// Helper to stringify a value (handles nested objects)
-function stringifyValue(value: unknown): string {
-  if (value === null || value === undefined) return '';
-  if (typeof value === 'object') {
-    // Wrap JSON in markdown code block for proper formatting
-    return '```json\n' + JSON.stringify(value, null, 2) + '\n```';
-  }
-  return String(value);
-}
-
-// Helper to format input/output object for display (returns text and file refs)
-function formatContentWithFileRefs(data: Record<string, unknown>): { text: string; fileRefs: FileRef[] } {
-  const fileRefs: FileRef[] = [];
-  const cleaned = extractFileRefs(data, fileRefs);
-
-  const entries = Object.entries(cleaned);
-  let text = '';
-  if (entries.length === 1) {
-    text = stringifyValue(entries[0][1]);
-  } else if (entries.length > 1) {
-    text = entries.map(([key, value]) => `**${formatLabel(key)}**  \n${stringifyValue(value)}`).join('\n\n&nbsp;\n\n');
-  }
-
-  return { text, fileRefs };
-}
-
-// Legacy helper for user input display (no attachment extraction needed)
-function formatContent(data: Record<string, unknown>): string {
-  const entries = Object.entries(data);
-  if (entries.length === 0) return '';
-  if (entries.length === 1) return stringifyValue(entries[0][1]);
-  return entries.map(([key, value]) => `**${formatLabel(key)}**  \n${stringifyValue(value)}`).join('\n\n&nbsp;\n\n');
-}
-
-// Extract text from nested node output structure like {"output-1":{"output-1":"text"}}
-function extractNodeOutput(data: Record<string, unknown>): Record<string, unknown> | string {
-  const keys = Object.keys(data);
-
-  // If single key and value is an object with a single string value, unwrap it
-  if (keys.length === 1) {
-    const value = data[keys[0]];
-    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      const innerKeys = Object.keys(value as Record<string, unknown>);
-      if (innerKeys.length === 1) {
-        const innerValue = (value as Record<string, unknown>)[innerKeys[0]];
-        // If the inner value is a string, return it directly
-        if (typeof innerValue === 'string') {
-          return innerValue;
-        }
-        // If it's another object, recursively extract
-        if (typeof innerValue === 'object' && innerValue !== null) {
-          return extractNodeOutput(innerValue as Record<string, unknown>);
-        }
-      }
-    }
-    // Single key with string value
-    if (typeof value === 'string') {
-      return value;
-    }
-  }
-
-  // Return as-is for complex structures
-  return data;
-}
-
-// Extract {{inner:...}} file refs from a string and clean up the text
-function extractFileRefsFromString(text: string): { cleanedText: string; fileRefs: FileRef[] } {
-  const fileRefs: FileRef[] = [];
-  let cleanedText = text;
-
-  // First, try to extract and remove embedded JSON with file refs like: {"screenshot":"{{inner:...}}"}
-  // This pattern matches JSON objects that only contain file references
-  const embeddedJsonRegex = /\s*\{[^{}]*"([^"]+)"\s*:\s*"\{\{inner:([a-f0-9]+)\}\}"[^{}]*\}/g;
-  let jsonMatch: RegExpExecArray | null;
-
-  while ((jsonMatch = embeddedJsonRegex.exec(text)) !== null) {
-    const fieldName = jsonMatch[1];
-    const fileId = jsonMatch[2];
-    fileRefs.push({
-      index: fileRefs.length,
-      fileId,
-      fieldName,
-      mimeType: guessMimeType(fieldName),
-    });
-  }
-
-  // Remove embedded JSON blocks with file refs
-  cleanedText = cleanedText.replace(embeddedJsonRegex, '');
-
-  // Also handle standalone {{inner:...}} patterns (without JSON wrapper)
-  const standaloneRegex = /\{\{inner:([a-f0-9]+)\}\}/g;
-  let standaloneMatch: RegExpExecArray | null;
-  const seenIds = new Set(fileRefs.map(r => r.fileId));
-
-  while ((standaloneMatch = standaloneRegex.exec(text)) !== null) {
-    const fileId = standaloneMatch[1];
-    if (!seenIds.has(fileId)) {
-      seenIds.add(fileId);
-      fileRefs.push({
-        index: fileRefs.length,
-        fileId,
-        fieldName: 'file',
-        mimeType: 'application/octet-stream',
-      });
-    }
-  }
-
-  // Remove any remaining standalone placeholders
-  cleanedText = cleanedText.replace(standaloneRegex, '');
-
-  // Clean up trailing/leading whitespace and periods followed by nothing
-  cleanedText = cleanedText.replace(/\.\s*$/, '.').trim();
-
-  return { cleanedText, fileRefs };
-}
-
-// Helper to parse JSON message content (handles both string and object input)
-function parseMessageContent(content: unknown): { text: string; fileRefs: FileRef[] } {
-  // If content is already an object, try to extract node output
-  if (typeof content === 'object' && content !== null) {
-    const extracted = extractNodeOutput(content as Record<string, unknown>);
-    if (typeof extracted === 'string') {
-      // Extract file refs from the string content
-      const { cleanedText, fileRefs } = extractFileRefsFromString(extracted);
-      return { text: cleanedText, fileRefs };
-    }
-    return formatContentWithFileRefs(extracted as Record<string, unknown>);
-  }
-
-  // If content is a string, try to parse as JSON
-  if (typeof content === 'string') {
-    try {
-      const parsed = JSON.parse(content);
-      if (typeof parsed === 'object' && parsed !== null) {
-        const extracted = extractNodeOutput(parsed);
-        if (typeof extracted === 'string') {
-          // Extract file refs from the string content
-          const { cleanedText, fileRefs } = extractFileRefsFromString(extracted);
-          return { text: cleanedText, fileRefs };
-        }
-        return formatContentWithFileRefs(extracted as Record<string, unknown>);
-      }
-    } catch {
-      // Not JSON, but might still contain file refs
-      const { cleanedText, fileRefs } = extractFileRefsFromString(content);
-      return { text: cleanedText, fileRefs };
-    }
-    // Extract file refs from plain string content
-    const { cleanedText, fileRefs } = extractFileRefsFromString(content);
-    return { text: cleanedText, fileRefs };
-  }
-
-  // For other primitives, convert to string
-  return { text: String(content ?? ''), fileRefs: [] };
-}
-
-// Parse file references from message.files array
-// Supports both old format "inner:<fileId>:<fieldName>" and new format "{{inner:<fileId>}}"
-function parseFileReferences(files: string[] | undefined, content: string): FileRef[] {
-  if (!files || files.length === 0) return [];
-
-  const fileRefs: FileRef[] = [];
-  const seenFileIds = new Set<string>();
-
-  // First, try old format: match placeholders like [file:0:image/png] in content
-  const oldPlaceholderRegex = /\[file:(\d+):([^\]]+)\]/g;
-  let match: RegExpExecArray | null;
-
-  while ((match = oldPlaceholderRegex.exec(content)) !== null) {
-    const index = parseInt(match[1], 10);
-    const mimeType = match[2];
-
-    if (index < files.length) {
-      const fileRef = files[index];
-      // Parse "inner:<fileId>:<fieldName>"
-      const parts = fileRef.split(':');
-      if (parts.length >= 2) {
-        const fileId = parts[1];
-        if (!seenFileIds.has(fileId)) {
-          seenFileIds.add(fileId);
-          const fieldName = parts.slice(2).join(':');
-          fileRefs.push({ index: fileRefs.length, fileId, fieldName, mimeType });
-        }
-      }
-    }
-  }
-
-  // New format: files array contains "{{inner:<fileId>}}"
-  // Find corresponding {{inner:<fileId>}} in content to get field context
-  files.forEach((fileEntry) => {
-    const newMatch = fileEntry.match(/^\{\{inner:([a-f0-9]+)\}\}$/);
-    if (newMatch) {
-      const fileId = newMatch[1];
-      if (!seenFileIds.has(fileId)) {
-        seenFileIds.add(fileId);
-        // Try to find field name from content JSON structure
-        // Look for patterns like "fieldName":"{{inner:<fileId>}}"
-        const fieldPattern = new RegExp(`"([^"]+)"\\s*:\\s*"\\{\\{inner:${fileId}\\}\\}"`, 'i');
-        const fieldMatch = content.match(fieldPattern);
-        const fieldName = fieldMatch ? fieldMatch[1] : 'file';
-        fileRefs.push({
-          index: fileRefs.length,
-          fileId,
-          fieldName,
-          mimeType: guessMimeType(fieldName),
-        });
-      }
-    }
-  });
-
-  return fileRefs;
-}
-
-// Helper to map API message to ChatMessage
-function mapApiMessageToChatMessage(m: { id: string; role: 'user' | 'assistant' | 'system' | 'tool'; content: string; files?: string[]; runId?: string; createdAt: string }): ChatMessage {
-  const { text, fileRefs: contentFileRefs } = parseMessageContent(m.content);
-  const messageFileRefs = parseFileReferences(m.files, typeof m.content === 'string' ? m.content : text);
-
-  // Merge file refs from content and message.files array
-  const allFileRefs = [...contentFileRefs, ...messageFileRefs];
-
-  // For user messages, try to parse the original JSON to get rawInput
-  let rawInput: Record<string, unknown> | undefined;
-  if (m.role === 'user' && typeof m.content === 'string') {
-    try {
-      const parsed = JSON.parse(m.content);
-      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
-        rawInput = parsed;
-      }
-    } catch {
-      // Not JSON, no rawInput
-    }
-  }
-
-  return {
-    id: m.id,
-    role: m.role,
-    runId: m.runId,
-    content: text,
-    rawInput,
-    fileRefs: allFileRefs.length > 0 ? allFileRefs : undefined,
-    createdAt: m.createdAt,
-  };
-}
+import { useRunDetailsModal } from '../../components/RunDetailsModal';
+import { useChatViewModel } from './viewmodels';
 
 export function ChatPage() {
-  const { agentId, sessionId: urlSessionId } = useParams<{
-    agentId: string;
-    sessionId?: string;
-  }>();
-  const navigate = useNavigate();
-  const isMobile = useMediaQuery('(max-width: 768px)') ?? false;
-
-  const MESSAGES_PER_PAGE = 50;
-
-  // Agent state
-  const [agent, setAgent] = useState<Agent | null>(null);
-  const [loadingAgent, setLoadingAgent] = useState(true);
-
-  // Workspace state
-  const [workspaceName, setWorkspaceName] = useState<string | undefined>();
-
-  // Input schema derived from agent
-  const inputSchema = useMemo(() => (agent ? getInputSchema(agent) : { message: { type: 'string' as const, required: true } }), [agent]);
-
-  // Sessions state
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(
-    urlSessionId || null
-  );
-  const [loadingSessions, setLoadingSessions] = useState(true);
-
-  // Messages state
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [loadingMessages, setLoadingMessages] = useState(false);
-  const [hasMoreMessages, setHasMoreMessages] = useState(false);
-  const [loadingMoreMessages, setLoadingMoreMessages] = useState(false);
-
-  // Chat state
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState('');
-  const [errorRunId, setErrorRunId] = useState<string | undefined>();
-  const [startIncognito, setStartIncognito] = useState(false);
-  const [lastInput, setLastInput] = useState<Record<string, unknown> | null>(null);
-
-  // Run cancellation state
-  const [currentRunId, setCurrentRunId] = useState<string | null>(null);
-  const [cancelling, setCancelling] = useState(false);
-  const [statusText, setStatusText] = useState<string | undefined>();
-  const abortControllerRef = useRef<AbortController | null>(null);
-
-  // Mobile sidebar
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  // Delete confirmation modal
-  const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
-
-  // Modals
+  const vm = useChatViewModel();
   const { openEditAgent } = useAgentModal();
   const { openRunDetails } = useRunDetailsModal();
 
-  // Chat input height for dynamic spacing
-  const [inputHeight, setInputHeight] = useState(100);
-
-  // Derived state
-  const isIncognitoSession = currentSessionId?.startsWith('incognito_') || false;
-  const isNewChat = !currentSessionId && messages.length === 0;
-
-  // Reset state when agent changes
-  useEffect(() => {
-    setCurrentSessionId(urlSessionId || null);
-    setMessages([]);
-    setSessions([]);
-    setHasMoreMessages(false);
-    setStartIncognito(false);
-    setError('');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [agentId]);
-
-  // Load agent details
-  useEffect(() => {
-    if (!agentId) return;
-
-    const loadAgent = async () => {
-      try {
-        setLoadingAgent(true);
-        const data = await agentsApi.getById(agentId);
-        setAgent(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load agent');
-      } finally {
-        setLoadingAgent(false);
-      }
-    };
-
-    loadAgent();
-  }, [agentId]);
-
-  // Load workspace when agent has workspaceId
-  useEffect(() => {
-    if (!agent?.workspaceId) {
-      setWorkspaceName(undefined);
-      return;
-    }
-
-    const loadWorkspace = async () => {
-      try {
-        const workspace = await workspacesApi.getById(agent.workspaceId!);
-        setWorkspaceName(workspace.name);
-      } catch {
-        // Silently fail - workspace badge just won't show
-        setWorkspaceName(undefined);
-      }
-    };
-
-    loadWorkspace();
-  }, [agent?.workspaceId]);
-
-  // Load sessions for this agent (no auto-select logic here)
-  const loadSessions = useCallback(async () => {
-    if (!agentId) return;
-
-    try {
-      setLoadingSessions(true);
-      const data = await sessionsApi.list({ agentId, status: 'active', limit: 50 });
-      setSessions(data);
-      return data;
-    } catch (err) {
-      console.error('Failed to load sessions:', err);
-      return [];
-    } finally {
-      setLoadingSessions(false);
-    }
-  }, [agentId]);
-
-  // Initial load - fetch sessions and auto-select most recent if needed
-  useEffect(() => {
-    if (!agentId) return;
-
-    const initSessions = async () => {
-      try {
-        setLoadingSessions(true);
-        const data = await sessionsApi.list({ agentId, status: 'active', limit: 50 });
-        setSessions(data);
-        // Auto-select most recent session only on initial load (no session in URL)
-        if (!urlSessionId && !startIncognito && data.length > 0) {
-          const mostRecent = data[0];
-          setCurrentSessionId(mostRecent.id);
-          navigate(`/agents/${agentId}/chat/${mostRecent.id}`, { replace: true });
-        }
-      } catch (err) {
-        console.error('Failed to load sessions:', err);
-      } finally {
-        setLoadingSessions(false);
-      }
-    };
-    initSessions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [agentId]);
-
-  // Load messages when session changes
-  useEffect(() => {
-    if (!currentSessionId || currentSessionId.startsWith('incognito_')) {
-      if (!currentSessionId) {
-        setMessages([]);
-        setHasMoreMessages(false);
-      }
-      return;
-    }
-
-    const loadMessages = async () => {
-      try {
-        setLoadingMessages(true);
-        const data = await sessionsApi.getMessages(currentSessionId, MESSAGES_PER_PAGE, 0);
-        setMessages(data.map(mapApiMessageToChatMessage).reverse());
-        setHasMoreMessages(data.length === MESSAGES_PER_PAGE);
-      } catch (err) {
-        console.error('Failed to load messages:', err);
-      } finally {
-        setLoadingMessages(false);
-      }
-    };
-
-    loadMessages();
-  }, [currentSessionId]);
-
-  // Load more older messages (infinite scroll)
-  const handleLoadMoreMessages = useCallback(async () => {
-    if (!currentSessionId || loadingMoreMessages || !hasMoreMessages) return;
-
-    try {
-      setLoadingMoreMessages(true);
-      const data = await sessionsApi.getMessages(
-        currentSessionId,
-        MESSAGES_PER_PAGE,
-        messages.length
-      );
-      // Prepend older messages
-      setMessages((prev) => [...data.map(mapApiMessageToChatMessage), ...prev]);
-      setHasMoreMessages(data.length === MESSAGES_PER_PAGE);
-    } catch (err) {
-      console.error('Failed to load more messages:', err);
-    } finally {
-      setLoadingMoreMessages(false);
-    }
-  }, [currentSessionId, loadingMoreMessages, hasMoreMessages, messages.length]);
-
-  // Update URL session ID
-  useEffect(() => {
-    if (
-      urlSessionId !== currentSessionId &&
-      currentSessionId &&
-      !currentSessionId.startsWith('incognito_')
-    ) {
-      navigate(`/agents/${agentId}/chat/${currentSessionId}`, { replace: true });
-    }
-  }, [currentSessionId, urlSessionId, agentId, navigate]);
-
-  const handleSend = async (input: Record<string, unknown>) => {
-    if (!agentId || sending) return;
-
-    // Format user message content for display
-    const displayContent = formatContent(input);
-
-    const userMessage: ChatMessage = {
-      id: `temp-${Date.now()}`,
-      role: 'user',
-      content: displayContent,
-      rawInput: input,
-      createdAt: new Date().toISOString(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setSending(true);
-    setError('');
-    setLastInput(input);
-    setCurrentRunId(null);
-    setCancelling(false);
-    setStatusText('Sending...')
-
-    const shouldBeIncognito = isNewChat && startIncognito;
-
-    // Create abort controller for request cancellation
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
-
-    try {
-      await sessionsApi.chatStream(
-        agentId,
-        {
-          input,
-          sessionId: currentSessionId || undefined,
-          incognito: shouldBeIncognito,
-        },
-        {
-          onInit: (data) => {
-            // Store runId immediately for cancel support
-            setCurrentRunId(data.runId);
-            if (data.isNewSession && data.sessionId) {
-              setCurrentSessionId(data.sessionId);
-              setStartIncognito(false);
-              if (!data.sessionId.startsWith('incognito_')) {
-                loadSessions();
-              }
-            }
-          },
-          onStatus: (data) => {
-            // Update status text for display
-            setStatusText(data.statusText || 'Preparing...');
-          },
-          onDone: (data) => {
-            if (data.cancelled) {
-              return;
-            }
-
-            const { text, fileRefs } = parseMessageContent(data.response);
-            const assistantMessage: ChatMessage = {
-              id: `response-${Date.now()}`,
-              role: 'assistant',
-              content: text,
-              fileRefs: fileRefs.length > 0 ? fileRefs : undefined,
-              createdAt: new Date().toISOString(),
-              runId: data.runId,
-            };
-
-            setMessages((prev) => [...prev, assistantMessage]);
-          },
-          onError: (data) => {
-            setError(data.message);
-            if (data.runId) {
-              setErrorRunId(data.runId);
-            }
-          },
-        },
-        abortController.signal
-      );
-    } catch (err) {
-      // Handle abort/cancel
-      if (err instanceof DOMException && err.name === 'AbortError') {
-        // Don't show error for user-initiated cancel
-        return;
-      }
-      setError(err instanceof Error ? err.message : 'Failed to send message');
-      if (err instanceof ApiError && err.runId) {
-        setErrorRunId(err.runId);
-      } else {
-        setErrorRunId(undefined);
-      }
-    } finally {
-      setSending(false);
-      setCurrentRunId(null);
-      setCancelling(false);
-      setStatusText(undefined);
-      abortControllerRef.current = null;
-    }
-  };
-
-  const handleCancelRun = useCallback(async () => {
-    if (cancelling || !agentId) return;
-
-    setCancelling(true);
-
-    // If we have a runId, cancel it on the server using the new endpoint
-    if (currentRunId) {
-      try {
-        await sessionsApi.cancelChat(agentId, currentRunId);
-      } catch {
-        // Ignore cancel errors - we'll still abort the request
-      }
-    }
-
-    // Abort the fetch request
-    abortControllerRef.current?.abort();
-  }, [agentId, currentRunId, cancelling]);
-
-  const handleRetry = () => {
-    if (!lastInput || sending) return;
-    // Remove the last user message (the failed one)
-    setMessages((prev) => prev.slice(0, -1));
-    setError('');
-    setErrorRunId(undefined);
-    // Re-send with the same input
-    handleSend(lastInput);
-  };
-
-  const handleRepeat = (input: Record<string, unknown>) => {
-    if (sending) return;
-    handleSend(input);
-  };
-
-  const handleNewChat = (incognito = false) => {
-    setCurrentSessionId(null);
-    setMessages([]);
-    setStartIncognito(incognito);
-    navigate(`/agents/${agentId}/chat`);
-  };
-
-  const handleSelectSession = (session: Session) => {
-    setCurrentSessionId(session.id);
-    setStartIncognito(false);
-    navigate(`/agents/${agentId}/chat/${session.id}`);
-  };
-
-  const handleDeleteSession = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setSessionToDelete(id);
-  };
-
-  const confirmDeleteSession = async () => {
-    if (!sessionToDelete) return;
-
-    try {
-      await sessionsApi.delete({ id: sessionToDelete });
-      if (currentSessionId === sessionToDelete) {
-        setCurrentSessionId(null);
-        setMessages([]);
-        navigate(`/agents/${agentId}/chat`);
-      }
-      setSessions((prev) => prev.filter((s) => s.id !== sessionToDelete));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete session');
-    } finally {
-      setSessionToDelete(null);
-    }
-  };
-
-  const handleRenameSession = async (id: string, title: string) => {
-    await sessionsApi.update(id, { title: title || null });
-    setSessions((prev) => prev.map((s) => {
-      if (s.id === id) {
-        return { ...s, title }
-      }
-      return s
-    }));
-  };
-
-  // Listen for agent-saved event from global modal
-  useEffect(() => {
-    const handleAgentSaved = async () => {
-      if (!agentId) return;
-      try {
-        const data = await agentsApi.getById(agentId);
-        setAgent(data);
-      } catch (err) {
-        console.error('Failed to reload agent:', err);
-      }
-    };
-    window.addEventListener('agent-saved', handleAgentSaved);
-    return () => window.removeEventListener('agent-saved', handleAgentSaved);
-  }, [agentId]);
-
-  const handleViewRun = (id: string) => {
-    openRunDetails(id);
-  };
-
-  if (loadingAgent) {
+  if (vm.agentLoading) {
     return (
       <Center style={{ height: '100%', minHeight: 400 }}>
         <Loader />
@@ -771,10 +21,10 @@ export function ChatPage() {
     );
   }
 
-  if (!agent) {
+  if (!vm.agent) {
     return (
       <Alert icon={<IconAlertCircle size={16} />} color="red">
-        Agent not found
+        {vm.agentError || 'Agent not found'}
       </Alert>
     );
   }
@@ -789,9 +39,10 @@ export function ChatPage() {
         marginBottom: 'calc(var(--app-shell-padding) * -1)',
       }}
     >
+      {/* Delete confirmation modal */}
       <Modal
-        opened={!!sessionToDelete}
-        onClose={() => setSessionToDelete(null)}
+        opened={!!vm.sessionToDelete}
+        onClose={() => vm.setSessionToDelete(null)}
         title="Delete conversation"
         centered
         size="sm"
@@ -800,67 +51,69 @@ export function ChatPage() {
           Are you sure you want to delete this conversation? This action cannot be undone.
         </Text>
         <Group justify="flex-end" gap="sm">
-          <Button variant="default" onClick={() => setSessionToDelete(null)}>
+          <Button variant="default" onClick={() => vm.setSessionToDelete(null)}>
             Cancel
           </Button>
-          <Button color="red" onClick={confirmDeleteSession}>
+          <Button color="red" onClick={vm.confirmDeleteSession}>
             Delete
           </Button>
         </Group>
       </Modal>
 
+      {/* Sidebar */}
       <ChatSidebar
-        sessions={sessions}
-        currentSessionId={currentSessionId}
-        loading={loadingSessions}
-        onNewChat={handleNewChat}
-        onSelectSession={handleSelectSession}
-        onDeleteSession={handleDeleteSession}
-        onRenameSession={handleRenameSession}
-        isMobile={isMobile}
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
+        sessions={vm.sessions}
+        currentSessionId={vm.currentSessionId}
+        loading={vm.sessionsLoading}
+        onNewChat={vm.startNewChat}
+        onSelectSession={vm.selectSession}
+        onDeleteSession={vm.handleDeleteSession}
+        onRenameSession={vm.renameSession}
+        isMobile={vm.isMobile}
+        isOpen={vm.sidebarOpen}
+        onClose={() => vm.setSidebarOpen(false)}
       />
 
+      {/* Main chat area */}
       <Box style={{ flex: 1, position: 'relative', minWidth: 0, overflow: 'hidden' }}>
         <ChatHeader
-          agent={agent}
-          workspaceName={workspaceName}
-          isIncognito={isIncognitoSession || (isNewChat && startIncognito)}
-          isMobile={isMobile}
-          onOpenSidebar={() => setSidebarOpen(true)}
-          onEditAgent={() => agent && openEditAgent(agent.id)}
+          agent={vm.agent}
+          workspaceName={vm.workspaceName}
+          isIncognito={vm.isIncognitoSession || (vm.isNewChat && vm.startIncognito)}
+          isMobile={vm.isMobile}
+          onOpenSidebar={() => vm.setSidebarOpen(true)}
+          onEditAgent={() => vm.agent && openEditAgent(vm.agent.id)}
         />
 
         <ChatMessages
-          currentRunId={currentRunId ?? undefined}
-          messages={messages}
-          loading={loadingMessages}
-          sending={sending}
-          agentName={agent.name}
-          isNewChat={isNewChat}
-          isIncognito={startIncognito}
-          error={error}
-          errorRunId={errorRunId}
-          hasMore={hasMoreMessages}
-          loadingMore={loadingMoreMessages}
-          statusText={statusText}
-          inputHeight={inputHeight}
-          onClearError={() => { setError(''); setErrorRunId(undefined); }}
-          onRetry={handleRetry}
-          onLoadMore={handleLoadMoreMessages}
-          onViewRun={handleViewRun}
-          onRepeat={handleRepeat}
+          currentRunId={vm.currentRunId ?? undefined}
+          messages={vm.messages}
+          loading={vm.messagesLoading}
+          sending={vm.sending}
+          agentName={vm.agent.name}
+          isNewChat={vm.isNewChat}
+          isIncognito={vm.startIncognito}
+          error={vm.error}
+          errorRunId={vm.errorRunId}
+          hasMore={vm.hasMoreMessages}
+          loadingMore={vm.loadingMoreMessages}
+          statusText={vm.statusText}
+          inputHeight={vm.inputHeight}
+          onClearError={vm.clearError}
+          onRetry={vm.retry}
+          onLoadMore={vm.loadMoreMessages}
+          onViewRun={openRunDetails}
+          onRepeat={vm.onRepeat}
         />
 
         <ChatInput
-          isMobile={isMobile}
-          sending={sending}
-          inputSchema={inputSchema}
-          draftKey={`chat-draft-${agentId}-${currentSessionId || 'new'}`}
-          onSend={handleSend}
-          onCancel={handleCancelRun}
-          onHeightChange={setInputHeight}
+          isMobile={vm.isMobile}
+          sending={vm.sending}
+          inputSchema={vm.inputSchema}
+          draftKey={vm.draftKey}
+          onSend={vm.send}
+          onCancel={vm.cancel}
+          onHeightChange={vm.setInputHeight}
         />
       </Box>
     </Box>
