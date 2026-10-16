@@ -241,16 +241,24 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     const id = generateNodeId(type, nodes);
     // Default position at center if not provided
     const pos = position || { x: 200, y: 200 };
+
+    // Determine handle positions based on current layout direction
+    const direction = agent?.editorData?.canvasSettings?.layoutDirection
+      ?? localStorage.getItem(DEFAULT_LAYOUT_DIRECTION_KEY)
+      ?? 'LR';
+    const sourcePos = direction === 'TB' ? Position.Bottom : Position.Right;
+    const targetPos = direction === 'TB' ? Position.Top : Position.Left;
+
     const newNode: Node = {
       id,
       type,
       position: pos,
-      sourcePosition: Position.Right,
-      targetPosition: Position.Left,
+      sourcePosition: sourcePos,
+      targetPosition: targetPos,
       data: { label: type.toUpperCase(), ...data },
     };
     setNodes((nds) => [...nds, newNode]);
-  }
+  };
 
   // Delete node
   const deleteNode = useCallback(
