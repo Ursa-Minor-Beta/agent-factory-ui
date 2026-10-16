@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback, memo } from 'react';
 import type { NodeTypeOption } from '../../../api';
 import type { NodeMetadata } from '../inputs/templateUtils';
-import { StringInput, TextInput, EditorInput, NumberInput, EnumInput, MultiEnumInput } from '../inputs';
+import { StringInput, TextInput, EditorInput, NumberInput, BooleanInput, EnumInput, MultiEnumInput } from '../inputs';
 
 interface FieldInputProps {
   fieldKey: string;
@@ -88,6 +88,18 @@ export const FieldInput = memo(function FieldInput({
         description={option?.description}
         value={typeof value === 'number' ? value : (option?.default as number | undefined)}
         onChange={handleChangeDebounced}
+      />
+    );
+  }
+
+  // Boolean type
+  if (fieldType === 'boolean') {
+    return (
+      <BooleanInput
+        name={fieldKey}
+        description={option?.description}
+        value={typeof value === 'boolean' ? value : (option?.default as boolean ?? false)}
+        onChange={handleChange}
       />
     );
   }
