@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   Box,
@@ -65,7 +65,7 @@ export function CollectionsList({
   const [search, setSearch] = useState('');
   const [searchDebounced, setSearchDebounced] = useState('');
 
-  const loadCollections = useCallback(async (searchQuery?: string) => {
+  const loadCollections = async (searchQuery?: string) => {
     try {
       setLoading(true);
       const data = await memoryApi.listSchemas({
@@ -79,7 +79,7 @@ export function CollectionsList({
     } finally {
       setLoading(false);
     }
-  }, [workspaceId]);
+  };
 
   // Debounce search
   useEffect(() => {
@@ -92,7 +92,7 @@ export function CollectionsList({
   // Load collections when debounced search changes
   useEffect(() => {
     loadCollections(searchDebounced);
-  }, [searchDebounced, loadCollections]);
+  }, [searchDebounced]);
 
   const handleOpenCreateModal = () => {
     setEditingCollection(null);
@@ -202,7 +202,7 @@ export function CollectionsList({
                   <Table.Td>
                     <Group gap="xs" wrap="nowrap">
                       <Tooltip label="View Records">
-                        <NavLink to={`/collections/${collection.id}/records`}>
+                        <NavLink to={`/configurations/collections/${collection.id}/records`}>
                           <Text size="sm">{collection.name}</Text>
                         </NavLink>
                       </Tooltip>
