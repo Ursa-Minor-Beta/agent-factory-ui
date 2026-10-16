@@ -148,5 +148,13 @@ export const PanelRight = memo( function({ node, nodes, nodeTypes, onUpdate, onR
       </Modal>
     </Box>
   );
-}, 
-({ isNodesDragging }: PanelRightProps) => isNodesDragging )
+},
+(prevProps, { isNodesDragging, ...rest }) => {  
+  // Skip re-render while actively dragging nodes (performance optimization)
+  if (isNodesDragging) return true
+  // When not dragging, do shallow comparison of relevant props
+  return Object.entries(rest).every( ([restKey, restVal]) => (
+      restVal === prevProps[restKey as keyof typeof prevProps]
+    ))
+  }
+);

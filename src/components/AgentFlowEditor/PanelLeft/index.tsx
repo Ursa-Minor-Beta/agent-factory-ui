@@ -225,5 +225,13 @@ export const PanelLeft = memo(function({ nodeTypes, existingNodeTypes, edgeType,
       </Box>
     </Box>
   );
-}, 
-({ isNodesDragging }: PanelLeftProps) => isNodesDragging )
+},
+(prevProps, { isNodesDragging, ...rest }) => {  
+  // Skip re-render while actively dragging nodes (performance optimization)
+  if (isNodesDragging) return true
+  // When not dragging, do shallow comparison of relevant props
+  return Object.entries(rest).every( ([restKey, restVal]) => (
+      restVal === prevProps[restKey as keyof typeof prevProps]
+    ))
+  }
+);
