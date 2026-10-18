@@ -22,7 +22,7 @@ export function ChatHeader({
         position: 'absolute',
         top: 'var(--app-shell-padding)',
         left: isMobile ? 0 : 'var(--app-shell-padding)',
-        right: 0,
+        right: sidebarVisible ? 0 : undefined,
         zIndex: 10,
         pointerEvents: 'none',
       }}
@@ -38,7 +38,7 @@ export function ChatHeader({
           pointerEvents: 'auto',
         }}
       >
-        <Group justify="space-between">
+        <Group justify={sidebarVisible ? "space-between" : 'flex-start'}>
           <Group gap="sm">
             {isMobile ? (
               <ActionIcon variant="subtle" onClick={onOpenSidebar}>
@@ -51,8 +51,10 @@ export function ChatHeader({
                 </ActionIcon>
               </Tooltip>
             )}
-            <Text fw={600}>{agent.name}</Text>
-            {workspaceName && agent.workspaceId && (
+            { sidebarVisible && 
+                <Text fw={600}>{agent.name}</Text>
+            }
+            {sidebarVisible && workspaceName && agent.workspaceId && (
               <Link to={`/workspaces/${agent.workspaceId}`} style={{ textDecoration: 'none' }}>
                 <Badge
                   variant="light"
