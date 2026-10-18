@@ -19,12 +19,13 @@ interface PanelRightProps {
   nodeTypes: NodeType[];
   isNodesDragging: boolean;
   onUpdate: (nodeId: string, data: Record<string, unknown>) => void;
+  onUpdateId: (oldId: string, newId: string) => void;
   onReplace: (nodeId: string, data: Record<string, unknown>) => void;
   onRemove: (nodeId: string) => void;
   onClose: () => void;
 }
 
-export const PanelRight = memo( function({ node, nodes, nodeTypes, onUpdate, onReplace, onRemove, onClose }: PanelRightProps) {
+export const PanelRight = memo( function({ node, nodes, nodeTypes, onUpdate, onUpdateId, onReplace, onRemove, onClose }: PanelRightProps) {
   const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
   const [width, setWidth] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -132,6 +133,7 @@ export const PanelRight = memo( function({ node, nodes, nodeTypes, onUpdate, onR
             nodes={nodes}
             nodeTypes={nodeTypes}
             onUpdate={onUpdate}
+            onUpdateId={onUpdateId}
             onReplace={onReplace}
           />
         </Suspense>

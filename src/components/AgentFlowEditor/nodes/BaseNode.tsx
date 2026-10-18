@@ -30,12 +30,24 @@ const nodeIcons: Record<string, Icon> = {
   'memory-delete': IconDatabaseMinus,
 };
 
+const rotate = (type: string, isVertical: boolean) => {
+  switch(type) {
+    case 'input':
+    case 'output':
+      return isVertical ? { transform: 'rotate(90deg)' } : undefined;
+    case 'branch':
+      return isVertical ? { transform: 'rotate(180deg)' } : { transform: 'rotate(90deg)' };
+    default:
+      return undefined;
+  }
+}
+
 export const BaseNode = memo(function BaseNode({ id, type, sourcePosition, targetPosition }: NodeProps) {
   const IconComponent = nodeIcons[type];
 
   // Rotate input/output icons based on flow direction (TB = 90deg)
   const isVertical = sourcePosition === Position.Bottom || targetPosition === Position.Top;
-  const shouldRotate = (type === 'input' || type === 'output') && isVertical;
+
 
   return (
     <>
@@ -52,7 +64,7 @@ export const BaseNode = memo(function BaseNode({ id, type, sourcePosition, targe
           <IconComponent
             size={36}
             stroke={1}
-            style={shouldRotate ? { transform: 'rotate(90deg)' } : undefined}
+            style={ rotate(type, isVertical) }
           />
         )}
         <Box fz="xs" c="cyan">{id || ''}</Box>

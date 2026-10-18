@@ -14,6 +14,7 @@ interface NodeSettingsFormProps {
   nodes: Node[];
   nodeTypes: NodeType[];
   onUpdate: (nodeId: string, data: Record<string, unknown>) => void;
+  onUpdateId: (oldId: string, newId: string) => void;
   onReplace: (nodeId: string, data: Record<string, unknown>) => void;
 }
 
@@ -24,7 +25,7 @@ interface NodeFormData {
 
 const DEBOUNCE_MS = 300;
 
-export function NodeSettingsForm({ node, nodes, nodeTypes, onUpdate, onReplace }: NodeSettingsFormProps) {
+export function NodeSettingsForm({ node, nodes, nodeTypes, onUpdate, onUpdateId, onReplace }: NodeSettingsFormProps) {
   const { register, reset, watch } = useForm<NodeFormData>();
   const updateTimeoutRef = useRef<number | undefined>(undefined);
 
@@ -32,9 +33,9 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, onUpdate, onReplace }
   const idInputRef = useRef<HTMLInputElement>(null);
   const idDebounceRef = useRef<number | null>(null);
   const lastEmittedIdRef = useRef<string | null>(null);
-  const onUpdateRef = useRef(onUpdate);
+  const onUpdateIdRef = useRef(onUpdateId);
   const [idEditEnabled, setIdEditEnabled] = useState(false);
-  onUpdateRef.current = onUpdate;
+  onUpdateIdRef.current = onUpdateId;
 
   useEffect(() => {
     reset({
@@ -88,7 +89,7 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, onUpdate, onReplace }
         const newId = idInputRef.current.value.trim();
         if (newId && newId !== node.id) {
           lastEmittedIdRef.current = newId;
-          onUpdateRef.current(node.id, { id: newId });
+          onUpdateIdRef.current(node.id, newId);
         }
       }
     }, DEBOUNCE_MS);
@@ -102,7 +103,7 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, onUpdate, onReplace }
       const newId = idInputRef.current.value.trim();
       if (newId && newId !== node.id) {
         lastEmittedIdRef.current = newId;
-        onUpdateRef.current(node.id, { id: newId });
+        onUpdateIdRef.current(node.id, newId);
       }
     }
   };

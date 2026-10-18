@@ -311,23 +311,9 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
 
   const updateNodeData = useCallback(
     (nodeId: string, data: Record<string, unknown>) => {
-      // Handle ID change via dedicated method
-      if (data.id && data.id !== nodeId) {
-        const newId = data.id as string;
-        updateNodeId(nodeId, newId);
-        // Remove id from data to avoid redundant update
-        const { id: _, ...restData } = data;
-        if (Object.keys(restData).length > 0) {
-          setNodes((nds) =>
-            nds.map((n) => (n.id === newId ? { ...n, data: { ...n.data, ...restData } } : n))
-          );
-        }
-        nodeId = newId; // Use new ID for edge management below
-      } else {
-        setNodes((nds) =>
-          nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, ...data } } : n))
-        );
-      }
+      setNodes((nds) =>
+        nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, ...data } } : n))
+      );
 
       // Auto-manage edges based on template references
       setEdges((eds) => {

@@ -97,6 +97,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     onNodeClick,
     onPaneClick,
     saveAgent,
+    updateNodeId,
     updateNodeData,
     replaceNodeData,
     deleteNode,
@@ -246,6 +247,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
           nodes={nodes}
           nodeTypes={availableNodeTypes}
           onUpdate={updateNodeData}
+          onUpdateId={updateNodeId}
           onReplace={replaceNodeData}
           onRemove={(nodeId) => { deleteNode(nodeId); onPaneClick(); }}
           onClose={onPaneClick}
