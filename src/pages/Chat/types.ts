@@ -31,7 +31,9 @@ export interface ChatHeaderProps {
   workspaceName?: string;
   isIncognito: boolean;
   isMobile: boolean;
+  sidebarVisible: boolean;
   onOpenSidebar: () => void;
+  onToggleSidebar: () => void;
   onEditAgent: () => void;
 }
 

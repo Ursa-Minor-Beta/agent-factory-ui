@@ -251,6 +251,8 @@ export function ChatSidebar({
 
   // Desktop sidebar
   if (!isMobile) {
+    if (!isOpen) return null;
+
     return (
       <Paper
         withBorder

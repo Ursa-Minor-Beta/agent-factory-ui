@@ -11,7 +11,7 @@ import { TemplatesTab } from './TemplatesTab';
 import { GitTab } from './GitTab';
 
 const MIN_WIDTH = 120;
-const MAX_WIDTH_RATIO = 0.4; // 40% of viewport
+const MAX_WIDTH_RATIO = 0.7; // 40% of viewport
 const STORAGE_KEY = 'agent-editor-palette-width';
 const TAB_STORAGE_KEY = 'agent-editor-active-tab';
 

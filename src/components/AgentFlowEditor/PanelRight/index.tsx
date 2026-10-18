@@ -10,7 +10,7 @@ const NodeSettingsForm = lazy(() =>
 );
 
 const MIN_WIDTH = 200;
-const MAX_WIDTH_RATIO = 0.4; // 40% of viewport
+const MAX_WIDTH_RATIO = 0.7; // 40% of viewport
 const STORAGE_KEY = 'agent-editor-panel-width';
 
 interface PanelRightProps {

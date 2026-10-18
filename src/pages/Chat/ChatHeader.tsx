@@ -1,5 +1,5 @@
 import { Box, Card, Group, ActionIcon, Text, Tooltip, Badge, useMantineColorScheme } from '@mantine/core';
-import { IconMenu2, IconGhost, IconCode, IconSchema, IconFolder } from '@tabler/icons-react';
+import { IconMenu2, IconGhost, IconCode, IconSchema, IconFolder, IconLayoutSidebar, IconLayoutSidebarFilled } from '@tabler/icons-react';
 import type { ChatHeaderProps } from './types';
 import { Link } from 'react-router-dom';
 
@@ -8,7 +8,9 @@ export function ChatHeader({
   workspaceName,
   isIncognito,
   isMobile,
+  sidebarVisible,
   onOpenSidebar,
+  onToggleSidebar,
   onEditAgent,
 }: ChatHeaderProps) {
   const { colorScheme } = useMantineColorScheme();
@@ -38,10 +40,16 @@ export function ChatHeader({
       >
         <Group justify="space-between">
           <Group gap="sm">
-            {isMobile && (
+            {isMobile ? (
               <ActionIcon variant="subtle" onClick={onOpenSidebar}>
                 <IconMenu2 size={18} />
               </ActionIcon>
+            ) : (
+              <Tooltip label={sidebarVisible ? 'Hide sidebar' : 'Show sidebar'}>
+                <ActionIcon variant="subtle" onClick={onToggleSidebar}>
+                  {sidebarVisible ? <IconLayoutSidebarFilled size={18} /> : <IconLayoutSidebar size={18} />}
+                </ActionIcon>
+              </Tooltip>
             )}
             <Text fw={600}>{agent.name}</Text>
             {workspaceName && agent.workspaceId && (

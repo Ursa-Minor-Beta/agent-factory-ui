@@ -81,7 +81,9 @@ export function ChatPage() {
           workspaceName={vm.workspaceName}
           isIncognito={vm.isIncognitoSession || (vm.isNewChat && vm.startIncognito)}
           isMobile={vm.isMobile}
+          sidebarVisible={vm.sidebarOpen}
           onOpenSidebar={() => vm.setSidebarOpen(true)}
+          onToggleSidebar={() => vm.setSidebarOpen(!vm.sidebarOpen)}
           onEditAgent={() => vm.agent && openEditAgent(vm.agent.id)}
         />
 

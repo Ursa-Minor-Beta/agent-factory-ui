@@ -73,8 +73,8 @@ export function useChatViewModel(): UseChatViewModelReturn {
 
   const isMobile = useMediaQuery('(max-width: 768px)') ?? false;
 
-  // UI State
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  // UI State - sidebar visible by default on desktop
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
   const [inputHeight, setInputHeight] = useState(100);
 
