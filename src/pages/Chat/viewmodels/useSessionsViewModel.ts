@@ -37,12 +37,16 @@ export function useSessionsViewModel(
 
   const isIncognitoSession = currentSessionId?.startsWith('incognito_') || false;
 
-  // Reset when agent changes
+  // Sync currentSessionId with URL
   useEffect(() => {
     setCurrentSessionId(urlSessionId || null);
+  }, [urlSessionId]);
+
+  // Reset sessions when agent changes
+  useEffect(() => {
     setSessions([]);
     setStartIncognito(false);
-  }, [agentId, urlSessionId]);
+  }, [agentId]);
 
   // Update URL when session changes
   useEffect(() => {
