@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Box, Card, Stack, Group, Textarea, ActionIcon, Text, UnstyledButton, Button, useMantineColorScheme } from '@mantine/core';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { Box, Card, Stack, Group, Textarea, ActionIcon, Button, useMantineColorScheme, Tooltip } from '@mantine/core';
 import { useDebouncedCallback } from '@mantine/hooks';
 import { IconSend, IconChevronDown, IconPlayerPlay, IconPlayerStop, IconChevronUp } from '@tabler/icons-react';
 import type { ChatInputProps } from './types';
 
+const LS_OPTIONAL_FIELDS_KEY = 'chat-optional-fields-open';
 const DRAFT_DEBOUNCE_MS = 3000;
 
 export function ChatInput({ onSend, sending, inputSchema, draftKey, isMobile, onCancel, onHeightChange }: ChatInputProps) {
@@ -37,7 +38,22 @@ export function ChatInput({ onSend, sending, inputSchema, draftKey, isMobile, on
 
   // Track values for each field
   const [values, setValues] = useState<Record<string, string>>({});
-  const [optionalOpen, setOptionalOpen] = useState(false);
+  const [optionalOpen, setOptionalOpen] = useState(() => {
+    try {
+      return localStorage.getItem(LS_OPTIONAL_FIELDS_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleOptionalOpen = () => {
+    setOptionalOpen((prev) => {
+      const next = !prev;
+      localStorage.setItem(LS_OPTIONAL_FIELDS_KEY, String(next));
+      return next;
+    });
+  };
+
   const inputRefs = useRef<Record<string, HTMLInputElement | HTMLTextAreaElement | null>>({});
 
   // Debounced save to localStorage
@@ -51,15 +67,15 @@ export function ChatInput({ onSend, sending, inputSchema, draftKey, isMobile, on
   }, DRAFT_DEBOUNCE_MS);
 
   // Clear draft from localStorage
-  const clearDraft = useCallback(() => {
+  const clearDraft = () => {
     localStorage.removeItem(draftKey);
     saveDraft.cancel();
-  }, [draftKey, saveDraft]);
+  };
 
   // Flush draft on blur (save immediately)
-  const flushDraft = useCallback(() => {
+  const flushDraft = () => {
     saveDraft.flush();
-  }, [saveDraft]);
+  };
 
   // Load draft on mount or when draftKey/schema changes
   // Only load fields that exist in current schema
@@ -210,62 +226,56 @@ export function ChatInput({ onSend, sending, inputSchema, draftKey, isMobile, on
             )}
           </Group>
         ) : (
-          <Stack gap="xs">
-            {/* Required inputs + send/stop button in one row */}
-            <Group align="flex-end" gap="sm" wrap="nowrap">
-              <Stack gap="xs" style={{ flex: 1 }}>
-                {requiredFields.map(([key, schema]) => renderField(key, schema))}
-              </Stack>
-
-              {sending ? (
-                <ActionIcon
-                  size="lg"
-                  variant="filled"
-                  onClick={onCancel}
-                  title="Stop"
-                >
-                  <IconPlayerStop size={18} />
-                </ActionIcon>
-              ) : (
-                <ActionIcon
-                  size="lg"
-                  variant="filled"
-                  onClick={handleSend}
-                  disabled={!hasRequiredContent}
-                  title={isSingleField ? 'Press Enter to send' : 'Fill required fields'}
-                >
-                  <IconSend size={18} />
-                </ActionIcon>
-              )}
-            </Group>
-
-            {/* Optional fields - collapsible */}
+          <Group align="flex-end" gap="sm" wrap="nowrap">
+            {/* Expand toggle for optional fields */}
             {hasOptionalFields && (
-              <Box
-                style={{
-                  maxHeight: optionalOpen ? '500px' : '0',
-                  overflow: 'hidden',
-                  transition: 'max-height 200ms ease-out',
-                }}
-              >
-                <Stack gap="xs">
+              <Tooltip label='Show/hide optional fields'>
+                <ActionIcon 
+                    variant="subtle" 
+                    size="sm"
+                    style={{ alignSelf: 'start' }}
+                    onClick={toggleOptionalOpen}
+                    >
+                  {optionalOpen ? <IconChevronDown size={18} /> : <IconChevronUp size={18} />}
+                </ActionIcon>
+              </Tooltip>
+            )}
+
+            {/* Required fields */}
+            <Stack gap="xs" style={{ flex: 1 }}>
+
+              {/* Optional fields - collapsible, shown above when expanded */}
+              {hasOptionalFields && optionalOpen && (
+                <Stack gap="xs" pb="xs">
                   {optionalFields.map(([key, schema]) => renderField(key, schema))}
                 </Stack>
-              </Box>
-            )}
+              )}
 
-            {/* Expand button at the bottom */}
-            {hasOptionalFields && (
-              <UnstyledButton onClick={() => setOptionalOpen(!optionalOpen)}>
-                <Group gap={4}>
-                  {optionalOpen ? <IconChevronDown size={14} /> : < IconChevronUp size={14} />}
-                  <Text size="xs" c="dimmed">
-                    {optionalFields.length} optional field{optionalFields.length > 1 ? 's' : ''}
-                  </Text>
-                </Group>
-              </UnstyledButton>
+              {requiredFields.map(([key, schema]) => renderField(key, schema))}
+            </Stack>
+
+            {/* Send/Stop button */}
+            {sending ? (
+              <ActionIcon
+                size="lg"
+                variant="filled"
+                onClick={onCancel}
+                title="Stop"
+              >
+                <IconPlayerStop size={18} />
+              </ActionIcon>
+            ) : (
+              <ActionIcon
+                size="lg"
+                variant="filled"
+                onClick={handleSend}
+                disabled={!hasRequiredContent}
+                title={isSingleField ? 'Press Enter to send' : 'Fill required fields'}
+              >
+                <IconSend size={18} />
+              </ActionIcon>
             )}
-          </Stack>
+          </Group>
         )}
       </Card>
     </Box>
