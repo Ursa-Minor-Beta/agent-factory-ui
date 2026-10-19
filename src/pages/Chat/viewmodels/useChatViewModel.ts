@@ -73,8 +73,11 @@ export function useChatViewModel(): UseChatViewModelReturn {
 
   const isMobile = useMediaQuery('(max-width: 768px)') ?? false;
 
-  // UI State - sidebar visible by default on desktop
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // UI State - sidebar visible by default on desktop, persisted
+  const [sidebarOpen, setSidebarOpenState] = useState(() => {
+    const saved = localStorage.getItem('chat-sidebar-open');
+    return saved !== null ? saved === 'true' : true;
+  });
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
   const [inputHeight, setInputHeight] = useState(100);
 
@@ -147,6 +150,12 @@ export function useChatViewModel(): UseChatViewModelReturn {
     e.stopPropagation();
     setSessionToDelete(id);
   }, []);
+
+
+  const setSidebarOpen = (open: boolean) => {
+    setSidebarOpenState(open);
+    localStorage.setItem('chat-sidebar-open', String(open));
+  };
 
   const confirmDeleteSession = useCallback(async () => {
     if (!sessionToDelete) return;
