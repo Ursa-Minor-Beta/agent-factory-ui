@@ -13,7 +13,7 @@ import {
 import { IconAlertCircle } from '@tabler/icons-react';
 import { providersApi, workspacesApi } from '../../api';
 import type { Workspace } from '../../types/workspace';
-import type { ProviderType } from '../../types/provider';
+import type { ProviderType, ProviderConfig } from '../../types/provider';
 import { PROVIDER_OPTIONS } from '../../types/provider';
 
 interface ProviderFormData {
@@ -30,13 +30,16 @@ interface ProviderModalProps {
   workspaceId?: string;
   onSuccess: () => void;
   defaultName?: string;
+  provider?: ProviderConfig; // When provided, modal is in edit mode
 }
 
-export function ProviderModal({ opened, onClose, workspaceId, onSuccess, defaultName }: ProviderModalProps) {
+export function ProviderModal({ opened, onClose, workspaceId, onSuccess, defaultName, provider }: ProviderModalProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loadingWorkspaces, setLoadingWorkspaces] = useState(false);
+
+  const isEditMode = !!provider;
 
   const { register, handleSubmit, control, watch, reset, formState: { errors } } = useForm<ProviderFormData>({
     defaultValues: { provider: 'openai', name: '', apiKey: '', baseUrl: '', selectedWorkspaceId: '' },
@@ -46,13 +49,23 @@ export function ProviderModal({ opened, onClose, workspaceId, onSuccess, default
 
   useEffect(() => {
     if (opened) {
-      reset({
-        provider: 'openai',
-        name: defaultName || '',
-        apiKey: '',
-        baseUrl: '',
-        selectedWorkspaceId: workspaceId || '',
-      });
+      if (isEditMode && provider) {
+        reset({
+          provider: provider.provider,
+          name: provider.name,
+          apiKey: '', // Don't pre-fill API key for security
+          baseUrl: provider.config.baseUrl || '',
+          selectedWorkspaceId: provider.workspaceId || '',
+        });
+      } else {
+        reset({
+          provider: 'openai',
+          name: defaultName || '',
+          apiKey: '',
+          baseUrl: '',
+          selectedWorkspaceId: workspaceId || '',
+        });
+      }
       setError('');
 
       // Load workspaces
@@ -62,7 +75,7 @@ export function ProviderModal({ opened, onClose, workspaceId, onSuccess, default
         .catch(() => setWorkspaces([]))
         .finally(() => setLoadingWorkspaces(false));
     }
-  }, [opened, workspaceId, defaultName, reset]);
+  }, [opened, workspaceId, defaultName, reset, isEditMode, provider]);
 
   const handleClose = () => {
     reset({ provider: 'openai', name: '', apiKey: '', baseUrl: '', selectedWorkspaceId: '' });
@@ -74,15 +87,26 @@ export function ProviderModal({ opened, onClose, workspaceId, onSuccess, default
     setSaving(true);
     setError('');
     try {
-      await providersApi.create({
-        provider: data.provider,
-        name: data.name,
-        config: {
-          apiKey: data.apiKey || undefined,
-          baseUrl: data.baseUrl || undefined,
-        },
-        workspaceId: data.selectedWorkspaceId || undefined,
-      });
+      if (isEditMode && provider) {
+        await providersApi.update(provider.id, {
+          name: data.name,
+          config: {
+            apiKey: data.apiKey || undefined,
+            baseUrl: data.baseUrl || undefined,
+          },
+          workspaceId: data.selectedWorkspaceId || null,
+        });
+      } else {
+        await providersApi.create({
+          provider: data.provider,
+          name: data.name,
+          config: {
+            apiKey: data.apiKey || undefined,
+            baseUrl: data.baseUrl || undefined,
+          },
+          workspaceId: data.selectedWorkspaceId || undefined,
+        });
+      }
       handleClose();
       onSuccess();
     } catch (err) {
@@ -93,7 +117,7 @@ export function ProviderModal({ opened, onClose, workspaceId, onSuccess, default
   };
 
   return (
-    <Modal opened={opened} onClose={handleClose} title="Add Provider" size="sm">
+    <Modal opened={opened} onClose={handleClose} title={isEditMode ? 'Edit Provider' : 'Add Provider'} size="sm">
       <form onSubmit={handleSubmit(onSubmit)} autoComplete="off" data-form-type="other">
         <Stack>
           {error && (
@@ -111,6 +135,7 @@ export function ProviderModal({ opened, onClose, workspaceId, onSuccess, default
               <Select
                 label="Provider"
                 data={PROVIDER_OPTIONS}
+                disabled={isEditMode}
                 {...field}
               />
             )}
@@ -127,6 +152,7 @@ export function ProviderModal({ opened, onClose, workspaceId, onSuccess, default
           {watchProvider !== 'ollama' && (
             <PasswordInput
               label="API Key"
+              placeholder={isEditMode ? 'Leave empty to keep current key' : ''}
               autoComplete="one-time-code"
               data-lpignore="true"
               data-1p-ignore

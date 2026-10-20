@@ -17,6 +17,7 @@ import { useDisclosure } from '@mantine/hooks';
 import {
   IconPlus,
   IconTrash,
+  IconPencil,
   IconStar,
   IconStarFilled,
   IconSearch,
@@ -57,6 +58,7 @@ export function ProvidersList({
   const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
   const [deleting, setDeleting] = useState(false);
   const [deletingProvider, setDeletingProvider] = useState<ProviderConfig | null>(null);
+  const [editingProvider, setEditingProvider] = useState<ProviderConfig | null>(null);
   const [search, setSearch] = useState('');
 
   const loadProviders = async () => {
@@ -79,6 +81,16 @@ export function ProvidersList({
   const handleOpenDeleteModal = (provider: ProviderConfig) => {
     setDeletingProvider(provider);
     openDeleteModal();
+  };
+
+  const handleEdit = (provider: ProviderConfig) => {
+    setEditingProvider(provider);
+    openModal();
+  };
+
+  const handleModalClose = () => {
+    setEditingProvider(null);
+    closeModal();
   };
 
   const handleDelete = async () => {
@@ -200,13 +212,21 @@ export function ProvidersList({
                 )}
                 {showColumn('actions') && (
                   <Table.Td style={{ textAlign: 'right' }}>
-                    <ActionIcon
-                      variant="subtle"
-                      color="red"
-                      onClick={() => handleOpenDeleteModal(provider)}
-                    >
-                      <IconTrash size={18} />
-                    </ActionIcon>
+                    <Group gap="xs" justify="flex-end">
+                      <ActionIcon
+                        variant="subtle"
+                        onClick={() => handleEdit(provider)}
+                      >
+                        <IconPencil size={18} />
+                      </ActionIcon>
+                      <ActionIcon
+                        variant="subtle"
+                        color="red"
+                        onClick={() => handleOpenDeleteModal(provider)}
+                      >
+                        <IconTrash size={18} />
+                      </ActionIcon>
+                    </Group>
                   </Table.Td>
                 )}
               </Table.Tr>
@@ -228,9 +248,10 @@ export function ProvidersList({
 
       <ProviderModal
         opened={modalOpened}
-        onClose={closeModal}
+        onClose={handleModalClose}
         workspaceId={workspaceId}
         onSuccess={() => { loadProviders(); onCreate?.(); }}
+        provider={editingProvider ?? undefined}
       />
 
       <DeleteConfirmModal
