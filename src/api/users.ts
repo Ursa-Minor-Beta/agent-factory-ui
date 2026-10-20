@@ -24,6 +24,24 @@ export interface UserListResponse {
   limit: number;
 }
 
+export interface DeleteUserResponse {
+  success: boolean;
+  message: string;
+  deleted: {
+    apiKeys: number;
+    agents: number;
+    workspaces: number;
+    sessions: number;
+    messages: number;
+    files: number;
+    secrets: number;
+    providerConfigs: number;
+    gitHubSyncs: number;
+    memorySchemas: number;
+    memoryRecords: number;
+  };
+}
+
 export const usersApi = {
   list: (params?: UserQueryParams) => {
     const searchParams = new URLSearchParams();
@@ -42,4 +60,7 @@ export const usersApi = {
 
   updatePassword: (id: string, password: string) =>
     api.put<User>(`/api/users/${id}/password`, { password }),
+
+  delete: (id: string) =>
+    api.delete<DeleteUserResponse>(`/api/users/${id}`),
 };

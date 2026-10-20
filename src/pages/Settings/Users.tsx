@@ -24,8 +24,11 @@ import {
   IconAlertCircle,
   IconSearch,
   IconKey,
+  IconTrash,
 } from '@tabler/icons-react';
 import { usersApi } from '../../api';
+import { DeleteConfirmModal } from '../../components/DeleteConfirmModal';
+import { useAuth } from '../../contexts/AuthContext';
 import type { User } from '../../types';
 
 type UserRole = 'admin' | 'user';
@@ -42,12 +45,16 @@ interface PasswordForm {
 }
 
 export function UsersSettings() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
   const [passwordModalOpened, { open: openPasswordModal, close: closePasswordModal }] = useDisclosure(false);
+  const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [modalError, setModalError] = useState('');
@@ -122,6 +129,33 @@ export function UsersSettings() {
     resetPassword({ password: '' });
     setModalError('');
     closePasswordModal();
+  };
+
+  const handleOpenDeleteModal = (user: User) => {
+    setSelectedUser(user);
+    setDeleteError('');
+    openDeleteModal();
+  };
+
+  const handleCloseDeleteModal = () => {
+    setSelectedUser(null);
+    setDeleteError('');
+    closeDeleteModal();
+  };
+
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return;
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await usersApi.delete(selectedUser.id);
+      handleCloseDeleteModal();
+      setUsers((prev) => prev.filter((u) => u.id !== selectedUser.id));
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete user');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const onPasswordSubmit = async (data: PasswordForm) => {
@@ -212,13 +246,24 @@ export function UsersSettings() {
                   </Text>
                 </Table.Td>
                 <Table.Td style={{ textAlign: 'right' }}>
-                  <ActionIcon
-                    variant="subtle"
-                    onClick={() => handleOpenPasswordModal(user)}
-                    title="Change password"
-                  >
-                    <IconKey size={18} />
-                  </ActionIcon>
+                  <Group gap="xs" justify="flex-end">
+                    <ActionIcon
+                      variant="subtle"
+                      onClick={() => handleOpenPasswordModal(user)}
+                      title="Change password"
+                    >
+                      <IconKey size={18} />
+                    </ActionIcon>
+                    <ActionIcon
+                      variant="subtle"
+                      color="red"
+                      onClick={() => handleOpenDeleteModal(user)}
+                      title={user.id === currentUser?.id ? 'Cannot delete yourself' : 'Delete user'}
+                      disabled={user.id === currentUser?.id}
+                    >
+                      <IconTrash size={18} />
+                    </ActionIcon>
+                  </Group>
                 </Table.Td>
               </Table.Tr>
             ))}
@@ -326,6 +371,17 @@ export function UsersSettings() {
           </Stack>
         </form>
       </Modal>
+
+      <DeleteConfirmModal
+        opened={deleteModalOpened}
+        onClose={handleCloseDeleteModal}
+        onDelete={handleDeleteUser}
+        deleting={deleting}
+        title="Delete User"
+        entityName={selectedUser?.name}
+        subtitle="This will permanently delete all connected entities (API keys, agents, workspaces, sessions, files, secrets, etc.). Runs will be preserved."
+        error={deleteError}
+      />
     </Box>
   );
 }
