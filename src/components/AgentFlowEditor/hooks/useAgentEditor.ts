@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   useNodesState,
@@ -10,7 +10,7 @@ import {
   type Connection,
 } from '@xyflow/react';
 import { agentsApi, nodesApi, type NodeType, type AgentExample } from '../../../api';
-import type { Agent, CanvasSettings } from '../../../types/agent';
+import type { Agent, CanvasSettings, EditorViewport } from '../../../types/agent';
 import { toFlowNode, toAgentNode, extractEdges, generateNodeId, autoLayoutNodes, extractReferencedNodeIds, type LayoutDirection } from '../utils/converters';
 
 const DEFAULT_EDGE_TYPE_KEY = 'agent-editor-default-edge-type';
@@ -28,6 +28,10 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [initialViewport, setInitialViewport] = useState<EditorViewport | undefined>();
+
+  // Ref to hold a function that gets the current viewport from ReactFlow
+  const viewportGetterRef = useRef<(() => EditorViewport) | null>(null);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -88,6 +92,11 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
 
       setNodes(positionedNodes);
       setEdges(flowEdges);
+
+      // Load saved viewport if available
+      if (data.editorData?.viewport) {
+        setInitialViewport(data.editorData.viewport);
+      }
     } catch (err) {
       console.error('Failed to fetch agent:', err);
     } finally {
@@ -129,10 +138,14 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
         nodePositions[node.id] = { x: node.position.x, y: node.position.y };
       }
 
+      // Get current viewport if getter is available
+      const viewport = viewportGetterRef.current?.();
+
       // Merge with existing editorData to preserve other fields
       const editorData = {
         ...agent.editorData,
         nodePositions,
+        viewport,
       };
 
       if (agent.id) {
@@ -435,6 +448,11 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     localStorage.setItem(DEFAULT_EDGE_TYPE_KEY, value);
   }, [updateCanvasSettings]);
 
+  // Set the viewport getter function (called by the component)
+  const setViewportGetter = useCallback((getter: () => EditorViewport) => {
+    viewportGetterRef.current = getter;
+  }, []);
+
   // Load template - replaces all nodes with template nodes
   const loadTemplate = useCallback(
     (template: AgentExample) => {
@@ -465,6 +483,7 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     selectedNode,
     edgeType,
     layoutDirection,
+    initialViewport,
 
     // Actions
     onNodesChange,
@@ -484,6 +503,7 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     changeLayoutDirection,
     changeEdgeType,
     loadTemplate,
+    setViewportGetter,
     reloadAgent: fetchAgent,
   };
 }

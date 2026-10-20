@@ -25,9 +25,16 @@ export interface CanvasSettings {
   edgeType?: string;
 }
 
+export interface EditorViewport {
+  x: number;
+  y: number;
+  zoom: number;
+}
+
 export interface EditorData {
   nodePositions?: Record<string, { x: number; y: number }>;
   canvasSettings?: CanvasSettings;
+  viewport?: EditorViewport;
   [key: string]: unknown;
 }
 

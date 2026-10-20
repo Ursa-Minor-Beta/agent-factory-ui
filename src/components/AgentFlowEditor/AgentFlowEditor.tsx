@@ -91,6 +91,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     selectedNode,
     edgeType,
     layoutDirection,
+    initialViewport,
     onNodesChange,
     onEdgesChange,
     onConnect,
@@ -107,6 +108,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     changeEdgeType,
     addNode,
     loadTemplate,
+    setViewportGetter,
     reloadAgent,
   } = useAgentEditor({ agentId, workspaceId });
 
@@ -195,8 +197,15 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
           onPaneClick={onPaneClick}
           onNodeDragStart={ () => setIsNodesDragging(true) }
           onNodeDragStop={ () => setIsNodesDragging(false) }
-          onInit={(instance) => { reactFlowInstance.current = instance; }}
-          fitView
+          onInit={(instance) => {
+            reactFlowInstance.current = instance;
+            setViewportGetter(() => instance.getViewport());
+            // Restore saved viewport if available
+            if (initialViewport) {
+              instance.setViewport(initialViewport);
+            }
+          }}
+          fitView={!initialViewport}
           nodeDragThreshold={10}
           onlyRenderVisibleElements={true}
           style={{ background: 'transparent' }}
@@ -237,7 +246,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
           onLayoutDirectionChange={changeLayoutDirection}
           onLoadTemplate={loadTemplate}
           onReloadAgent={reloadAgent}
-          />
+        />
       }
 
       {selectedNode && (
