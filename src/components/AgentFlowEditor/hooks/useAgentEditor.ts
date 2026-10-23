@@ -151,6 +151,8 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
       if (agent.id) {
         // Update existing agent
         await agentsApi.update(agent.id, { nodes: agentNodes, editorData });
+        // Sync local agent so derived data (e.g. Run tab input schema) updates
+        setAgent((prev) => (prev ? { ...prev, nodes: agentNodes, editorData } : prev));
       } else {
         // Create new agent
         const newAgent = await agentsApi.create({
