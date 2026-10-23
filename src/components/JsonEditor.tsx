@@ -235,23 +235,6 @@ export function JsonEditor({ value, onChange, readOnly = false, height = '100%',
           position: 'relative',
         }}
       >
-        {!isValid && (
-          <Text
-            size="xs"
-            c="white"
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              zIndex: 10,
-              backgroundColor: 'var(--mantine-color-red-6)',
-              padding: '2px 8px',
-              borderBottomRightRadius: 4,
-            }}
-          >
-            Invalid JSON
-          </Text>
-        )}
         <AceEditor
           mode={mode}
           theme={colorScheme === 'dark' ? 'one_dark' : 'chrome'}
@@ -277,6 +260,23 @@ export function JsonEditor({ value, onChange, readOnly = false, height = '100%',
           }}
           editorProps={{ $blockScrolling: true }}
         />
+      {!isValid && (
+          <Text
+            size="xs"
+            c="white"
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              zIndex: 10,
+              backgroundColor: 'var(--mantine-color-red-6)',
+              padding: '2px 8px',
+              borderTopRightRadius: 4,
+            }}
+          >
+            Invalid JSON
+          </Text>
+        )}
       </Box>
     </Box>
   );
