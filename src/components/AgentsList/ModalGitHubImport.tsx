@@ -142,6 +142,16 @@ export function ModalGitHubImport({
   };
 
   const handleClose = () => {
+    // Notify listeners only once the success view is dismissed
+    if (result) {
+      // Notify sidebar about the new workspace (only if we created a new one)
+      if (selectedWorkspace === NEW_WORKSPACE_VALUE && result.workspaceName) {
+        window.dispatchEvent(new CustomEvent('workspace-created', {
+          detail: { workspace: { id: result.workspaceId, name: result.workspaceName } }
+        }));
+      }
+      onImported();
+    }
     resetState();
     onClose();
   };
@@ -183,18 +193,6 @@ export function ModalGitHubImport({
       setGlobalSecrets(new Set(globals.map((s) => s.name)));
       setGlobalProviders(new Set(globalProvs.map((p) => p.provider)));
       setGlobalCollections(new Set(globalColls.map((c) => c.name)));
-
-      // Notify sidebar about the new workspace (only if we created a new one)
-      if (selectedWorkspace === NEW_WORKSPACE_VALUE) {
-        const workspaceName = response.workspaceName;
-        if (workspaceName) {
-          window.dispatchEvent(new CustomEvent('workspace-created', {
-            detail: { workspace: { id: response.workspaceId, name: workspaceName } }
-          }));
-        }
-      }
-
-      onImported();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to import agent from GitHub');
     } finally {
