@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Box,
   Text,
@@ -16,6 +16,7 @@ import {
   Tooltip,
   Card,
   Badge,
+  Anchor,
 } from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import {
@@ -29,6 +30,7 @@ import { workspacesApi } from '../../api/workspaces';
 import type { Workspace, WorkspaceQueryOptions } from '../../types/workspace';
 import { WorkspaceModal } from './WorkspaceModal';
 import { DeleteConfirmModal } from '../../components/DeleteConfirmModal';
+import { routes } from '../../config/routes';
 
 const ITEMS_PER_PAGE = 20;
 const SORT_STORAGE_KEY = 'workspaces-sort';
@@ -252,7 +254,7 @@ export function WorkspacesPage() {
               {workspaces.map((workspace) => (
                 <Card key={workspace.id} withBorder mb="sm" p="md">
                   <Group justify="space-between" mb="xs">
-                    <Text fw={600}>{workspace.name}</Text>
+                    <Anchor component={Link} to={routes.workspace(workspace.id)} fw={600} c="inherit">{workspace.name}</Anchor>
                     <Group gap="xs">
                       <ActionIcon
                         variant="subtle"
@@ -303,7 +305,7 @@ export function WorkspacesPage() {
                   {workspaces.map((workspace) => (
                     <Table.Tr key={workspace.id}>
                       <Table.Td>
-                        <Text>{workspace.name}</Text>
+                        <Anchor component={Link} to={routes.workspace(workspace.id)} c="inherit">{workspace.name}</Anchor>
                       </Table.Td>
                       <Table.Td>
                         <Text size="sm" c="dimmed" lineClamp={2}>
