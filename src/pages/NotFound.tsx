@@ -1,6 +1,7 @@
 import { Button, Center, Stack, Text, Title } from '@mantine/core';
 import { IconArrowLeft } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
+import { routes } from '../config/routes';
 
 export function NotFoundPage() {
   const navigate = useNavigate();
@@ -29,7 +30,7 @@ export function NotFoundPage() {
           variant="light"
           size="md"
           leftSection={<IconArrowLeft size={18} />}
-          onClick={() => navigate('/')}
+          onClick={() => navigate(routes.home())}
         >
           Back to home
         </Button>

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Text, Anchor } from '@mantine/core';
 import { InfoTable } from '../../../common/InfoTable';
+import { routes } from '../../../../config/routes';
 
 interface GitHubSync {
   id: string;
@@ -40,7 +41,7 @@ export function GitHubStatus({ syncStatus, isLoading, isSubAgent, rootId }: GitH
             ...(isSubAgent && rootId ? [{
               label: 'Root agent',
               value: (
-                <Anchor component={Link} to={`/agents/${rootId}/editor`} size="xs">
+                <Anchor component={Link} to={routes.agentEditor(rootId)} size="xs">
                   {rootId}
                 </Anchor>
               ),

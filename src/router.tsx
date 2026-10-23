@@ -4,6 +4,7 @@ import { Center, Loader } from '@mantine/core';
 import { Layout } from './layout/Layout';
 import { ProtectedRoute } from './layout/ProtectedRoute';
 import { PublicRoute } from './layout/PublicRoute';
+import { routes } from './config/routes';
 
 // Lazy load pages
 const LoginPage = lazy(() => import('./pages/Login').then(m => ({ default: m.LoginPage })));
@@ -62,7 +63,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="/agents" replace />,
+        element: <Navigate to={routes.agents()} replace />,
       },
       {
         path: 'agents',
@@ -90,7 +91,7 @@ export const router = createBrowserRouter([
         children: [
           {
             index: true,
-            element: <Navigate to="/configurations/providers" replace />,
+            element: <Navigate to={routes.providers()} replace />,
           },
           {
             path: 'providers',
@@ -128,7 +129,7 @@ export const router = createBrowserRouter([
         children: [
           {
             index: true,
-            element: <Navigate to="/monitoring/runs" replace />,
+            element: <Navigate to={routes.runs()} replace />,
           },
           {
             path: 'sessions',
@@ -149,7 +150,7 @@ export const router = createBrowserRouter([
         children: [
           {
             index: true,
-            element: <Navigate to="/settings/system" replace />,
+            element: <Navigate to={routes.settingsSystem()} replace />,
           },
           {
             path: 'system',

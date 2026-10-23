@@ -10,6 +10,7 @@ import { CommitHistory } from './CommitHistory';
 import { GitSyncActions } from './GitSyncActions';
 import { GitSyncSettingsModal } from './GitSyncSettingsModal';
 import { githubApi } from '../../../../api/github';
+import { routes } from '../../../../config/routes';
 
 const ACCORDION_STORAGE_KEY = 'agent-editor-git-accordion';
 
@@ -74,7 +75,7 @@ export function GitTab({ agent, savedAt, onReloadAgent }: GitTabProps) {
         {isSubAgent && (
           <Alert color="blue" icon={<IconGitFork size={16} />}>
             This agent is a dependency of{' '}
-            <Anchor component={Link} to={`/agents/${agent.github?.rootId}/editor`} size="sm">
+            <Anchor component={Link} to={routes.agentEditor(agent.github?.rootId ?? '')} size="sm">
               root agent
             </Anchor>
           </Alert>

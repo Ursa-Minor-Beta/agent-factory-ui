@@ -5,18 +5,19 @@ import { workspacesApi } from '../api/workspaces';
 import type { Workspace } from '../types/workspace';
 import type { NavItem } from './types';
 import { getBaseNavItems } from './navConfig';
+import { routes } from '../config/routes';
 
 export function useWorkspaceNav() {
   const [navItems, setNavItems] = useState<NavItem[]>(getBaseNavItems());
 
   const updateWorkspaceNav = (workspaces: Workspace[]) => {
     const baseItems = getBaseNavItems();
-    const workspacesIndex = baseItems.findIndex(item => item.path === '/workspaces');
+    const workspacesIndex = baseItems.findIndex(item => item.path === routes.workspaces());
 
     if (workspacesIndex !== -1 && workspaces.length > 0) {
       const workspaceChildren: NavItem[] = workspaces.map(ws => ({
         label: ws.name,
-        path: `/workspaces/${ws.id}`,
+        path: routes.workspace(ws.id),
         icon: createElement(IconFolder, { size: 18 }),
       }));
 
@@ -54,7 +55,7 @@ export function useWorkspaceNav() {
         return;
       }
 
-      const currentWorkspacesItem = navItems.find(item => item.path === '/workspaces');
+      const currentWorkspacesItem = navItems.find(item => item.path === routes.workspaces());
       const currentWorkspaces = currentWorkspacesItem?.children?.map(child => ({
         id: child.path.split('/').pop()!,
         name: child.label,
@@ -76,7 +77,7 @@ export function useWorkspaceNav() {
         return;
       }
 
-      const currentWorkspacesItem = navItems.find(item => item.path === '/workspaces');
+      const currentWorkspacesItem = navItems.find(item => item.path === routes.workspaces());
 
       if (currentWorkspacesItem?.children) {
         const updatedWorkspaces = currentWorkspacesItem.children
@@ -94,11 +95,11 @@ export function useWorkspaceNav() {
 
     const handleWorkspaceDeleted = (event: Event) => {
       const { workspaceId } = (event as CustomEvent).detail;
-      const currentWorkspacesItem = navItems.find(item => item.path === '/workspaces');
+      const currentWorkspacesItem = navItems.find(item => item.path === routes.workspaces());
 
       if (currentWorkspacesItem?.children) {
         const updatedWorkspaces = currentWorkspacesItem.children
-          .filter(child => child.path !== `/workspaces/${workspaceId}`)
+          .filter(child => child.path !== routes.workspace(workspaceId))
           .map(child => ({
             id: child.path.split('/').pop()!,
             name: child.label,

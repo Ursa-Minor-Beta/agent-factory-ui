@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { Loader, Center } from '@mantine/core';
 import { useAuth } from '../contexts/AuthContext';
+import { routes } from '../config/routes';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -22,11 +23,11 @@ export function ProtectedRoute({ children, adminOnly = false }: ProtectedRoutePr
   if (!user) {
     // Save current location to redirect back after login
     const redirectTo = location.pathname + location.search;
-    return <Navigate to={`/login?redirect=${encodeURIComponent(redirectTo)}`} replace />;
+    return <Navigate to={routes.login(redirectTo)} replace />;
   }
 
   if (adminOnly && user.role !== 'admin') {
-    return <Navigate to="/agents" replace />;
+    return <Navigate to={routes.agents()} replace />;
   }
 
   return <>{children}</>;

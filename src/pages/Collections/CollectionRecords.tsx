@@ -32,6 +32,7 @@ import type { MemorySchema, MemoryRecord } from '../../types';
 import { getRecordUserFields } from '../../types';
 import { RecordModal } from './RecordModal';
 import { DeleteConfirmModal } from '../../components/DeleteConfirmModal';
+import { routes } from '../../config/routes';
 
 interface RecordForm {
   data: string; // JSON string of user fields
@@ -269,7 +270,7 @@ export function CollectionRecordsPage() {
     <Box>
       <Breadcrumbs mb="md">
         <Tooltip label="All Collections">
-          <ActionIcon variant="subtle" color="gray" size="md" component={Link} to="/collections">
+          <ActionIcon variant="subtle" color="gray" size="md" component={Link} to={routes.collections()}>
             <IconList size={18} />
           </ActionIcon>
         </Tooltip>

@@ -14,6 +14,7 @@ import {
 import { IconAlertCircle } from '@tabler/icons-react';
 import { useAuth } from '../contexts/AuthContext';
 import { config } from '../config';
+import { routes } from '../config/routes';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -40,7 +41,7 @@ export function LoginPage() {
     setLoading(true);
     try {
       await login(email, password);
-      const redirectTo = searchParams.get('redirect') || '/agents';
+      const redirectTo = searchParams.get('redirect') || routes.agents();
       navigate(redirectTo);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');

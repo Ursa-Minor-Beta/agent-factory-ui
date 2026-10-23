@@ -36,6 +36,7 @@ import { AgentWorkspaceModal } from './AgentWorkspaceModal';
 import { ModalAgentImport } from './ModalAgentImport/ModalAgentImport';
 import { ModalGitHubImport } from './ModalGitHubImport';
 import { useAgentModal } from '../AgentCreateModal';
+import { routes } from '../../config/routes';
 
 const ITEMS_PER_PAGE = 12;
 const SORT_STORAGE_KEY = 'agents-sort';
@@ -311,7 +312,7 @@ export function AgentsList({
                 <Tooltip label="Visual Editor">
                   <Button
                     component={Link}
-                    to={workspaceId ? `/agents/new/editor?workspaceId=${workspaceId}` : '/agents/new/editor'}
+                    to={routes.newAgentEditor(workspaceId)}
                     variant="default"
                   >
                     <IconSchema size={16} style={{ color: 'var(--mantine-color-violet-5)' }} />

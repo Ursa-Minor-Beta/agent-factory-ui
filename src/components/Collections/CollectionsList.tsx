@@ -30,6 +30,7 @@ import type { MemorySchema } from '../../types';
 import { CollectionModal } from './CollectionModal';
 import { DeleteConfirmModal } from '../DeleteConfirmModal';
 import { WorkspaceBadge } from '../Workspace';
+import { routes } from '../../config/routes';
 
 export type CollectionColumn = 'workspace' | 'name' | 'description' | 'records' | 'fields' | 'created' | 'actions';
 
@@ -202,7 +203,7 @@ export function CollectionsList({
                   <Table.Td>
                     <Group gap="xs" wrap="nowrap">
                       <Tooltip label="View Records">
-                        <NavLink to={`/configurations/collections/${collection.id}/records`}>
+                        <NavLink to={routes.collectionRecords(collection.id)}>
                           <Text size="sm">{collection.name}</Text>
                         </NavLink>
                       </Tooltip>

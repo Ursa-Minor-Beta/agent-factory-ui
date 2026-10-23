@@ -1,4 +1,5 @@
 import { config } from '../config';
+import { routes } from '../config/routes';
 
 export class ApiError extends Error {
   status: number;
@@ -18,13 +19,13 @@ let refreshPromise: Promise<boolean> | null = null;
 
 function redirectToLogin(): boolean {
   // Don't redirect if already on login page
-  if (window.location.pathname === '/login') {
+  if (window.location.pathname === routes.login()) {
     return false;
   }
 
   // Use only pathname, not nested redirect params
   const redirectTo = window.location.pathname;
-  window.location.href = `/login?redirect=${encodeURIComponent(redirectTo)}`;
+  window.location.href = routes.login(redirectTo);
   return true;
 }
 

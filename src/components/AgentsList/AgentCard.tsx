@@ -14,6 +14,7 @@ import {
 } from '@tabler/icons-react';
 import type { AgentCardProps } from './types';
 import { WorkspaceBadge } from '../Workspace';
+import { routes } from '../../config/routes';
 
 export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExport }: AgentCardProps) {
   return (
@@ -97,7 +98,7 @@ export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExp
             component={Link}
             size='xs'
             variant='subtle'
-            to={`/agents/${agent.id}/chat`}
+            to={routes.agentChat(agent.id)}
             style={{
               padding: '0 4px',
               color: 'var(--mantine-color-cyan-5)',
@@ -115,7 +116,7 @@ export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExp
             <ActionIcon
               component={Link}
               variant='subtle'
-              to={`/agents/${agent.id}/editor`}
+              to={routes.agentEditor(agent.id)}
               title='Visual editor'
               style={{
                 padding: '0 2px',

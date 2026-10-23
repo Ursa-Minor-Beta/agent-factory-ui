@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { sessionsApi } from '../../../api';
 import type { Session } from '../../../types';
+import { routes } from '../../../config/routes';
 
 export interface UseSessionsViewModelReturn {
   // State
@@ -55,7 +56,7 @@ export function useSessionsViewModel(
       currentSessionId &&
       !currentSessionId.startsWith('incognito_')
     ) {
-      navigate(`/agents/${agentId}/chat/${currentSessionId}`, { replace: true });
+      if (agentId) navigate(routes.agentChat(agentId, currentSessionId), { replace: true });
     }
   }, [currentSessionId, urlSessionId, agentId, navigate]);
 
@@ -89,7 +90,7 @@ export function useSessionsViewModel(
         if (!urlSessionId && !startIncognito && data.length > 0) {
           const mostRecent = data[0];
           setCurrentSessionId(mostRecent.id);
-          navigate(`/agents/${agentId}/chat/${mostRecent.id}`, { replace: true });
+          navigate(routes.agentChat(agentId, mostRecent.id), { replace: true });
         }
       } catch (err) {
         console.error('Failed to load sessions:', err);
@@ -106,7 +107,7 @@ export function useSessionsViewModel(
     (session: Session) => {
       setCurrentSessionId(session.id);
       setStartIncognito(false);
-      navigate(`/agents/${agentId}/chat/${session.id}`);
+      if (agentId) navigate(routes.agentChat(agentId, session.id));
     },
     [agentId, navigate]
   );
@@ -117,7 +118,7 @@ export function useSessionsViewModel(
 
       if (currentSessionId === id) {
         setCurrentSessionId(null);
-        navigate(`/agents/${agentId}/chat`);
+        if (agentId) navigate(routes.agentChat(agentId));
       }
 
       setSessions((prev) => prev.filter((s) => s.id !== id));
@@ -136,7 +137,7 @@ export function useSessionsViewModel(
     (incognito = false) => {
       setCurrentSessionId(null);
       setStartIncognito(incognito);
-      navigate(`/agents/${agentId}/chat`);
+      if (agentId) navigate(routes.agentChat(agentId));
     },
     [agentId, navigate]
   );

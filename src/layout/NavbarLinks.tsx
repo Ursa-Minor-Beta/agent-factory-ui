@@ -3,6 +3,7 @@ import { NavLink, Tooltip, ActionIcon, AppShell, HoverCard, Stack } from '@manti
 import { useLocalStorage } from '@mantine/hooks';
 import { IconPlus } from '@tabler/icons-react';
 import type { NavItem } from './types';
+import { routes } from '../config/routes';
 
 interface NavbarLinksProps {
   items: NavItem[];
@@ -34,7 +35,7 @@ export function NavbarLinks({ items, collapsed, closeMobile }: NavbarLinksProps)
         label={collapsed ? '' : item.label}
         leftSection={item.icon}
         rightSection={
-          !collapsed && item.path === '/workspaces' ? (
+          !collapsed && item.path === routes.workspaces() ? (
             <Tooltip label="Create workspace" position="right">
               <ActionIcon
                 size="xs"
@@ -42,7 +43,7 @@ export function NavbarLinks({ items, collapsed, closeMobile }: NavbarLinksProps)
                 color="cyan"
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate('/workspaces?create=true');
+                  navigate(routes.workspaceCreate());
                   closeMobile();
                 }}
               >

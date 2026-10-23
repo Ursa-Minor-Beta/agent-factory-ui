@@ -12,6 +12,7 @@ import {
 import { agentsApi, nodesApi, type NodeType, type AgentExample } from '../../../api';
 import type { Agent, CanvasSettings, EditorViewport } from '../../../types/agent';
 import { toFlowNode, toAgentNode, extractEdges, generateNodeId, autoLayoutNodes, extractReferencedNodeIds, type LayoutDirection } from '../utils/converters';
+import { routes } from '../../../config/routes';
 
 const DEFAULT_EDGE_TYPE_KEY = 'agent-editor-default-edge-type';
 const DEFAULT_LAYOUT_DIRECTION_KEY = 'agent-editor-default-layout-direction';
@@ -163,7 +164,7 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
           workspaceId,
         });
         // Navigate to the new agent's editor
-        navigate(`/agents/${newAgent.id}/editor`, { replace: true });
+        navigate(routes.agentEditor(newAgent.id), { replace: true });
       }
       return true;
     } catch (err) {
@@ -286,8 +287,8 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
 
   // Run agent - opens chat in new tab
   const runAgent = useCallback(() => {
-    if (!agent) return;
-    window.open(`/agents/${agent.id}/chat`, '_blank');
+    if (!agent?.id) return;
+    window.open(routes.agentChat(agent.id), '_blank');
   }, [agent]);
 
   // Handle node click

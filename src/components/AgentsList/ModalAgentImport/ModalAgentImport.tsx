@@ -10,6 +10,7 @@ import { SecretModal } from '../../Secrets/SecretModal';
 import { ProviderModal } from '../../Providers/ProviderModal';
 import { CollectionModal } from '../../Collections/CollectionModal';
 import { IconCheck, IconDownload } from '@tabler/icons-react';
+import { routes } from '../../../config/routes';
 
 const NEW_WORKSPACE_VALUE = '__new__';
 
@@ -204,7 +205,7 @@ export function ModalAgentImport({ opened, onClose, onImported, workspaceId }: A
   const handleNavigateToWorkspace = () => {
     if (result) {
       handleClose();
-      navigate(`/workspaces/${result.workspaceId}`);
+      navigate(routes.workspace(result.workspaceId));
     }
   };
 

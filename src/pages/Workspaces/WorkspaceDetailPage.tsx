@@ -29,6 +29,7 @@ import { AgentsList } from '../../components/AgentsList';
 import { ProvidersList } from '../../components/Providers';
 import { SecretsList } from '../../components/Secrets';
 import { CollectionsList } from '../../components/Collections';
+import { routes } from '../../config/routes';
 
 const VALID_TABS = ['agents', 'providers', 'secrets', 'collections'] as const;
 
@@ -106,7 +107,7 @@ export function WorkspaceDetailPage() {
       // Dispatch event to update sidebar
       window.dispatchEvent(new CustomEvent('workspace-deleted', { detail: { workspaceId: workspace.id } }));
 
-      navigate('/agents');
+      navigate(routes.agents());
     } 
     catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete workspace');
@@ -138,7 +139,7 @@ export function WorkspaceDetailPage() {
       <Group mb="lg" align="flex-start" justify="space-between">
         <Group align="flex-start" gap="xs">
           <Tooltip label="All workspaces">
-            <ActionIcon variant="subtle" color="gray" size="md" component={Link} to="/workspaces">
+            <ActionIcon variant="subtle" color="gray" size="md" component={Link} to={routes.workspaces()}>
               <IconList size={18} />
             </ActionIcon>
           </Tooltip>

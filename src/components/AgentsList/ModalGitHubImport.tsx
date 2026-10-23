@@ -25,6 +25,7 @@ import { ImportSuccessView } from './ModalAgentImport/ImportSuccessView';
 import { SecretModal } from '../Secrets/SecretModal';
 import { ProviderModal } from '../Providers/ProviderModal';
 import { CollectionModal } from '../Collections/CollectionModal';
+import { routes } from '../../config/routes';
 
 const NEW_WORKSPACE_VALUE = '__new__';
 
@@ -204,7 +205,7 @@ export function ModalGitHubImport({
   const handleNavigateToWorkspace = () => {
     if (result) {
       handleClose();
-      navigate(`/workspaces/${result.workspaceId}`);
+      navigate(routes.workspace(result.workspaceId));
     }
   };
 

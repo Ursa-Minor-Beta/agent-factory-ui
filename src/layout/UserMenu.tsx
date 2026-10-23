@@ -10,6 +10,7 @@ import {
 } from '@mantine/core';
 import { IconSun, IconMoon, IconLogout } from '@tabler/icons-react';
 import { useAuth } from '../contexts/AuthContext';
+import { routes } from '../config/routes';
 
 interface UserMenuProps {
   collapsed: boolean;
@@ -22,7 +23,7 @@ export function UserMenu({ collapsed }: UserMenuProps) {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    navigate(routes.login());
   };
 
   return (

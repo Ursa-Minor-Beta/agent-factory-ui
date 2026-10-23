@@ -28,6 +28,7 @@
 - `ProtectedRoute` component for auth-required pages
 - `PublicRoute` component for login (redirects if already logged in)
 - Admin-only routes use `adminOnly` prop on `ProtectedRoute`
+- **Never hardcode app paths** - build all links/`navigate()` targets via `routes` helpers in `src/config/routes.ts`; add a helper there when adding a route
 
 ## Theme & Styling
 

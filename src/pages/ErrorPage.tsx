@@ -1,6 +1,7 @@
 import { Button, Center, Code, Stack, Text, Title } from '@mantine/core';
 import { IconRefresh } from '@tabler/icons-react';
 import { useRouteError, isRouteErrorResponse, useNavigate } from 'react-router-dom';
+import { routes } from '../config/routes';
 
 export function ErrorPage() {
   const navigate = useNavigate();
@@ -50,7 +51,7 @@ export function ErrorPage() {
         <Button
           variant="light"
           size="md"
-          onClick={() => navigate('/')}
+          onClick={() => navigate(routes.home())}
         >
           Home
         </Button>

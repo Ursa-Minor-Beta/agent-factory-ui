@@ -2,6 +2,7 @@ import { Box, Card, Group, ActionIcon, Text, Tooltip, Badge, useMantineColorSche
 import { IconMenu2, IconGhost, IconCode, IconSchema, IconFolder, IconLayoutSidebar, IconLayoutSidebarFilled } from '@tabler/icons-react';
 import type { ChatHeaderProps } from './types';
 import { Link } from 'react-router-dom';
+import { routes } from '../../config/routes';
 
 export function ChatHeader({
   agent,
@@ -55,7 +56,7 @@ export function ChatHeader({
                 <Text fw={600}>{agent.name}</Text>
             }
             {sidebarVisible && workspaceName && agent.workspaceId && (
-              <Link to={`/workspaces/${agent.workspaceId}`} style={{ textDecoration: 'none' }}>
+              <Link to={routes.workspace(agent.workspaceId)} style={{ textDecoration: 'none' }}>
                 <Badge
                   variant="light"
                   color="gray"
@@ -76,7 +77,7 @@ export function ChatHeader({
           <Group gap="xs">
             <Tooltip label="Visual editor">
               <Link
-                to={`/agents/${agent.id}/editor`}
+                to={routes.agentEditor(agent.id)}
                 title='Visual editor'
                 style={{
                   display: 'flex',
