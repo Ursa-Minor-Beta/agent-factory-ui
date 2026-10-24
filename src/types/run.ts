@@ -14,6 +14,7 @@ export interface NodeState {
 export interface Run {
   id: string;
   agentId: string;
+  agentName?: string;
   userId: string;
   input: Record<string, unknown>;
   output?: Record<string, unknown> | null;
