@@ -87,7 +87,7 @@ function getPoints({
 
   const pointStart: Point = { key: 'M', x: sourceX, y: sourceY }; // start
   const pointStartOffset: Point = { key: 'L', x: sourceX + (baseOffset / 2), y: sourceY, length: baseOffset };
-  const pointFinishOffset: Point = { key: 'L', x: targetX - baseOffset, y: targetY };
+  const pointFinishOffset: Point = { key: 'L', x: targetX - (baseOffset / 2), y: targetY };
   const pointFinish: Point = { key: 'L', x: targetX, y: targetY }; // finish
 
   const points: Point[] = [pointStart, pointStartOffset];
@@ -137,7 +137,7 @@ function getPointsVertical({
 
   const pointStart: Point = { key: 'M', x: sourceX, y: sourceY };
   const pointStartOffset: Point = { key: 'L', x: sourceX, y: sourceY + (baseOffset / 2), length: baseOffset };
-  const pointFinishOffset: Point = { key: 'L', x: targetX, y: targetY - baseOffset };
+  const pointFinishOffset: Point = { key: 'L', x: targetX, y: targetY - (baseOffset / 2) };
   const pointFinish: Point = { key: 'L', x: targetX, y: targetY };
 
   const points: Point[] = [pointStart, pointStartOffset];
