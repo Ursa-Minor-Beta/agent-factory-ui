@@ -11,7 +11,7 @@ import {
 } from '@xyflow/react';
 import { agentsApi, nodesApi, type NodeType, type AgentExample } from '../../../api';
 import type { Agent, CanvasSettings, EditorViewport } from '../../../types/agent';
-import { toFlowNode, toAgentNode, extractEdges, generateNodeId, autoLayoutNodes, extractReferencedNodeIds, type LayoutDirection } from '../utils/converters';
+import { toFlowNode, toAgentNode, extractEdges, generateNodeId, autoLayoutNodes, syncNodeEdges, type LayoutDirection } from '../utils/converters';
 import { routes } from '../../../config/routes';
 
 const DEFAULT_EDGE_TYPE_KEY = 'agent-editor-default-edge-type';
@@ -331,44 +331,11 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
         nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, ...data } } : n))
       );
 
-      // Auto-manage edges based on template references
+      // Auto-manage edges based on template references and branch targets
       setEdges((eds) => {
-        // Get current node's full data (merge existing with new)
         const currentNode = nodes.find((n) => n.id === nodeId);
-        const mergedData = { ...currentNode?.data, ...data };
-
-        // Extract referenced node IDs from merged data
-        const referencedIds = extractReferencedNodeIds(mergedData as Record<string, unknown>);
-
-        // Get existing node IDs for validation
-        const existingNodeIds = new Set(nodes.map((n) => n.id));
-
-        // Current edges targeting this node
-        const currentSourceIds = new Set(
-          eds.filter((e) => e.target === nodeId).map((e) => e.source)
-        );
-
-        // Remove edges for references that no longer exist
-        let updatedEdges = eds.filter((e) => {
-          if (e.target !== nodeId) return true;
-          return referencedIds.has(e.source);
-        });
-
-        // Add new edges for new references (only if source node exists)
-        referencedIds.forEach((sourceId) => {
-          if (!currentSourceIds.has(sourceId) && existingNodeIds.has(sourceId)) {
-            const edgeId = `${sourceId}-${nodeId}`;
-            if (!updatedEdges.some((e) => e.id === edgeId)) {
-              updatedEdges.push({
-                id: edgeId,
-                source: sourceId,
-                target: nodeId,
-              });
-            }
-          }
-        });
-
-        return updatedEdges;
+        const mergedData = { ...currentNode?.data, ...data } as Record<string, unknown>;
+        return syncNodeEdges(eds, nodes, nodeId, mergedData);
       });
     },
     [setNodes, setEdges, nodes, updateNodeId]
@@ -380,41 +347,8 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
         nds.map((n) => (n.id === nodeId ? { ...n, data } : n))
       );
 
-      // Auto-manage edges based on template references
-      setEdges((eds) => {
-        // Extract referenced node IDs from new data
-        const referencedIds = extractReferencedNodeIds(data);
-
-        // Get existing node IDs for validation
-        const existingNodeIds = new Set(nodes.map((n) => n.id));
-
-        // Current edges targeting this node
-        const currentSourceIds = new Set(
-          eds.filter((e) => e.target === nodeId).map((e) => e.source)
-        );
-
-        // Remove edges for references that no longer exist
-        let updatedEdges = eds.filter((e) => {
-          if (e.target !== nodeId) return true;
-          return referencedIds.has(e.source);
-        });
-
-        // Add new edges for new references (only if source node exists)
-        referencedIds.forEach((sourceId) => {
-          if (!currentSourceIds.has(sourceId) && existingNodeIds.has(sourceId)) {
-            const edgeId = `${sourceId}-${nodeId}`;
-            if (!updatedEdges.some((e) => e.id === edgeId)) {
-              updatedEdges.push({
-                id: edgeId,
-                source: sourceId,
-                target: nodeId,
-              });
-            }
-          }
-        });
-
-        return updatedEdges;
-      });
+      // Auto-manage edges based on template references and branch targets
+      setEdges((eds) => syncNodeEdges(eds, nodes, nodeId, data));
     },
     [setNodes, setEdges, nodes]
   );

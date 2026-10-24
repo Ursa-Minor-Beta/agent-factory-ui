@@ -44,27 +44,80 @@ export function extractReferencedNodeIds(data: Record<string, unknown>): Set<str
   return refs;
 }
 
-// Extract edges from node data (looking for references like {{node:id.path}})
+// Extract target node IDs listed in branch node's branches[].nodes
+export function extractBranchTargetIds(type: string | undefined, data: Record<string, unknown>): Set<string> {
+  const targets = new Set<string>();
+  if (type !== 'branch' || !Array.isArray(data.branches)) return targets;
+  data.branches.forEach((branch) => {
+    const branchNodes = (branch as { nodes?: unknown })?.nodes;
+    if (!Array.isArray(branchNodes)) return;
+    branchNodes.forEach((id) => {
+      if (typeof id === 'string' && id.trim()) targets.add(id.trim());
+    });
+  });
+  return targets;
+}
+
+// Extract edges from node data (looking for references like {{node:id.path}}
+// and branch node targets in branches[].nodes)
 export function extractEdges(nodes: Node[]): Edge[] {
   const edges: Edge[] = [];
+  const nodeIds = new Set(nodes.map((n) => n.id));
+
+  const addEdge = (source: string, target: string) => {
+    if (source === target || !nodeIds.has(source) || !nodeIds.has(target)) return;
+    const edgeId = `${source}-${target}`;
+    if (!edges.some((e) => e.id === edgeId)) {
+      edges.push({ id: edgeId, source, target });
+    }
+  };
 
   nodes.forEach((node) => {
-    const refs = extractReferencedNodeIds(node.data as Record<string, unknown>);
-    refs.forEach((sourceId) => {
-      if (nodes.some((n) => n.id === sourceId)) {
-        const edgeId = `${sourceId}-${node.id}`;
-        if (!edges.some((e) => e.id === edgeId)) {
-          edges.push({
-            id: edgeId,
-            source: sourceId,
-            target: node.id,
-          });
-        }
-      }
-    });
+    const data = node.data as Record<string, unknown>;
+    extractReferencedNodeIds(data).forEach((sourceId) => addEdge(sourceId, node.id));
+    extractBranchTargetIds(node.type, data).forEach((targetId) => addEdge(node.id, targetId));
   });
 
   return edges;
+}
+
+// Re-sync edges connected to a node after its data changed
+export function syncNodeEdges(edges: Edge[], nodes: Node[], nodeId: string, data: Record<string, unknown>): Edge[] {
+  const node = nodes.find((n) => n.id === nodeId);
+  const existingNodeIds = new Set(nodes.map((n) => n.id));
+  const referencedIds = extractReferencedNodeIds(data);
+  const branchTargetIds = extractBranchTargetIds(node?.type, data);
+
+  // Outgoing edge is still valid if the target references this node or is a branch target
+  const isOutgoingValid = (targetId: string) => {
+    if (branchTargetIds.has(targetId)) return true;
+    const target = nodes.find((n) => n.id === targetId);
+    return !!target && extractReferencedNodeIds(target.data as Record<string, unknown>).has(nodeId);
+  };
+
+  const updatedEdges = edges.filter((e) => {
+    if (e.target === nodeId) {
+      // Keep incoming edges that are referenced, or come from a branch node listing this node
+      if (referencedIds.has(e.source)) return true;
+      const source = nodes.find((n) => n.id === e.source);
+      return !!source && extractBranchTargetIds(source.type, source.data as Record<string, unknown>).has(nodeId);
+    }
+    if (e.source === nodeId && node?.type === 'branch') return isOutgoingValid(e.target);
+    return true;
+  });
+
+  const addEdge = (source: string, target: string) => {
+    if (source === target || !existingNodeIds.has(source) || !existingNodeIds.has(target)) return;
+    const edgeId = `${source}-${target}`;
+    if (!updatedEdges.some((e) => e.id === edgeId)) {
+      updatedEdges.push({ id: edgeId, source, target });
+    }
+  };
+
+  referencedIds.forEach((sourceId) => addEdge(sourceId, nodeId));
+  branchTargetIds.forEach((targetId) => addEdge(nodeId, targetId));
+
+  return updatedEdges;
 }
 
 // Generate unique node ID
