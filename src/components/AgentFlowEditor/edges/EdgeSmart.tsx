@@ -1,7 +1,7 @@
 import { BaseEdge, Position, useNodes, type Node } from '@xyflow/react';
 
-const radius = 10;
-const baseOffset = 15;
+const radius = 20;
+const baseOffset = 40; // % 2 = 0
 
 interface Point {
   key: 'L' | 'M'; // svg command keys
@@ -86,7 +86,7 @@ function getPoints({
 }: GetPointsParams): Point[] {
 
   const pointStart: Point = { key: 'M', x: sourceX, y: sourceY }; // start
-  const pointStartOffset: Point = { key: 'L', x: sourceX + baseOffset, y: sourceY, length: baseOffset };
+  const pointStartOffset: Point = { key: 'L', x: sourceX + (baseOffset / 2), y: sourceY, length: baseOffset };
   const pointFinishOffset: Point = { key: 'L', x: targetX - baseOffset, y: targetY };
   const pointFinish: Point = { key: 'L', x: targetX, y: targetY }; // finish
 
@@ -136,7 +136,7 @@ function getPointsVertical({
 }: GetPointsParams): Point[] {
 
   const pointStart: Point = { key: 'M', x: sourceX, y: sourceY };
-  const pointStartOffset: Point = { key: 'L', x: sourceX, y: sourceY + baseOffset, length: baseOffset };
+  const pointStartOffset: Point = { key: 'L', x: sourceX, y: sourceY + (baseOffset / 2), length: baseOffset };
   const pointFinishOffset: Point = { key: 'L', x: targetX, y: targetY - baseOffset };
   const pointFinish: Point = { key: 'L', x: targetX, y: targetY };
 
