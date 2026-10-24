@@ -134,72 +134,73 @@ export function RunTab({ agent, onNodeStatus }: RunTabProps) {
   return (
     <Stack gap="sm" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Input fields */}
-      {inputFields.length > 0 ? (
-        <Card withBorder >
-          <Text size="xs" fw={500}>Inputs</Text>
-          {inputFields.map(([key, schema]) => {
-            const label = key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim();
-            const placeholder = schema.default ? `Default: ${schema.default}` : '';
+      <Card withBorder >
+        {inputFields.length > 0 ? (
+          <>
+            <Text size="xs" fw={500}>Inputs</Text>
+            {inputFields.map(([key, schema]) => {
+              const label = key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim();
+              const placeholder = schema.default ? `Default: ${schema.default}` : '';
 
-            // Use Textarea for string types, TextInput for others
-            if (schema.type === 'string') {
+              // Use Textarea for string types, TextInput for others
+              if (schema.type === 'string') {
+                return (
+                  <Textarea
+                    key={key}
+                    label={label}
+                    placeholder={placeholder}
+                    value={inputs[key] || ''}
+                    onChange={(e) => handleInputChange(key, e.target.value)}
+                    minRows={2}
+                    maxRows={4}
+                    size="xs"
+                    mb="xs"
+                  />
+                );
+              }
+
               return (
-                <Textarea
+                <TextInput
                   key={key}
                   label={label}
                   placeholder={placeholder}
                   value={inputs[key] || ''}
                   onChange={(e) => handleInputChange(key, e.target.value)}
-                  minRows={2}
-                  maxRows={4}
                   size="xs"
                   mb="xs"
                 />
               );
-            }
-
-            return (
-              <TextInput
-                key={key}
-                label={label}
-                placeholder={placeholder}
-                value={inputs[key] || ''}
-                onChange={(e) => handleInputChange(key, e.target.value)}
-                size="xs"
-                mb="xs"
-              />
-            );
-          })}
-        </Card>
-      ) : (
-        <Text size="xs" c="dimmed">No input fields defined</Text>
-      )}
-
-      {/* Run/Stop button */}
-      {running ? (
-        <Button
-          leftSection={<IconPlayerStop size={16} />}
-          color='dark'
-          size="xs"
-          onClick={handleStop}
-        >
-          Stop
-        </Button>
-      ) : (
-        <Button
-          leftSection={<IconPlayerPlay size={16} />}
-          color="cyan"
-          size="xs"
-          onClick={handleRun}
-        >
-          Run
-        </Button>
-      )}
+            })}
+          </>
+        ) : (
+          <Text size="xs" c="dimmed">No input fields defined</Text>
+        )}
+        {/* Run/Stop button */}
+        {running ? (
+          <Button
+            leftSection={<IconPlayerStop size={16} />}
+            color='dark'
+            size="xs"
+            onClick={handleStop}
+          >
+            Stop
+          </Button>
+        ) : (
+          <Button
+            leftSection={<IconPlayerPlay size={16} />}
+            color="cyan"
+            size="xs"
+            onClick={handleRun}
+          >
+            Run
+          </Button>
+        )}
+      </Card>
 
       {/* Output area */}
       {output && (
         <Card style={{ flex: 1, minHeight: 0 }} withBorder>
-          <Group justify="space-between" mb="xs">
+          <Group mb="xs">
             <Text size="xs" fw={500}>Output</Text>
             {output.runId && !running && (
               <ActionIcon
