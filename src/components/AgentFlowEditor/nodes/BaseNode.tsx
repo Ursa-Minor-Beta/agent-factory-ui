@@ -1,5 +1,5 @@
-import { memo } from 'react';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { memo, useEffect } from 'react';
+import { Handle, Position, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { Box } from '@mantine/core';
 import {
   IconWorld,
@@ -15,6 +15,7 @@ import {
   IconDatabaseEdit,
   IconDatabaseMinus,
 } from '@tabler/icons-react';
+import { branchHandleId } from '../utils/converters';
 
 const nodeIcons: Record<string, Icon> = {
   input: IconArrowRightToArc,
@@ -42,11 +43,28 @@ const rotate = (type: string, isVertical: boolean) => {
   }
 }
 
-export const BaseNode = memo(function BaseNode({ id, type, sourcePosition, targetPosition }: NodeProps) {
+export const BaseNode = memo(function BaseNode({ id, data, type, sourcePosition, targetPosition }: NodeProps) {
   const IconComponent = nodeIcons[type];
 
   // Rotate input/output icons based on flow direction (TB = 90deg)
   const isVertical = sourcePosition === Position.Bottom || targetPosition === Position.Top;
+
+  const branchSources = type === 'branch' && Array.isArray(data.branches)
+    ? (data.branches as { name?: string }[])
+    : [];
+  const sourcePos = sourcePosition ?? Position.Right;
+
+  // Re-measure handles when branch handles are added/removed, otherwise their edges aren't rendered
+  const updateNodeInternals = useUpdateNodeInternals();
+  useEffect(() => {
+    updateNodeInternals(id);
+  }, [id, branchSources.length, isVertical, updateNodeInternals]);
+
+  // Spread plain output + branch handles evenly along the source side
+  const handleOffsetStyle = (slot: number) => {
+    const offset = `${((slot + 1) / (branchSources.length + 2)) * 100}%`;
+    return isVertical ? { left: offset } : { top: offset };
+  };
 
 
   return (
@@ -69,11 +87,56 @@ export const BaseNode = memo(function BaseNode({ id, type, sourcePosition, targe
         )}
         <Box fz="xs" c="cyan">{id || ''}</Box>
       </Box>
-      <Handle 
-          type="source" 
-          position={sourcePosition ?? Position.Right} 
+      {/* Plain output (no branch selection) - first slot when branch handles exist */}
+      <Handle
+          type="source"
+          position={sourcePos}
           hidden={type === 'output'}
-          />
+          style={branchSources.length > 0 ? handleOffsetStyle(0) : undefined}
+          >
+          {branchSources.length > 0 && 
+            <Box
+              fz={8}
+              c="dimmed"
+              style={{
+                position: 'absolute',
+                whiteSpace: 'nowrap',
+                pointerEvents: 'none',
+                ...(isVertical
+                  ? { top: 8, left: '50%', transform: 'translateX(-50%)' }
+                  : { left: 8, top: '50%', transform: 'translateY(-50%)' }),
+              }}
+              >output</Box>
+          }
+      </Handle>
+      
+      {/* One source handle per branch, spread along the source side after the plain output */}
+      {branchSources.map((branch, index) => (
+            <Handle
+                key={index}
+                id={branchHandleId(index)}
+                type="source"
+                position={sourcePos}
+                isConnectableStart={false}
+                title={branch?.name}
+                style={handleOffsetStyle(index + 1)}
+                >
+              <Box
+                  fz={8}
+                  c="dimmed"
+                  style={{
+                    position: 'absolute',
+                    whiteSpace: 'nowrap',
+                    pointerEvents: 'none',
+                    ...(isVertical
+                      ? { top: 8, left: '50%', transform: 'translateX(-50%)' }
+                      : { left: 8, top: '50%', transform: 'translateY(-50%)' }),
+                  }}
+                  >
+                {branch?.name}
+              </Box>
+            </Handle>
+      ))}
     </>
   );
 });

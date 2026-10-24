@@ -2,6 +2,20 @@ import { BaseEdge, Position, useNodes, type Node } from '@xyflow/react';
 
 const radius = 20;
 const baseOffset = 40; // % 2 = 0
+const handleOffsetStep = 12; // extra start offset per source handle slot
+
+// Slot of the source handle: plain output = 0, branch-N = N + 1
+function getHandleSlot(sourceHandleId?: string | null): number {
+  const match = sourceHandleId?.match(/^branch-(\d+)$/);
+  return match ? Number(match[1]) + 1 : 0;
+}
+
+// Pyramid offset: middle handle goes furthest, outer handles turn closest to the node
+// odd: 0 1 2 1 0, even: 0 1 2 3 1 0 (second middle gets an extra level to avoid overlap)
+function getHandleOffsetLevel(slot: number, slotsCount: number): number {
+  if (slotsCount % 2 === 0 && slot === slotsCount / 2) return slot;
+  return Math.min(slot, slotsCount - 1 - slot);
+}
 
 interface Point {
   key: 'L' | 'M'; // svg command keys
@@ -20,6 +34,7 @@ interface EdgeProps {
   targetY: number;
   sourcePosition?: Position;
   targetPosition?: Position;
+  sourceHandleId?: string | null;
   markerEnd?: string;
 }
 
@@ -48,14 +63,20 @@ function getSizePosition(node: Node): NodeToCalculatePath {
 function useFindSourceTarget(sourceNodeId: string, targetNodeId: string) {
   const nodes = useNodes();
   const nodesToConnect: NodesToCalculate = {} as NodesToCalculate;
+  let sourceSlotsCount = 1;
 
   for (const node of nodes) {
-    if (node.id === sourceNodeId) nodesToConnect.source = getSizePosition(node);
+    if (node.id === sourceNodeId) {
+      nodesToConnect.source = getSizePosition(node);
+      // Plain output + one handle per branch
+      const branches = node.type === 'branch' ? node.data?.branches : null;
+      if (Array.isArray(branches)) sourceSlotsCount = branches.length + 1;
+    }
     else if (node.id === targetNodeId) nodesToConnect.target = getSizePosition(node);
     if (nodesToConnect.source && nodesToConnect.target) break;
   }
 
-  return { nodesToConnect };
+  return { nodesToConnect, sourceSlotsCount };
 }
 
 
@@ -75,6 +96,7 @@ interface GetPointsParams {
   targetY: number;
   sourceNodeBox: ReturnType<typeof getBox>;
   isVertical?: boolean;
+  startOffset: number;
 }
 
 function getPoints({
@@ -83,10 +105,11 @@ function getPoints({
   targetX,
   targetY,
   sourceNodeBox,
+  startOffset,
 }: GetPointsParams): Point[] {
 
   const pointStart: Point = { key: 'M', x: sourceX, y: sourceY }; // start
-  const pointStartOffset: Point = { key: 'L', x: sourceX + (baseOffset / 2), y: sourceY, length: baseOffset };
+  const pointStartOffset: Point = { key: 'L', x: sourceX + startOffset, y: sourceY, length: startOffset * 2 };
   const pointFinishOffset: Point = { key: 'L', x: targetX - (baseOffset / 2), y: targetY };
   const pointFinish: Point = { key: 'L', x: targetX, y: targetY }; // finish
 
@@ -133,10 +156,11 @@ function getPointsVertical({
   targetX,
   targetY,
   sourceNodeBox,
+  startOffset,
 }: GetPointsParams): Point[] {
 
   const pointStart: Point = { key: 'M', x: sourceX, y: sourceY };
-  const pointStartOffset: Point = { key: 'L', x: sourceX, y: sourceY + (baseOffset / 2), length: baseOffset };
+  const pointStartOffset: Point = { key: 'L', x: sourceX, y: sourceY + startOffset, length: startOffset * 2 };
   const pointFinishOffset: Point = { key: 'L', x: targetX, y: targetY - (baseOffset / 2) };
   const pointFinish: Point = { key: 'L', x: targetX, y: targetY };
 
@@ -221,7 +245,7 @@ function getPath(params: GetPointsParams): string {
 }
 
 export function EdgeSmart(edgeProps: EdgeProps) {
-  const { nodesToConnect } = useFindSourceTarget(edgeProps.source, edgeProps.target);
+  const { nodesToConnect, sourceSlotsCount } = useFindSourceTarget(edgeProps.source, edgeProps.target);
   const sourceNodeBox = getBox(
     nodesToConnect.source.position.x,
     nodesToConnect.source.position.y,
@@ -240,6 +264,9 @@ export function EdgeSmart(edgeProps: EdgeProps) {
     targetY: edgeProps.targetY,
     sourceNodeBox,
     isVertical,
+    startOffset:
+      baseOffset / 2 +
+      getHandleOffsetLevel(getHandleSlot(edgeProps.sourceHandleId), sourceSlotsCount) * handleOffsetStep,
   };
 
   const path = getPath(edgePathParams);
