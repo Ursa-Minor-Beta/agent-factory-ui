@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { Box, Button, TextInput, Textarea, Stack, Text, Alert, ScrollArea, Loader, Group, ActionIcon, Card } from '@mantine/core';
+import { Box, Button, TextInput, Textarea, Stack, Text, Alert, ScrollArea, Loader, Group, ActionIcon, Card, Switch } from '@mantine/core';
 import { IconPlayerPlay, IconPlayerStop, IconAlertCircle, IconListDetails } from '@tabler/icons-react';
 import { sessionsApi, type ChatStatusEvent } from '../../../api/sessions';
 import type { Agent, InputSchema } from '../../../types';
@@ -9,10 +9,15 @@ import { MessageContent } from '../../../pages/Chat/ChatMessages';
 
 interface RunTabProps {
   agent: Partial<Agent> | null;
-  onNodeStatus?: (nodeId: string, status: string) => void;
+  onRunStart?: () => void;
+  onNodeStatus?: (nodeId: string, status: ChatStatusEvent['status']) => void;
+  onRunEnd?: () => Promise<void>;
+  onRunClear?: () => void;
 }
 
 const INPUTS_STORAGE_KEY = 'agent-editor-run-inputs';
+
+const ANIMATE_STORAGE_KEY = 'agent-editor-run-animate';
 
 interface RunOutput {
   response?: unknown; // Raw response - MessageContent will parse it
@@ -21,7 +26,7 @@ interface RunOutput {
   nodeStatuses: Array<{ nodeId: string; status: string; statusText?: string }>;
 }
 
-export function RunTab({ agent, onNodeStatus }: RunTabProps) {
+export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }: RunTabProps) {
   // Last used inputs are remembered per agent
   const inputsStorageKey = agent?.id ? `${INPUTS_STORAGE_KEY}-${agent.id}` : null;
   const [inputs, setInputs] = useState<Record<string, string>>(() => {
@@ -32,6 +37,16 @@ export function RunTab({ agent, onNodeStatus }: RunTabProps) {
       return {};
     }
   });
+  const [animate, setAnimate] = useState(() => localStorage.getItem(ANIMATE_STORAGE_KEY) === 'true');
+  // Ref so stream callbacks of an ongoing run see toggle changes
+  const animateRef = useRef(animate);
+
+  const handleAnimateChange = useCallback((value: boolean) => {
+    setAnimate(value);
+    animateRef.current = value;
+    localStorage.setItem(ANIMATE_STORAGE_KEY, String(value));
+    if (!value) onRunClear?.();
+  }, [onRunClear]);
   const [running, setRunning] = useState(false);
   const [output, setOutput] = useState<RunOutput | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -55,6 +70,7 @@ export function RunTab({ agent, onNodeStatus }: RunTabProps) {
 
     setRunning(true);
     setOutput({ nodeStatuses: [] });
+    if (animateRef.current) onRunStart?.();
 
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
@@ -73,6 +89,9 @@ export function RunTab({ agent, onNodeStatus }: RunTabProps) {
         input[key] = value;
       }
     }
+
+    // Final response/error held back until the node animation finishes
+    const result: Pick<RunOutput, 'response' | 'error'> = {};
 
     try {
       await sessionsApi.chatStream(
@@ -93,20 +112,14 @@ export function RunTab({ agent, onNodeStatus }: RunTabProps) {
                 { nodeId: data.nodeId, status: data.status, statusText: data.statusText },
               ],
             }));
-            onNodeStatus?.(data.nodeId, data.status);
+            if (animateRef.current) onNodeStatus?.(data.nodeId, data.status);
           },
           onDone: (data) => {
             // Store raw response - MessageContent will handle parsing
-            setOutput((prev) => ({
-              ...prev!,
-              response: data.response,
-            }));
+            result.response = data.response;
           },
           onError: (data) => {
-            setOutput((prev) => ({
-              ...prev!,
-              error: data.message,
-            }));
+            result.error = data.message;
           },
         },
         abortController.signal
@@ -114,17 +127,16 @@ export function RunTab({ agent, onNodeStatus }: RunTabProps) {
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
         // Cancelled by user
-        return;
+      } else {
+        result.error = err instanceof Error ? err.message : 'Run failed';
       }
-      setOutput((prev) => ({
-        ...prev!,
-        error: err instanceof Error ? err.message : 'Run failed',
-      }));
     } finally {
-      setRunning(false);
       abortControllerRef.current = null;
+      if (animateRef.current) await onRunEnd?.();
+      setOutput((prev) => ({ ...prev!, ...result }));
+      setRunning(false);
     }
-  }, [agent, running, inputs, inputSchema, onNodeStatus]);
+  }, [agent, running, inputs, inputSchema, onRunStart, onNodeStatus, onRunEnd]);
 
   const handleStop = useCallback(() => {
     abortControllerRef.current?.abort();
@@ -190,6 +202,19 @@ export function RunTab({ agent, onNodeStatus }: RunTabProps) {
         ) : (
           <Text size="xs" c="dimmed">No input fields defined</Text>
         )}
+        <Group justify="space-between" mb="xs" h="3rem">
+          <Switch
+            label="Animate run"
+            size="xs"
+            checked={animate}
+            onChange={(e) => handleAnimateChange(e.currentTarget.checked)}
+          />
+          {animate && (
+            <Button size="xs" variant="subtle" disabled={running} onClick={onRunClear}>
+              Clear
+            </Button>
+          )}
+        </Group>
         {/* Run/Stop button */}
         {running ? (
           <Button

@@ -1,4 +1,5 @@
 import { BaseEdge, Position, useNodes, type Node } from '@xyflow/react';
+import { EdgePhoton } from './EdgePhoton';
 
 const radius = 20;
 const baseOffset = 40; // % 2 = 0
@@ -36,6 +37,7 @@ interface EdgeProps {
   targetPosition?: Position;
   sourceHandleId?: string | null;
   markerEnd?: string;
+  data?: { photon?: boolean };
 }
 
 type NodeToCalculatePath = {
@@ -271,5 +273,10 @@ export function EdgeSmart(edgeProps: EdgeProps) {
 
   const path = getPath(edgePathParams);
 
-  return <BaseEdge path={path} markerEnd={edgeProps.markerEnd} />;
+  return (
+    <>
+      <BaseEdge path={path} markerEnd={edgeProps.markerEnd} />
+      {edgeProps.data?.photon && <EdgePhoton path={path} />}
+    </>
+  );
 }
