@@ -20,6 +20,8 @@ import {
   Alert,
   Loader,
   Center,
+  Breadcrumbs,
+  Anchor,
 } from '@mantine/core';
 import {
   IconAlertCircle,
@@ -38,10 +40,10 @@ import { runsApi, sessionsApi } from '../../api';
 import type { Run } from '../../types';
 import { statusColors, nodeStatusColors, formatDuration, resolveRunOutput } from '../../types';
 import { DataWithFileRefs } from './utils';
-import { RUN_PARAM, BACK_BUTTON_PARAM, useRunDetailsModal } from './useRunDetailsModal';
+import { buildRunDetailsSearch, useRunDetailsModal } from './useRunDetailsModal';
 
 export function RunDetailsModal() {
-  const { runId, isOpen, closeRunDetails, showBackButton, goBack } = useRunDetailsModal();
+  const { runId, isOpen, closeRunDetails, showBackButton, trail, goBack } = useRunDetailsModal();
   const [run, setRun] = useState<Run | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -129,7 +131,19 @@ export function RunDetailsModal() {
               <IconArrowLeft size={16} />
             </ActionIcon>
           )}
-          <Text fw={600}>Run Details</Text>
+          <Breadcrumbs separatorMargin={6}>
+            {trail.map((item, index) => (
+              <Anchor
+                key={item.id}
+                component={Link}
+                to={buildRunDetailsSearch(item.id, trail.slice(0, index))}
+                size="sm"
+              >
+                {item.name}
+              </Anchor>
+            ))}
+            <Text fw={600}>{run ? run.agentName || run.agentId : 'Run Details'}</Text>
+          </Breadcrumbs>
           {run && (
             <>
               <Badge color={statusColors[run.status]} variant="light">
@@ -448,7 +462,10 @@ export function RunDetailsModal() {
                         <Tooltip label="View full details">
                           <ActionIcon
                             component={Link}
-                            to={`?${RUN_PARAM}=${childRun.id}&${BACK_BUTTON_PARAM}=true`}
+                            to={buildRunDetailsSearch(childRun.id, [
+                              ...trail,
+                              { id: run.id, name: run.agentName || run.agentId },
+                            ])}
                             variant="subtle"
                             size="sm"
                             onClick={(e: React.MouseEvent) => {
