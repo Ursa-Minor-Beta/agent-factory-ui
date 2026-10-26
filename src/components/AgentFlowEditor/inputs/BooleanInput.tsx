@@ -11,18 +11,16 @@ interface BooleanInputProps {
 
 export const BooleanInput = memo(function BooleanInput({ name, description, value, onChange }: BooleanInputProps) {
   return (
-    <Box>
-      <Group gap="xs" justify="space-between">
-        <Group gap={4}>
-          <Text size="xs" c="dimmed">{name}</Text>
-          {description && (
-            <Tooltip label={description} multiline maw={300}>
-              <ThemeIcon size={14} radius="xl" color="gray" variant="light">
-                <IconQuestionMark size={10} />
-              </ThemeIcon>
-            </Tooltip>
-          )}
-        </Group>
+    <Box w="100%">
+      <Group gap="xs" w="100%" justify="space-between">
+        <Text size="xs" c="dimmed">{name}</Text>
+        {description && (
+          <Tooltip label={description} multiline maw={300}>
+            <ThemeIcon size={14} radius="xl" color="gray" variant="light">
+              <IconQuestionMark size={10} />
+            </ThemeIcon>
+          </Tooltip>
+        )}
       </Group>
       <Switch
         size="xs"
