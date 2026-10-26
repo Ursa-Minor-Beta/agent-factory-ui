@@ -53,7 +53,6 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
   const playheadRef = useRef(0);
   const startedRef = useRef<Set<string>>(new Set());
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const replayEndedRef = useRef(false);
   const replayDoneRef = useRef<(() => void) | null>(null);
 
   const setNodeRunStatus = useCallback((nodeId: string, status: NodeStatus) => {
@@ -78,7 +77,6 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     replayDoneRef.current = null;
     playheadRef.current = 0;
     startedRef.current = new Set();
-    replayEndedRef.current = false;
     setRunStatuses(statuses);
   }, []);
 
@@ -105,30 +103,18 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
   }, [setNodeRunStatus, scheduleAt]);
 
   // Run finished, failed or was stopped - after replay ends, nodes still running didn't complete.
-  // Final statuses stay visible until the next click.
+  // Final statuses stay visible until the next run or animation is turned off.
   // Resolves when replay ends, so the Run tab can show output after the animation
   const handleRunEnd = useCallback(() => new Promise<void>((resolve) => {
     replayDoneRef.current = resolve;
     const replayEnd = Math.max(Date.now(), playheadRef.current);
     scheduleAt(replayEnd, () => {
-      replayEndedRef.current = true;
       replayDoneRef.current = null;
       resolve();
       setRunStatuses((prev) => prev && Object.fromEntries(
         Object.entries(prev).map(([nodeId, status]) => [nodeId, status === 'running' ? 'skipped' : status])
       ));
     });  }), [scheduleAt]);
-
-  // Click anywhere clears final statuses early (not while the run is still replaying)
-  const hasRunStatuses = runStatuses !== null;
-  useEffect(() => {
-    if (!hasRunStatuses) return;
-    const handlePointerDown = () => {
-      if (replayEndedRef.current) handleRunClear();
-    };
-    document.addEventListener('pointerdown', handlePointerDown);
-    return () => document.removeEventListener('pointerdown', handlePointerDown);
-  }, [hasRunStatuses, handleRunClear]);
 
   // Clear pending status timers on unmount
   useEffect(() => () => timersRef.current.forEach(clearTimeout), []);

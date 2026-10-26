@@ -187,13 +187,19 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }
         ) : (
           <Text size="xs" c="dimmed">No input fields defined</Text>
         )}
-        <Switch
-          label="Animate run"
-          size="xs"
-          mb="xs"
-          checked={animate}
-          onChange={(e) => handleAnimateChange(e.currentTarget.checked)}
-        />
+        <Group justify="space-between" mb="xs" h="3rem">
+          <Switch
+            label="Animate run"
+            size="xs"
+            checked={animate}
+            onChange={(e) => handleAnimateChange(e.currentTarget.checked)}
+          />
+          {animate && (
+            <Button size="xs" variant="subtle" disabled={running} onClick={onRunClear}>
+              Clear
+            </Button>
+          )}
+        </Group>
         {/* Run/Stop button */}
         {running ? (
           <Button
