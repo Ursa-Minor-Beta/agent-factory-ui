@@ -4,6 +4,7 @@ import '@xyflow/react/dist/style.css';
 import './AgentFlowEditor.css';
 import { Center, Loader } from '@mantine/core';
 import { useAgentEditor } from './hooks/useAgentEditor';
+import { useNodeClipboard } from './hooks/useNodeClipboard';
 import { EditorToolbar } from './EditorToolbar';
 import { nodeTypes } from './nodes';
 import { edgeTypes } from './edges';
@@ -150,6 +151,8 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     [addNode]
   );
 
+  const clipboardMouseHandlers = useNodeClipboard({ selectedNode, reactFlowInstance, addNode });
+
   // Wrap save to also refresh git data
   const handleSave = useCallback(async () => {
     const success = await saveAgent();
@@ -172,7 +175,10 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
       {/* Canvas takes full width */}
-      <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+      <div
+        style={{ width: '100%', height: '100%', position: 'relative' }}
+        {...clipboardMouseHandlers}
+      >
         <EditorToolbar
           agentName={agent?.name || ''}
           agentId={agent?.id}
