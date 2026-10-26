@@ -192,7 +192,7 @@ export function ChatMessages({
                         }}
                         wrap="nowrap"
                         >
-                        <Loader type="dots" size="xs" />
+                        <Loader type="dots" size="xs" className="status-content" />
                         {statusText && (
                           <Text size="xs" c="dimmed" className="status-content">
                             {statusText}
