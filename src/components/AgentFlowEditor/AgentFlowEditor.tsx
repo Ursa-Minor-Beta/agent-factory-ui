@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ReactFlow, MiniMap, type ReactFlowInstance } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import './AgentFlowEditor.css';
@@ -10,6 +10,8 @@ import { edgeTypes } from './edges';
 import type { AgentFlowEditorProps } from './types';
 import type { NodeType } from '../../api';
 import { agentsApi } from '../../api';
+import type { ChatStatusEvent } from '../../api/sessions';
+import type { NodeStatus } from '../../types';
 import { PanelLeft } from './PanelLeft';
 import { PanelRight } from './PanelRight';
 import { clearGitHubCache } from './PanelLeft/GitTab/useGitHubData';
@@ -26,6 +28,8 @@ function downloadJson(data: unknown, filename: string) {
 
 const PALETTE_STORAGE_KEY = 'agent-editor-palette-open';
 const TAB_STORAGE_KEY = 'agent-editor-active-tab';
+const MIN_RUNNING_MS = 300;
+const CLEAR_STATUSES_MS = 5000;
 
 export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) {
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
@@ -41,6 +45,74 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
   const [savedAt, setSavedAt] = useState<number | undefined>();
 
   const [isNodesDragging, setIsNodesDragging] = useState(false);
+
+  // Node statuses of the last run from the Run tab (null = no run yet, missing node = pending)
+  const [runStatuses, setRunStatuses] = useState<Record<string, NodeStatus> | null>(null);
+
+  // Runs can be very fast - replay status events sequentially, keeping every executed node
+  // in "running" for at least MIN_RUNNING_MS. playheadRef = earliest time the next event may show.
+  const playheadRef = useRef(0);
+  const startedRef = useRef<Set<string>>(new Set());
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const setNodeRunStatus = useCallback((nodeId: string, status: NodeStatus) => {
+    setRunStatuses((prev) => ({ ...prev, [nodeId]: status }));
+  }, []);
+
+  const scheduleAt = useCallback((time: number, fn: () => void) => {
+    const delay = time - Date.now();
+    if (delay <= 0) {
+      fn();
+      return;
+    }
+    timersRef.current.push(setTimeout(fn, delay));
+  }, []);
+
+  // Reset replay; {} = new run (all pending), null = no run statuses shown
+  const resetRunStatuses = useCallback((statuses: Record<string, NodeStatus> | null) => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+    playheadRef.current = 0;
+    startedRef.current = new Set();
+    setRunStatuses(statuses);
+  }, []);
+
+  const handleRunStart = useCallback(() => resetRunStatuses({}), [resetRunStatuses]);
+  const handleRunClear = useCallback(() => resetRunStatuses(null), [resetRunStatuses]);
+
+  const handleNodeStatus = useCallback((nodeId: string, status: ChatStatusEvent['status']) => {
+    let at = Math.max(Date.now(), playheadRef.current);
+    if (status === 'skipped') {
+      scheduleAt(at, () => setNodeRunStatus(nodeId, 'skipped'));
+      playheadRef.current = at;
+      return;
+    }
+    // Finished without a 'started' event - show it running first
+    if (status === 'started' || !startedRef.current.has(nodeId)) {
+      startedRef.current.add(nodeId);
+      scheduleAt(at, () => setNodeRunStatus(nodeId, 'running'));
+      at += MIN_RUNNING_MS;
+    }
+    if (status !== 'started') {
+      scheduleAt(at, () => setNodeRunStatus(nodeId, status));
+    }
+    playheadRef.current = at;
+  }, [setNodeRunStatus, scheduleAt]);
+
+  // Run finished, failed or was stopped - after replay ends, nodes still running didn't complete.
+  // Final statuses stay visible for CLEAR_STATUSES_MS, then canvas returns to normal.
+  const handleRunEnd = useCallback(() => {
+    const replayEnd = Math.max(Date.now(), playheadRef.current);
+    scheduleAt(replayEnd, () => {
+      setRunStatuses((prev) => prev && Object.fromEntries(
+        Object.entries(prev).map(([nodeId, status]) => [nodeId, status === 'running' ? 'skipped' : status])
+      ));
+    });
+    scheduleAt(replayEnd + CLEAR_STATUSES_MS, () => setRunStatuses(null));
+  }, [scheduleAt]);
+
+  // Clear pending status timers on unmount
+  useEffect(() => () => timersRef.current.forEach(clearTimeout), []);
 
   const handleActiveTabChange = useCallback((tab: string | null) => {
     setActiveTab(tab);
@@ -111,6 +183,24 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     setViewportGetter,
     reloadAgent,
   } = useAgentEditor({ agentId, workspaceId });
+
+  // Apply run status classes for rendering only - stored nodes stay untouched
+  const displayNodes = useMemo(() => {
+    if (!runStatuses) return nodes;
+    return nodes.map((node) => ({
+      ...node,
+      className: `run-${runStatuses[node.id] ?? 'pending'}`,
+    }));
+  }, [nodes, runStatuses]);
+
+  // Photons flow along edges carrying data: source finished, target running
+  const displayEdges = useMemo(() => {
+    if (!runStatuses) return edges;
+    return edges.map((edge) => {
+      const photon = runStatuses[edge.source] === 'completed' && runStatuses[edge.target] === 'running';
+      return photon ? { ...edge, data: { ...edge.data, photon } } : edge;
+    });
+  }, [edges, runStatuses]);
 
   // Compute set of node types already on the canvas
   const existingNodeTypes = useMemo(() => {
@@ -185,8 +275,8 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
           onTogglePalette={togglePalette}
         />
         <ReactFlow
-          nodes={nodes}
-          edges={edges}
+          nodes={displayNodes}
+          edges={displayEdges}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           defaultEdgeOptions={{ type: edgeType }}
@@ -246,6 +336,10 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
           onLayoutDirectionChange={changeLayoutDirection}
           onLoadTemplate={loadTemplate}
           onReloadAgent={reloadAgent}
+          onRunStart={handleRunStart}
+          onNodeStatus={handleNodeStatus}
+          onRunEnd={handleRunEnd}
+          onRunClear={handleRunClear}
         />
       }
 

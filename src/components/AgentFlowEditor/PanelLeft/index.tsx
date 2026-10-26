@@ -3,6 +3,7 @@ import { Box, Text, Group, ActionIcon, Divider, Tabs } from '@mantine/core';
 import { IconLayoutSidebar } from '@tabler/icons-react';
 import type { NodeType, AgentExample } from '../../../api';
 import type { Agent } from '../../../types/agent';
+import type { ChatStatusEvent } from '../../../api/sessions';
 import type { LayoutDirection } from '../utils/converters';
 import { NodesTab } from './NodesTab';
 import { SettingsTab } from './SettingsTab';
@@ -36,9 +37,13 @@ interface PanelLeftProps {
   onExport?: () => void;
   exporting?: boolean;
   onReloadAgent?: () => void;
+  onRunStart?: () => void;
+  onNodeStatus?: (nodeId: string, status: ChatStatusEvent['status']) => void;
+  onRunEnd?: () => void;
+  onRunClear?: () => void;
 }
 
-export const PanelLeft = memo(function({ nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, savedAt, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onWorkspaceChange, onLoadTemplate, onClose, onExport, exporting, onReloadAgent }: PanelLeftProps) {
+export const PanelLeft = memo(function({ nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, savedAt, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onWorkspaceChange, onLoadTemplate, onClose, onExport, exporting, onReloadAgent, onRunStart, onNodeStatus, onRunEnd, onRunClear }: PanelLeftProps) {
   const [viewingNodeType, setViewingNodeType] = useState<NodeType | null>(null);
   const [internalActiveTab, setInternalActiveTab] = useState<string | null>(() => {
     const saved = localStorage.getItem(TAB_STORAGE_KEY);
@@ -178,7 +183,7 @@ export const PanelLeft = memo(function({ nodeTypes, existingNodeTypes, edgeType,
             </Tabs.Panel>
 
             <Tabs.Panel value="run" style={{ flex: 1, minHeight: 0 }} p="xs">
-              <RunTab agent={agent} />
+              <RunTab agent={agent} onRunStart={onRunStart} onNodeStatus={onNodeStatus} onRunEnd={onRunEnd} onRunClear={onRunClear} />
             </Tabs.Panel>
 
             <Tabs.Panel value="settings" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }} p="xs">

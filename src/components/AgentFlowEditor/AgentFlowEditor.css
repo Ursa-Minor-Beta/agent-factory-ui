@@ -34,6 +34,55 @@
   border-color: var(--mantine-color-violet-6);
 }
 
+/* Run statuses (classes set from Run tab) */
+.react-flow__node.run-pending {
+  opacity: 0.6;
+}
+
+.react-flow__node.run-running {
+  border-color: var(--mantine-color-yellow-5);
+  animation: run-lamp 1.6s ease-in-out infinite;
+}
+
+.react-flow__node.run-completed {
+  border-color: var(--mantine-color-green-6);
+  box-shadow: 0 0 8px 1px var(--mantine-color-green-9);
+  transition: border-color 0.4s, box-shadow 0.4s;
+}
+
+.react-flow__node.run-failed {
+  border-color: var(--mantine-color-red-6);
+  box-shadow: 0 0 8px 1px var(--mantine-color-red-9);
+  transition: border-color 0.4s, box-shadow 0.4s;
+}
+
+.react-flow__node.run-skipped {
+  filter: brightness(0.6);
+  transition: filter 0.4s;
+}
+
+/* Warm glow wave with slight flicker, like an old lamp */
+@keyframes run-lamp {
+  0%, 100% { box-shadow: 0 0 4px 0 rgba(250, 200, 80, 0.25); }
+  40% { box-shadow: 0 0 18px 4px rgba(250, 200, 80, 0.7); }
+  46% { box-shadow: 0 0 10px 2px rgba(250, 200, 80, 0.4); }
+  52% { box-shadow: 0 0 16px 3px rgba(250, 200, 80, 0.65); }
+}
+
+.edge-photon {
+  fill: var(--mantine-color-yellow-3);
+  filter: drop-shadow(0 0 3px var(--mantine-color-yellow-5)) drop-shadow(0 0 6px var(--mantine-color-yellow-7));
+  pointer-events: none;
+}
+
+.edge-photon-trail {
+  fill: none;
+  stroke: var(--mantine-color-yellow-2);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 3px var(--mantine-color-yellow-5));
+  pointer-events: none;
+}
+
 .react-flow__handle {
   background: var(--mantine-color-cyan-5);
   width: 8px;
