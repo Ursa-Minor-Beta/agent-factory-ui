@@ -11,7 +11,7 @@ interface RunTabProps {
   agent: Partial<Agent> | null;
   onRunStart?: () => void;
   onNodeStatus?: (nodeId: string, status: ChatStatusEvent['status']) => void;
-  onRunEnd?: () => void;
+  onRunEnd?: () => Promise<void>;
   onRunClear?: () => void;
 }
 
@@ -75,6 +75,9 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }
       }
     }
 
+    // Final response/error held back until the node animation finishes
+    const result: Pick<RunOutput, 'response' | 'error'> = {};
+
     try {
       await sessionsApi.chatStream(
         agent.id,
@@ -98,16 +101,10 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }
           },
           onDone: (data) => {
             // Store raw response - MessageContent will handle parsing
-            setOutput((prev) => ({
-              ...prev!,
-              response: data.response,
-            }));
+            result.response = data.response;
           },
           onError: (data) => {
-            setOutput((prev) => ({
-              ...prev!,
-              error: data.message,
-            }));
+            result.error = data.message;
           },
         },
         abortController.signal
@@ -115,16 +112,14 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
         // Cancelled by user
-        return;
+      } else {
+        result.error = err instanceof Error ? err.message : 'Run failed';
       }
-      setOutput((prev) => ({
-        ...prev!,
-        error: err instanceof Error ? err.message : 'Run failed',
-      }));
     } finally {
-      setRunning(false);
       abortControllerRef.current = null;
-      if (animateRef.current) onRunEnd?.();
+      if (animateRef.current) await onRunEnd?.();
+      setOutput((prev) => ({ ...prev!, ...result }));
+      setRunning(false);
     }
   }, [agent, running, inputs, inputSchema, onRunStart, onNodeStatus, onRunEnd]);
 

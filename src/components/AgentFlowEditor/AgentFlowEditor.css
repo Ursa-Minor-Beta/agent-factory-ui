@@ -39,21 +39,24 @@
   opacity: 0.6;
 }
 
-.react-flow__node.run-running {
-  border-color: var(--mantine-color-yellow-5);
+/* Run highlighting lights the node icon, not the borders */
+.react-flow__node .tabler-icon {
+  transition: color 0.4s, filter 0.4s;
+}
+
+.react-flow__node.run-running .tabler-icon {
+  color: var(--mantine-color-yellow-3);
   animation: run-lamp 1.6s ease-in-out infinite;
 }
 
-.react-flow__node.run-completed {
-  border-color: var(--mantine-color-green-6);
-  box-shadow: 0 0 8px 1px var(--mantine-color-green-9);
-  transition: border-color 0.4s, box-shadow 0.4s;
+.react-flow__node.run-completed .tabler-icon {
+  color: var(--mantine-color-green-5);
+  filter: drop-shadow(0 0 4px var(--mantine-color-green-7));
 }
 
-.react-flow__node.run-failed {
-  border-color: var(--mantine-color-red-6);
-  box-shadow: 0 0 8px 1px var(--mantine-color-red-9);
-  transition: border-color 0.4s, box-shadow 0.4s;
+.react-flow__node.run-failed .tabler-icon {
+  color: var(--mantine-color-red-5);
+  filter: drop-shadow(0 0 4px var(--mantine-color-red-7));
 }
 
 .react-flow__node.run-skipped {
@@ -63,10 +66,10 @@
 
 /* Warm glow wave with slight flicker, like an old lamp */
 @keyframes run-lamp {
-  0%, 100% { box-shadow: 0 0 4px 0 rgba(250, 200, 80, 0.25); }
-  40% { box-shadow: 0 0 18px 4px rgba(250, 200, 80, 0.7); }
-  46% { box-shadow: 0 0 10px 2px rgba(250, 200, 80, 0.4); }
-  52% { box-shadow: 0 0 16px 3px rgba(250, 200, 80, 0.65); }
+  0%, 100% { filter: drop-shadow(0 0 1px rgba(250, 200, 80, 0.3)); }
+  40% { filter: drop-shadow(0 0 6px rgba(250, 200, 80, 0.9)) drop-shadow(0 0 12px rgba(250, 200, 80, 0.6)); }
+  46% { filter: drop-shadow(0 0 3px rgba(250, 200, 80, 0.5)); }
+  52% { filter: drop-shadow(0 0 5px rgba(250, 200, 80, 0.85)) drop-shadow(0 0 10px rgba(250, 200, 80, 0.5)); }
 }
 
 .edge-photon {
@@ -78,8 +81,8 @@
 .edge-photon-trail {
   fill: none;
   stroke: var(--mantine-color-yellow-2);
-  stroke-width: 2;
-  filter: drop-shadow(0 0 3px var(--mantine-color-yellow-5));
+  /* stroke-width: 1; */
+  filter: drop-shadow(0 0 2px var(--mantine-color-yellow-5));
   pointer-events: none;
 }
 

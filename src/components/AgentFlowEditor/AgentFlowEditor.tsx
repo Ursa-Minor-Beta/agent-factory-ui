@@ -29,7 +29,6 @@ function downloadJson(data: unknown, filename: string) {
 const PALETTE_STORAGE_KEY = 'agent-editor-palette-open';
 const TAB_STORAGE_KEY = 'agent-editor-active-tab';
 const MIN_RUNNING_MS = 300;
-const CLEAR_STATUSES_MS = 5000;
 
 export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) {
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
@@ -54,6 +53,8 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
   const playheadRef = useRef(0);
   const startedRef = useRef<Set<string>>(new Set());
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const replayEndedRef = useRef(false);
+  const replayDoneRef = useRef<(() => void) | null>(null);
 
   const setNodeRunStatus = useCallback((nodeId: string, status: NodeStatus) => {
     setRunStatuses((prev) => ({ ...prev, [nodeId]: status }));
@@ -72,8 +73,12 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
   const resetRunStatuses = useCallback((statuses: Record<string, NodeStatus> | null) => {
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
+    // Replay cancelled - don't leave the Run tab waiting for output
+    replayDoneRef.current?.();
+    replayDoneRef.current = null;
     playheadRef.current = 0;
     startedRef.current = new Set();
+    replayEndedRef.current = false;
     setRunStatuses(statuses);
   }, []);
 
@@ -100,16 +105,30 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
   }, [setNodeRunStatus, scheduleAt]);
 
   // Run finished, failed or was stopped - after replay ends, nodes still running didn't complete.
-  // Final statuses stay visible for CLEAR_STATUSES_MS, then canvas returns to normal.
-  const handleRunEnd = useCallback(() => {
+  // Final statuses stay visible until the next click.
+  // Resolves when replay ends, so the Run tab can show output after the animation
+  const handleRunEnd = useCallback(() => new Promise<void>((resolve) => {
+    replayDoneRef.current = resolve;
     const replayEnd = Math.max(Date.now(), playheadRef.current);
     scheduleAt(replayEnd, () => {
+      replayEndedRef.current = true;
+      replayDoneRef.current = null;
+      resolve();
       setRunStatuses((prev) => prev && Object.fromEntries(
         Object.entries(prev).map(([nodeId, status]) => [nodeId, status === 'running' ? 'skipped' : status])
       ));
-    });
-    scheduleAt(replayEnd + CLEAR_STATUSES_MS, () => setRunStatuses(null));
-  }, [scheduleAt]);
+    });  }), [scheduleAt]);
+
+  // Click anywhere clears final statuses early (not while the run is still replaying)
+  const hasRunStatuses = runStatuses !== null;
+  useEffect(() => {
+    if (!hasRunStatuses) return;
+    const handlePointerDown = () => {
+      if (replayEndedRef.current) handleRunClear();
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [hasRunStatuses, handleRunClear]);
 
   // Clear pending status timers on unmount
   useEffect(() => () => timersRef.current.forEach(clearTimeout), []);

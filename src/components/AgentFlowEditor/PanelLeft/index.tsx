@@ -39,7 +39,7 @@ interface PanelLeftProps {
   onReloadAgent?: () => void;
   onRunStart?: () => void;
   onNodeStatus?: (nodeId: string, status: ChatStatusEvent['status']) => void;
-  onRunEnd?: () => void;
+  onRunEnd?: () => Promise<void>;
   onRunClear?: () => void;
 }
 
