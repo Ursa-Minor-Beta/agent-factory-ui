@@ -1,10 +1,10 @@
-import { BaseEdge, getSmoothStepPath, type EdgeProps } from '@xyflow/react';
+import { BaseEdge, getBezierPath, getSmoothStepPath, getStraightPath, type EdgeProps } from '@xyflow/react';
 import { EdgePhoton } from './EdgePhoton';
 
-// Built-in smoothstep/step edges re-implemented to support run photons
-function createStepEdge(borderRadius?: number) {
-  return function EdgeStep(props: EdgeProps) {
-    const [path] = getSmoothStepPath({ ...props, borderRadius });
+// Built-in edges re-implemented to support run photons
+function createPhotonEdge(getPath: (props: EdgeProps) => string) {
+  return function EdgeWithPhoton(props: EdgeProps) {
+    const path = getPath(props);
     return (
       <>
         <BaseEdge path={path} markerEnd={props.markerEnd} />
@@ -14,5 +14,7 @@ function createStepEdge(borderRadius?: number) {
   };
 }
 
-export const EdgeSmoothStep = createStepEdge();
-export const EdgeStepSharp = createStepEdge(0);
+export const EdgeBezier = createPhotonEdge((props) => getBezierPath(props)[0]);
+export const EdgeStraight = createPhotonEdge((props) => getStraightPath(props)[0]);
+export const EdgeSmoothStep = createPhotonEdge((props) => getSmoothStepPath(props)[0]);
+export const EdgeStepSharp = createPhotonEdge((props) => getSmoothStepPath({ ...props, borderRadius: 0 })[0]);
