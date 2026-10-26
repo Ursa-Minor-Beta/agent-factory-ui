@@ -15,6 +15,8 @@ interface RunTabProps {
   onRunClear?: () => void;
 }
 
+const INPUTS_STORAGE_KEY = 'agent-editor-run-inputs';
+
 const ANIMATE_STORAGE_KEY = 'agent-editor-run-animate';
 
 interface RunOutput {
@@ -25,7 +27,16 @@ interface RunOutput {
 }
 
 export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }: RunTabProps) {
-  const [inputs, setInputs] = useState<Record<string, string>>({});
+  // Last used inputs are remembered per agent
+  const inputsStorageKey = agent?.id ? `${INPUTS_STORAGE_KEY}-${agent.id}` : null;
+  const [inputs, setInputs] = useState<Record<string, string>>(() => {
+    if (!inputsStorageKey) return {};
+    try {
+      return JSON.parse(localStorage.getItem(inputsStorageKey) || '{}');
+    } catch {
+      return {};
+    }
+  });
   const [animate, setAnimate] = useState(() => localStorage.getItem(ANIMATE_STORAGE_KEY) === 'true');
   // Ref so stream callbacks of an ongoing run see toggle changes
   const animateRef = useRef(animate);
@@ -47,8 +58,12 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }
   const inputFields = Object.entries(inputSchema);
 
   const handleInputChange = useCallback((key: string, value: string) => {
-    setInputs((prev) => ({ ...prev, [key]: value }));
-  }, []);
+    setInputs((prev) => {
+      const next = { ...prev, [key]: value };
+      if (inputsStorageKey) localStorage.setItem(inputsStorageKey, JSON.stringify(next));
+      return next;
+    });
+  }, [inputsStorageKey]);
 
   const handleRun = useCallback(async () => {
     if (!agent?.id || running) return;
