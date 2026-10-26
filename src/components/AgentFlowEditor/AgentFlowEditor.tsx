@@ -212,7 +212,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
             }
           }}
           fitView={!initialViewport}
-          nodeDragThreshold={10}
+          // nodeDragThreshold={10}
           onlyRenderVisibleElements={true}
           style={{ background: 'transparent' }}
         >
