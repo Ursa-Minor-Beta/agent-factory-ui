@@ -87,9 +87,21 @@
 }
 
 .react-flow__handle {
-  background: var(--mantine-color-cyan-5);
+  background: var(--mantine-color-dark-2);
+  border-color: var(--mantine-color-dark-7);
   width: 8px;
   height: 8px;
+}
+
+[data-mantine-color-scheme='light'] .react-flow__handle {
+  background: var(--mantine-color-gray-4);
+  border-color: var(--mantine-color-white);
+}
+
+.react-flow__handle:hover,
+.react-flow__handle.connectingfrom,
+.react-flow__handle.valid {
+  background: var(--mantine-color-cyan-5);
 }
 
 .react-flow__edge-path {
