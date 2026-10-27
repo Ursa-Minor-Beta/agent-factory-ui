@@ -29,7 +29,6 @@ function downloadJson(data: unknown, filename: string) {
 
 const PALETTE_STORAGE_KEY = 'agent-editor-palette-open';
 const TAB_STORAGE_KEY = 'agent-editor-active-tab';
-const MIN_RUNNING_MS = 300;
 
 export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) {
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
@@ -50,9 +49,11 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
   const [runStatuses, setRunStatuses] = useState<Record<string, NodeStatus> | null>(null);
 
   // Runs can be very fast - replay status events sequentially, keeping every executed node
-  // in "running" for at least MIN_RUNNING_MS. playheadRef = earliest time the next event may show.
+  // in "running" for at least minRunningMs (Run tab speed). playheadRef = earliest time the next event may show.
   const playheadRef = useRef(0);
   const startedRef = useRef<Set<string>>(new Set());
+  // Running time per node at the speed it was scheduled with - drives edge photon timing
+  const runningMsRef = useRef<Record<string, number>>({});
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const replayDoneRef = useRef<(() => void) | null>(null);
 
@@ -78,13 +79,14 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     replayDoneRef.current = null;
     playheadRef.current = 0;
     startedRef.current = new Set();
+    runningMsRef.current = {};
     setRunStatuses(statuses);
   }, []);
 
   const handleRunStart = useCallback(() => resetRunStatuses({}), [resetRunStatuses]);
   const handleRunClear = useCallback(() => resetRunStatuses(null), [resetRunStatuses]);
 
-  const handleNodeStatus = useCallback((nodeId: string, status: ChatStatusEvent['status']) => {
+  const handleNodeStatus = useCallback((nodeId: string, status: ChatStatusEvent['status'], minRunningMs: number) => {
     let at = Math.max(Date.now(), playheadRef.current);
     if (status === 'skipped') {
       scheduleAt(at, () => setNodeRunStatus(nodeId, 'skipped'));
@@ -94,8 +96,9 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     // Finished without a 'started' event - show it running first
     if (status === 'started' || !startedRef.current.has(nodeId)) {
       startedRef.current.add(nodeId);
+      runningMsRef.current[nodeId] = minRunningMs;
       scheduleAt(at, () => setNodeRunStatus(nodeId, 'running'));
-      at += MIN_RUNNING_MS;
+      at += minRunningMs;
     }
     if (status !== 'started') {
       scheduleAt(at, () => setNodeRunStatus(nodeId, status));
@@ -203,8 +206,9 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
   const displayEdges = useMemo(() => {
     if (!runStatuses) return edges;
     return edges.map((edge) => {
-      const photon = runStatuses[edge.source] === 'completed' && runStatuses[edge.target] === 'running';
-      return photon ? { ...edge, data: { ...edge.data, photon } } : edge;
+      const active = runStatuses[edge.source] === 'completed' && runStatuses[edge.target] === 'running';
+      // photon = target's running time, so the trail follows the animation speed
+      return active ? { ...edge, data: { ...edge.data, photon: runningMsRef.current[edge.target] } } : edge;
     });
   }, [edges, runStatuses]);
 

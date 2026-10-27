@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { Box, Button, TextInput, Textarea, Stack, Text, Alert, ScrollArea, Loader, Group, ActionIcon, Card, Switch } from '@mantine/core';
+import { Box, Button, TextInput, Textarea, Stack, Text, Alert, ScrollArea, Loader, Group, ActionIcon, Card, Switch, Slider } from '@mantine/core';
 import { IconPlayerPlay, IconPlayerStop, IconAlertCircle, IconListDetails } from '@tabler/icons-react';
 import { sessionsApi, type ChatStatusEvent } from '../../../api/sessions';
 import type { Agent, InputSchema } from '../../../types';
@@ -10,7 +10,7 @@ import { MessageContent } from '../../../pages/Chat/ChatMessages';
 interface RunTabProps {
   agent: Partial<Agent> | null;
   onRunStart?: () => void;
-  onNodeStatus?: (nodeId: string, status: ChatStatusEvent['status']) => void;
+  onNodeStatus?: (nodeId: string, status: ChatStatusEvent['status'], minRunningMs: number) => void;
   onRunEnd?: () => Promise<void>;
   onRunClear?: () => void;
 }
@@ -18,6 +18,12 @@ interface RunTabProps {
 const INPUTS_STORAGE_KEY = 'agent-editor-run-inputs';
 
 const ANIMATE_STORAGE_KEY = 'agent-editor-run-animate';
+const SPEED_STORAGE_KEY = 'agent-editor-run-speed';
+
+// Min time each executed node is shown as "running" during the animation
+const MIN_RUNNING_MS = 50;
+const MAX_RUNNING_MS = 2000;
+const DEFAULT_RUNNING_MS = 400;
 
 interface RunOutput {
   response?: unknown; // Raw response - MessageContent will parse it
@@ -47,6 +53,19 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }
     localStorage.setItem(ANIMATE_STORAGE_KEY, String(value));
     if (!value) onRunClear?.();
   }, [onRunClear]);
+
+  const [runningMs, setRunningMs] = useState(() => {
+    const saved = Number(localStorage.getItem(SPEED_STORAGE_KEY));
+    return saved >= MIN_RUNNING_MS && saved <= MAX_RUNNING_MS ? saved : DEFAULT_RUNNING_MS;
+  });
+  // Ref so speed changes apply to an ongoing run
+  const runningMsRef = useRef(runningMs);
+
+  const handleRunningMsChange = useCallback((value: number) => {
+    setRunningMs(value);
+    runningMsRef.current = value;
+    localStorage.setItem(SPEED_STORAGE_KEY, String(value));
+  }, []);
   const [running, setRunning] = useState(false);
   const [output, setOutput] = useState<RunOutput | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -112,7 +131,7 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }
                 { nodeId: data.nodeId, status: data.status, statusText: data.statusText },
               ],
             }));
-            if (animateRef.current) onNodeStatus?.(data.nodeId, data.status);
+            if (animateRef.current) onNodeStatus?.(data.nodeId, data.status, runningMsRef.current);
           },
           onDone: (data) => {
             // Store raw response - MessageContent will handle parsing
@@ -202,7 +221,7 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }
         ) : (
           <Text size="xs" c="dimmed">No input fields defined</Text>
         )}
-        <Group justify="space-between" mb="xs" h="3rem">
+        <Group justify="space-between" mb="xs" h="2rem">
           <Switch
             label="Animate run"
             size="xs"
@@ -215,6 +234,23 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }
             </Button>
           )}
         </Group>
+        {animate && (
+          <Group gap="xs" mb="md" wrap="nowrap">
+            <Text size="xs" c="dimmed">Slow</Text>
+            {/* Value mirrored so right = faster = shorter running time, keeping default fill style */}
+            <Slider
+              size="xs"
+              style={{ flex: 1 }}
+              min={MIN_RUNNING_MS}
+              max={MAX_RUNNING_MS}
+              step={50}
+              value={MIN_RUNNING_MS + MAX_RUNNING_MS - runningMs}
+              onChange={(value) => handleRunningMsChange(MIN_RUNNING_MS + MAX_RUNNING_MS - value)}
+              label={(value) => `${MIN_RUNNING_MS + MAX_RUNNING_MS - value} ms / node`}
+            />
+            <Text size="xs" c="dimmed">Fast</Text>
+          </Group>
+        )}
         {/* Run/Stop button */}
         {running ? (
           <Button

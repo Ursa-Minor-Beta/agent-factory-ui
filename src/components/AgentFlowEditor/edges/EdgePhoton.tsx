@@ -1,11 +1,14 @@
 import { useEffect, useRef } from 'react';
 
-const DURATION = '0.1s';
+// Timings relative to the target node's running time (0.1s / 0.5s at 400ms)
+const DURATION_RATIO = 0.25;
 // Trail lingers after the photon arrives, then slowly dims
-const TRAIL_DURATION = '.5s';
+const TRAIL_RATIO = 1.25;
 
 // Single glowing dot sent once along the edge path to the next node
-export function EdgePhoton({ path }: { path: string }) {
+export function EdgePhoton({ path, runningMs }: { path: string; runningMs: number }) {
+  const DURATION = `${runningMs * DURATION_RATIO}ms`;
+  const TRAIL_DURATION = `${runningMs * TRAIL_RATIO}ms`;
   const animRefs = useRef<(SVGAnimationElement | null)[]>([]);
   const setRef = (i: number) => (el: SVGAnimationElement | null) => {
     animRefs.current[i] = el;

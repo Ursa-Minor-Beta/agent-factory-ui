@@ -37,7 +37,7 @@ interface EdgeProps {
   targetPosition?: Position;
   sourceHandleId?: string | null;
   markerEnd?: string;
-  data?: { photon?: boolean };
+  data?: { photon?: number };
 }
 
 type NodeToCalculatePath = {
@@ -276,7 +276,7 @@ export function EdgeSmart(edgeProps: EdgeProps) {
   return (
     <>
       <BaseEdge path={path} markerEnd={edgeProps.markerEnd} />
-      {edgeProps.data?.photon && <EdgePhoton path={path} />}
+      {edgeProps.data?.photon !== undefined && <EdgePhoton path={path} runningMs={edgeProps.data.photon} />}
     </>
   );
 }
