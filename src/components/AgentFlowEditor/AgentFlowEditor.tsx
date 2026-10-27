@@ -55,7 +55,6 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
   // Running time per node at the speed it was scheduled with - drives edge photon timing
   const runningMsRef = useRef<Record<string, number>>({});
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const replayDoneRef = useRef<(() => void) | null>(null);
 
   const setNodeRunStatus = useCallback((nodeId: string, status: NodeStatus) => {
     setRunStatuses((prev) => ({ ...prev, [nodeId]: status }));
@@ -74,9 +73,6 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
   const resetRunStatuses = useCallback((statuses: Record<string, NodeStatus> | null) => {
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
-    // Replay cancelled - don't leave the Run tab waiting for output
-    replayDoneRef.current?.();
-    replayDoneRef.current = null;
     playheadRef.current = 0;
     startedRef.current = new Set();
     runningMsRef.current = {};
@@ -108,17 +104,14 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
 
   // Run finished, failed or was stopped - after replay ends, nodes still running didn't complete.
   // Final statuses stay visible until the next run or animation is turned off.
-  // Resolves when replay ends, so the Run tab can show output after the animation
-  const handleRunEnd = useCallback(() => new Promise<void>((resolve) => {
-    replayDoneRef.current = resolve;
+  const handleRunEnd = useCallback(() => {
     const replayEnd = Math.max(Date.now(), playheadRef.current);
     scheduleAt(replayEnd, () => {
-      replayDoneRef.current = null;
-      resolve();
       setRunStatuses((prev) => prev && Object.fromEntries(
         Object.entries(prev).map(([nodeId, status]) => [nodeId, status === 'running' ? 'skipped' : status])
       ));
-    });  }), [scheduleAt]);
+    });
+  }, [scheduleAt]);
 
   // Clear pending status timers on unmount
   useEffect(() => () => timersRef.current.forEach(clearTimeout), []);
@@ -208,7 +201,8 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     return edges.map((edge) => {
       const active = runStatuses[edge.source] === 'completed' && runStatuses[edge.target] === 'running';
       // photon = target's running time, so the trail follows the animation speed
-      return active ? { ...edge, data: { ...edge.data, photon: runningMsRef.current[edge.target] } } : edge;
+      // zIndex keeps active edges drawn above overlapping ones
+      return active ? { ...edge, zIndex: 1, data: { ...edge.data, photon: runningMsRef.current[edge.target] } } : edge;
     });
   }, [edges, runStatuses]);
 

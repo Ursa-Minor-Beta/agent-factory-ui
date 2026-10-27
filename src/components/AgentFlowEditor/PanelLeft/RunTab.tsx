@@ -11,7 +11,7 @@ interface RunTabProps {
   agent: Partial<Agent> | null;
   onRunStart?: () => void;
   onNodeStatus?: (nodeId: string, status: ChatStatusEvent['status'], minRunningMs: number) => void;
-  onRunEnd?: () => Promise<void>;
+  onRunEnd?: () => void;
   onRunClear?: () => void;
 }
 
@@ -109,7 +109,7 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }
       }
     }
 
-    // Final response/error held back until the node animation finishes
+    // Final response/error applied once the stream ends
     const result: Pick<RunOutput, 'response' | 'error'> = {};
 
     try {
@@ -151,7 +151,7 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }
       }
     } finally {
       abortControllerRef.current = null;
-      if (animateRef.current) await onRunEnd?.();
+      if (animateRef.current) onRunEnd?.();
       setOutput((prev) => ({ ...prev!, ...result }));
       setRunning(false);
     }
