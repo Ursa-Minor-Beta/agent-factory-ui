@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef, memo, type ReactNode } from 'react';
-import { Box, Divider, Tabs } from '@mantine/core';
+import { Box, Tabs } from '@mantine/core';
 import type { NodeType, AgentExample } from '../../../api';
 import type { Agent } from '../../../types/agent';
 import type { ChatStatusEvent } from '../../../api/sessions';
@@ -16,6 +16,7 @@ const STORAGE_KEY = 'agent-editor-palette-width';
 const TAB_STORAGE_KEY = 'agent-editor-active-tab';
 
 interface PanelLeftProps {
+  hidden?: boolean;
   header: ReactNode;
   isNodesDragging: boolean;
   nodeTypes: NodeType[];
@@ -42,7 +43,7 @@ interface PanelLeftProps {
   onRunClear?: () => void;
 }
 
-export const PanelLeft = memo(function({ header, nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, savedAt, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onWorkspaceChange, onLoadTemplate, onExport, exporting, onReloadAgent, onRunStart, onNodeStatus, onRunEnd, onRunClear }: PanelLeftProps) {
+export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, savedAt, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onWorkspaceChange, onLoadTemplate, onExport, exporting, onReloadAgent, onRunStart, onNodeStatus, onRunEnd, onRunClear }: PanelLeftProps) {
   const [viewingNodeType, setViewingNodeType] = useState<NodeType | null>(null);
   const [internalActiveTab, setInternalActiveTab] = useState<string | null>(() => {
     const saved = localStorage.getItem(TAB_STORAGE_KEY);
@@ -123,7 +124,7 @@ export const PanelLeft = memo(function({ header, nodeTypes, existingNodeTypes, e
         top: 0,
         left: 0,
         bottom: 0,
-        display: 'flex',
+        display: hidden ? 'none' : 'flex',
         zIndex: 100,
       }}
     >
@@ -141,7 +142,6 @@ export const PanelLeft = memo(function({ header, nodeTypes, existingNodeTypes, e
       >
         <>
           {header}
-          <Divider />
 
           <Tabs value={activeTab} onChange={setActiveTab} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
             <Tabs.List px="xs" pt="xs">

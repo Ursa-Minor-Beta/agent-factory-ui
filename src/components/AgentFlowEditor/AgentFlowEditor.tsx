@@ -321,8 +321,9 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
         </ReactFlow>
       </div>
 
-      {isPaletteOpen &&
-        <PanelLeft
+      {/* Always mounted (hidden when closed) so an in-progress run keeps its output */}
+      <PanelLeft
+          hidden={!isPaletteOpen}
           header={editorToolbar}
           isNodesDragging={isNodesDragging}
           activeTab={activeTab}
@@ -348,7 +349,6 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
           onRunEnd={handleRunEnd}
           onRunClear={handleRunClear}
         />
-      }
 
       {selectedNode && (
         <PanelRight
