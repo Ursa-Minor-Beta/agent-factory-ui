@@ -23,6 +23,7 @@ export const NumberInput = memo(function NumberInput({ name, description, value,
   // Sync only on external value changes, not our own emitted changes
   useEffect(() => {
     if (lastEmittedRef.current === value) {
+      lastEmittedRef.current = null;
       return;
     }
     localValueRef.current = value;

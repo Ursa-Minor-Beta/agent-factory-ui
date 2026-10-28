@@ -4,6 +4,7 @@ import { IconArrowsMaximize, IconList, IconListNumbers, IconQuestionMark } from 
 import { useDisclosure } from '@mantine/hooks';
 import { TemplateInputWrapper } from '../TemplateInputWrapper';
 import type { NodeMetadata } from '../templateUtils';
+import { useScrollMemory } from '../scrollMemory';
 
 const TemplateTextEditorFull = lazy(() =>
   import('./TemplateTextEditorFull').then((m) => ({ default: m.TemplateTextEditorFull }))
@@ -13,16 +14,18 @@ interface TextInputProps {
   name: string;
   description?: string;
   nodeLabel?: string;
+  /** Enables scroll position memory per agent/node/input */
+  nodeId?: string;
   value: string;
-  /** @deprecated Use nodes instead */
-  nodeIds?: string[];
   nodes?: NodeMetadata[];
   onChange: (value: string) => void;
 }
 
-export const TextInput = memo(function TextInput({ name, description, nodeLabel, value, nodeIds, nodes, onChange }: TextInputProps) {
+export const TextInput = memo(function TextInput({ name, description, nodeLabel, nodeId: scrollNodeId, value, nodes, onChange }: TextInputProps) {
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
   const highlightRef = useRef<HTMLDivElement>(null);
+  const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
+  const saveScroll = useScrollMemory(textAreaRef, scrollNodeId, name, [highlightRef]);
 
   // Sync scroll between textarea and highlight layer
   const handleScroll = useCallback((e: React.UIEvent<HTMLTextAreaElement>) => {
@@ -30,7 +33,8 @@ export const TextInput = memo(function TextInput({ name, description, nodeLabel,
       highlightRef.current.scrollTop = e.currentTarget.scrollTop;
       highlightRef.current.scrollLeft = e.currentTarget.scrollLeft;
     }
-  }, []);
+    saveScroll(e.currentTarget.scrollTop);
+  }, [saveScroll]);
 
   return (
     <Box>
@@ -53,7 +57,6 @@ export const TextInput = memo(function TextInput({ name, description, nodeLabel,
       <TemplateInputWrapper
         value={value}
         nodes={nodes}
-        nodeIds={nodeIds}
         onChange={onChange}
         highlightRef={highlightRef}
         highlightStyle={{
@@ -67,7 +70,10 @@ export const TextInput = memo(function TextInput({ name, description, nodeLabel,
       >
         {({ inputRef, defaultValue, handleChange, handleBlur, handleClick, handleKeyDown }) => (
           <Textarea
-            ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+            ref={(el) => {
+              (inputRef as React.MutableRefObject<HTMLTextAreaElement | null>).current = el;
+              textAreaRef.current = el;
+            }}
             size="xs"
             defaultValue={defaultValue}
             onChange={handleChange}
@@ -113,7 +119,6 @@ export const TextInput = memo(function TextInput({ name, description, nodeLabel,
             getValues={() => value}
             setValue={(_, newValue) => onChange(newValue)}
             nodes={nodes}
-            nodeIds={nodeIds}
             toolbarFormatBtns={[
               {
                 title: 'H1',

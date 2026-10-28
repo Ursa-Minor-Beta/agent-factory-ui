@@ -15,8 +15,6 @@ interface InputRenderProps {
 
 interface TemplateInputWrapperProps {
   value: string;
-  /** @deprecated Use nodes instead */
-  nodeIds?: string[];
   nodes?: NodeMetadata[];
   onChange: (value: string) => void;
   wrapperStyle?: React.CSSProperties;
@@ -28,7 +26,6 @@ interface TemplateInputWrapperProps {
 
 export function TemplateInputWrapper({
   value,
-  nodeIds,
   nodes,
   onChange,
   wrapperStyle,
@@ -42,6 +39,7 @@ export function TemplateInputWrapper({
   const highlightRef = externalHighlightRef || internalHighlightRef;
   const onChangeRef = useRef(onChange);
   const debounceRef = useRef<number | null>(null);
+  const pendingValueRef = useRef<string | null>(null);
   const lastEmittedRef = useRef<string | null>(null);
   const [highlightValue, setHighlightValue] = useState(value);
   const [filterQuery, setFilterQuery] = useState('');
@@ -52,12 +50,7 @@ export function TemplateInputWrapper({
 
   onChangeRef.current = onChange;
 
-  // Backward compatibility: convert nodeIds to nodes
-  const nodeMetadata = useMemo((): NodeMetadata[] => {
-    if (nodes) return nodes;
-    if (nodeIds) return nodeIds.map(id => ({ id }));
-    return [];
-  }, [nodes, nodeIds]);
+  const nodeMetadata = nodes ?? [];
 
   // Create lookup map for node outputs
   const nodeOutputsMap = useMemo(() => {
@@ -122,18 +115,23 @@ export function TemplateInputWrapper({
 
   // Sync on external value changes
   useEffect(() => {
-    if (lastEmittedRef.current === value) return;
+    // Skip only the echo of our own emit; clear it so a later identical value (e.g. switching back to this node) still syncs
+    if (lastEmittedRef.current === value) {
+      lastEmittedRef.current = null;
+      return;
+    }
     setHighlightValue(value);
     if (inputRef.current && inputRef.current.value !== value) {
       inputRef.current.value = value;
     }
   }, [value]);
 
-  // Cleanup debounce
+  // Flush pending debounced change on unmount (e.g. switching nodes)
   useEffect(() => {
     return () => {
       if (debounceRef.current !== null) {
         clearTimeout(debounceRef.current);
+        if (pendingValueRef.current !== null) onChangeRef.current(pendingValueRef.current);
       }
     };
   }, []);
@@ -199,11 +197,13 @@ export function TemplateInputWrapper({
 
     setHighlightValue(currentValue);
     checkAutocomplete(currentValue, cursorPos);
+    pendingValueRef.current = currentValue;
 
     if (debounceRef.current !== null) {
       clearTimeout(debounceRef.current);
     }
     debounceRef.current = window.setTimeout(() => {
+      debounceRef.current = null;
       if (inputRef.current) {
         lastEmittedRef.current = inputRef.current.value;
         onChangeRef.current(inputRef.current.value);
@@ -215,6 +215,7 @@ export function TemplateInputWrapper({
   const handleBlur = () => {
     if (debounceRef.current !== null) {
       clearTimeout(debounceRef.current);
+      debounceRef.current = null;
     }
     if (inputRef.current) {
       setHighlightValue(inputRef.current.value);

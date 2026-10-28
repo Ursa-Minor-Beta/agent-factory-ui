@@ -51,6 +51,9 @@
 
 .react-flow__node.run-completed .tabler-icon {
   color: var(--mantine-color-green-5);
+}
+
+[data-mantine-color-scheme='dark'] .react-flow__node.run-completed .tabler-icon {
   filter: drop-shadow(0 0 4px var(--mantine-color-green-7));
 }
 

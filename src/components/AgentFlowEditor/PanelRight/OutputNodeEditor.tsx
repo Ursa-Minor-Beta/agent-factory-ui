@@ -175,7 +175,7 @@ export function OutputNodeEditor({
 
             // Normal display mode
             return (
-              <Box key={key}>
+              <Box key={`${nodeId}:${key}`}>
                 <Group justify="space-between" mb={4} wrap="nowrap" align="stretch">
                   <Box style={{ flex: 1 }}>
                     <FieldInput

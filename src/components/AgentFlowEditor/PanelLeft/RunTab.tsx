@@ -292,7 +292,7 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }
           <ScrollArea style={{ flex: 1 }} offsetScrollbars>
             <>
               {/* Node statuses */}
-              {output.nodeStatuses.length > 0 && (
+              {/* {output.nodeStatuses.length > 0 && (
                 <ScrollArea.Autosize mah={80} offsetScrollbars mb="xs" ps='xs' style={{ border: '1px solid var(--mantine-color-default-border)', borderRadius: 'var(--mantine-radius-sm)' }}>
                   <Stack gap={2}>
                     {output.nodeStatuses.map((ns, i) => (
@@ -302,7 +302,7 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }
                     ))}
                   </Stack>
                 </ScrollArea.Autosize>
-              )}
+              )} */}
 
               {/* Loading indicator */}
               {running && (

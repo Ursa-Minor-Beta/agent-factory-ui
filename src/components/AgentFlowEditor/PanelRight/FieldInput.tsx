@@ -26,6 +26,7 @@ export const FieldInput = memo(function FieldInput({
   const value = nodeData[fieldKey];
   const fieldType = option?.type;
   const timeoutRef = useRef<number | undefined>(undefined);
+  const flushRef = useRef<(() => void) | null>(null);
 
   const handleChange = (newValue: unknown) => {
     onUpdate(nodeId, { [fieldKey]: newValue });
@@ -38,17 +39,22 @@ export const FieldInput = memo(function FieldInput({
         clearTimeout(timeoutRef.current);
       }
 
+      flushRef.current = () => onUpdate(nodeId, { [fieldKey]: newValue });
       timeoutRef.current = window.setTimeout(() => {
-        onUpdate(nodeId, { [fieldKey]: newValue });
+        timeoutRef.current = undefined;
+        flushRef.current?.();
+        flushRef.current = null;
       }, 300);
     },
     [nodeId, fieldKey, onUpdate]
   );
 
+  // Flush pending update on unmount (e.g. switching nodes) instead of dropping it
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+        flushRef.current?.();
       }
     };
   }, []);
@@ -111,6 +117,7 @@ export const FieldInput = memo(function FieldInput({
         name={fieldKey}
         description={option?.description}
         nodeLabel={nodeLabel}
+        nodeId={nodeId}
         value={String(value ?? option?.default ?? '')}
         nodes={nodes}
         onChange={handleChangeDebounced}

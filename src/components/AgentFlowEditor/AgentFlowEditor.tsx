@@ -305,7 +305,8 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
             }
           }}
           fitView={!initialViewport}
-          // nodeDragThreshold={10}
+          snapToGrid={true}
+          snapGrid={[1,1]}
           onlyRenderVisibleElements={true}
           style={{ background: 'transparent' }}
         >

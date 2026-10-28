@@ -61,8 +61,6 @@ interface TemplateTextEditorFullProps {
     placeholder?: string;
     toolbarFormatBtns?: ToolbarItem[];
     toolbarCommonBtns?: ToolbarItem[];
-    /** @deprecated Use nodes instead */
-    nodeIds?: string[];
     nodes?: NodeMetadata[];
 
     getValues: (fieldName: string) => string;
@@ -97,7 +95,6 @@ export function TemplateTextEditorFull({
     placeholder,
     toolbarFormatBtns,
     toolbarCommonBtns,
-    nodeIds,
     nodes,
     setValue,
     getValues,
@@ -117,14 +114,11 @@ export function TemplateTextEditorFull({
 
     // Template extensions for TipTap - use stable key to prevent unnecessary recreations
     const nodesRef = useRef(nodes);
-    const nodeIdsRef = useRef(nodeIds);
     nodesRef.current = nodes;
-    nodeIdsRef.current = nodeIds;
-    const nodeMetadataKey = nodes?.map(n => `${n.id}:${n.outputs?.join(',') || ''}`).join('|') || nodeIds?.join(',') || '';
+    const nodeMetadataKey = nodes?.map(n => `${n.id}:${n.outputs?.join(',') || ''}`).join('|') || '';
 
     const templateExtensions = useMemo(() => {
-        // Backward compatibility: convert nodeIds to nodes
-        const nodeMetadata: NodeMetadata[] = nodesRef.current || (nodeIdsRef.current ? nodeIdsRef.current.map(id => ({ id })) : []);
+        const nodeMetadata: NodeMetadata[] = nodesRef.current || [];
 
         if (nodeMetadata.length === 0) return [];
 
@@ -284,7 +278,6 @@ export function TemplateTextEditorFull({
                             key={rawModeKey}
                             value={contentRef.current}
                             nodes={nodes}
-                            nodeIds={nodeIds}
                             onChange={handleRawContentChange}
                             highlightRef={highlightRef}
                             dropdownPosition="top-start"

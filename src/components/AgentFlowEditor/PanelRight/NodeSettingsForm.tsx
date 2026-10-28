@@ -146,7 +146,8 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, onUpdate, onUpdateId,
       nodeTypeMap.set(n.id, n.type || 'default');
     });
 
-    return nodes.map(n => {
+    // Exclude the current node - it can't reference its own outputs
+    return nodes.filter(n => n.id !== node.id).map(n => {
       // Find the node type definition for this node's type
       const nodeTypeDef = nodeTypes.find(nt => nt.type === n.type);
 
@@ -182,7 +183,7 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, onUpdate, onUpdateId,
         outputs: nodeTypeDef?.outputs,
       };
     });
-  }, [nodes, nodeTypes]);
+  }, [nodes, nodeTypes, node.id]);
 
   return (
     <ScrollArea flex={1}>
@@ -244,7 +245,8 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, onUpdate, onUpdateId,
         ) : (
           dataKeys.map(key => (
             <FieldInput
-              key={key}
+              // Node id in key: remount per node so no input state leaks between nodes
+              key={`${node.id}:${key}`}
               fieldKey={key}
               nodeData={nodeData}
               option={optionsMap[key]}
