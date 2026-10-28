@@ -8,6 +8,8 @@ import type { NodeMetadata } from '../inputs/templateUtils';
 import { FieldInput } from './FieldInput';
 import { InputNodeEditor } from './InputNodeEditor';
 import { OutputNodeEditor } from './OutputNodeEditor';
+import { MultiEnumInput } from '../inputs';
+import { canRunAfter, getRunAfter, RUN_AFTER_KEY } from '../utils/converters';
 
 interface NodeSettingsFormProps {
   node: Node;
@@ -128,10 +130,22 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, onUpdate, onUpdateId,
     return map;
   }, [nodeTypes, node.type]);
 
+  // Top-level node fields (e.g. runAfter), rendered separately from data options
+  const nodeFields = useMemo(
+    () => nodeTypes.find((nt) => nt.type === node.type)?.nodeFields ?? [],
+    [nodeTypes, node.type]
+  );
+
+  // Nodes selectable in node[] fields - input/output don't take part in ordering
+  const orderableNodeIds = useMemo(
+    () => nodes.filter((n) => n.id !== node.id && canRunAfter(n.type)).map((n) => n.id),
+    [nodes, node.id]
+  );
+
   // Merge option names with existing data keys (options first, then any extra data keys)
   const dataKeys = useMemo(() => {
     const optionNames = Object.keys(optionsMap);
-    const existingKeys = Object.keys(nodeData).filter((k) => k !== 'label');
+    const existingKeys = Object.keys(nodeData).filter((k) => k !== 'label' && k !== RUN_AFTER_KEY);
     const allKeys = new Set([...optionNames, ...existingKeys]);
     return Array.from(allKeys);
   }, [optionsMap, nodeData]);
@@ -243,7 +257,19 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, onUpdate, onUpdateId,
             onReplace={onReplace}
           />
         ) : (
-          dataKeys.map(key => (
+          <>
+          {nodeFields.filter((field) => field.type === 'node[]').map((field) => (
+            <MultiEnumInput
+              key={`${node.id}:${field.name}`}
+              name={field.name}
+              description={field.description}
+              value={field.name === RUN_AFTER_KEY ? getRunAfter(nodeData) : ((nodeData[field.name] as string[]) ?? [])}
+              values={orderableNodeIds}
+              onChange={(value) => onUpdate(node.id, { [field.name]: value })}
+            />
+          ))}
+          {nodeFields.length > 0 && <Divider />}
+          {dataKeys.map(key => (
             <FieldInput
               // Node id in key: remount per node so no input state leaks between nodes
               key={`${node.id}:${key}`}
@@ -255,7 +281,8 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, onUpdate, onUpdateId,
               nodes={nodesMetadata}
               onUpdate={onUpdate}
             />
-          ))
+          ))}
+          </>
         )}
       </Stack>
     </ScrollArea>

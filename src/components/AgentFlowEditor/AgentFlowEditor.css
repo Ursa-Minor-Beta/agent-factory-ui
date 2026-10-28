@@ -115,3 +115,8 @@
 .react-flow__edge.selected .react-flow__edge-path {
   stroke: var(--mantine-color-cyan-5);
 }
+
+/* runAfter: ordering-only dependency, no data passed */
+.react-flow__edge.edge-run-after .react-flow__edge-path {
+  stroke-dasharray: 6 4;
+}

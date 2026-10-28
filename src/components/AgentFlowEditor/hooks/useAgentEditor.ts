@@ -7,11 +7,26 @@ import {
   Position,
   type Node,
   type Edge,
+  type EdgeChange,
   type Connection,
 } from '@xyflow/react';
 import { agentsApi, nodesApi, type NodeType, type AgentExample } from '../../../api';
 import type { Agent, CanvasSettings, EditorViewport } from '../../../types/agent';
-import { toFlowNode, toAgentNode, extractEdges, generateNodeId, autoLayoutNodes, syncNodeEdges, type LayoutDirection } from '../utils/converters';
+import {
+  toFlowNode,
+  toAgentNode,
+  extractEdges,
+  generateNodeId,
+  autoLayoutNodes,
+  syncNodeEdges,
+  buildRunAfterEdge,
+  isRunAfterEdge,
+  isReachable,
+  canRunAfter,
+  getRunAfter,
+  RUN_AFTER_KEY,
+  type LayoutDirection,
+} from '../utils/converters';
 import { routes } from '../../../config/routes';
 
 const DEFAULT_EDGE_TYPE_KEY = 'agent-editor-default-edge-type';
@@ -117,12 +132,59 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     fetchAgent();
   }, [agentId, fetchAgent, workspaceId]);
 
-  // Handle connection
+  // Set target's runAfter list, keeping flow data in sync
+  const setNodeRunAfter = useCallback(
+    (nodeId: string, update: (runAfter: string[]) => string[]) => {
+      setNodes((nds) =>
+        nds.map((n) => {
+          if (n.id !== nodeId) return n;
+          const { [RUN_AFTER_KEY]: _runAfter, ...rest } = n.data as Record<string, unknown>;
+          const runAfter = update(getRunAfter(n.data));
+          return { ...n, data: runAfter.length ? { ...rest, [RUN_AFTER_KEY]: runAfter } : rest };
+        })
+      );
+    },
+    [setNodes]
+  );
+
+  // Only ordering connections can be drawn: plain output -> another non input/output node, no cycles
+  const isValidConnection = useCallback(
+    (connection: Connection | Edge) => {
+      const { source, target, sourceHandle } = connection;
+      if (!source || !target || source === target || sourceHandle) return false;
+      const sourceNode = nodes.find((n) => n.id === source);
+      const targetNode = nodes.find((n) => n.id === target);
+      if (!canRunAfter(sourceNode?.type) || !canRunAfter(targetNode?.type)) return false;
+      if (getRunAfter(targetNode?.data).includes(source)) return false;
+      return !isReachable(edges, target, source);
+    },
+    [nodes, edges]
+  );
+
+  // Drawn connection = runAfter dependency of the target node
   const onConnect = useCallback(
     (connection: Connection) => {
-      setEdges((eds) => addEdge(connection, eds));
+      if (!isValidConnection(connection)) return;
+      const { source, target } = connection;
+      setNodeRunAfter(target, (runAfter) => [...runAfter, source]);
+      setEdges((eds) => addEdge(buildRunAfterEdge(source, target), eds));
     },
-    [setEdges]
+    [isValidConnection, setNodeRunAfter, setEdges]
+  );
+
+  // Removing a runAfter edge drops the dependency from the target node
+  const handleEdgesChange = useCallback(
+    (changes: EdgeChange<Edge>[]) => {
+      changes.forEach((change) => {
+        if (change.type !== 'remove') return;
+        const edge = edges.find((e) => e.id === change.id);
+        if (edge && isRunAfterEdge(edge)) {
+          setNodeRunAfter(edge.target, (runAfter) => runAfter.filter((id) => id !== edge.source));
+        }
+      });
+      onEdgesChange(changes);
+    },
+    [edges, onEdgesChange, setNodeRunAfter]
   );
 
   // Save agent - returns true on success
@@ -279,7 +341,18 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
   // Delete node
   const deleteNode = useCallback(
     (nodeId: string) => {
-      setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+      // Also drop the deleted node from other nodes' runAfter
+      setNodes((nds) =>
+        nds
+          .filter((n) => n.id !== nodeId)
+          .map((n) => {
+            const runAfter = getRunAfter(n.data);
+            if (!runAfter.includes(nodeId)) return n;
+            const { [RUN_AFTER_KEY]: _runAfter, ...rest } = n.data as Record<string, unknown>;
+            const next = runAfter.filter((id) => id !== nodeId);
+            return { ...n, data: next.length ? { ...rest, [RUN_AFTER_KEY]: next } : rest };
+          })
+      );
       setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
     },
     [setNodes, setEdges]
@@ -304,9 +377,15 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
   const updateNodeId = (oldId: string, newId: string) => {
     if (oldId === newId) return;
 
-    // Update node ID
+    // Update node ID and rename it in other nodes' runAfter
     setNodes((nds) =>
-      nds.map((n) => (n.id === oldId ? { ...n, id: newId } : n))
+      nds.map((n) => {
+        const runAfter = getRunAfter(n.data);
+        const data = runAfter.includes(oldId)
+          ? { ...n.data, [RUN_AFTER_KEY]: runAfter.map((id) => (id === oldId ? newId : id)) }
+          : n.data;
+        return { ...n, id: n.id === oldId ? newId : n.id, data };
+      })
     );
 
     // Update selected node ID if needed
@@ -314,14 +393,13 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
 
     // Update all edges referencing this node
     setEdges((eds) =>
-      eds.map((e) => ({
-        ...e,
-        id: e.source === oldId || e.target === oldId
-          ? `${e.source === oldId ? newId : e.source}-${e.target === oldId ? newId : e.target}`
-          : e.id,
-        source: e.source === oldId ? newId : e.source,
-        target: e.target === oldId ? newId : e.target,
-      }))
+      eds.map((e) => {
+        if (e.source !== oldId && e.target !== oldId) return e;
+        const source = e.source === oldId ? newId : e.source;
+        const target = e.target === oldId ? newId : e.target;
+        if (isRunAfterEdge(e)) return buildRunAfterEdge(source, target);
+        return { ...e, id: `${source}-${target}`, source, target };
+      })
     );
   };
 
@@ -424,8 +502,9 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
 
     // Actions
     onNodesChange,
-    onEdgesChange,
+    onEdgesChange: handleEdgesChange,
     onConnect,
+    isValidConnection,
     onNodeClick,
     onPaneClick,
     saveAgent,

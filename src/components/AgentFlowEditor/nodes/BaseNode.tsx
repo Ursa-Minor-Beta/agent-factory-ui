@@ -15,7 +15,7 @@ import {
   IconDatabaseEdit,
   IconDatabaseMinus,
 } from '@tabler/icons-react';
-import { branchHandleId } from '../utils/converters';
+import { branchHandleId, canRunAfter } from '../utils/converters';
 
 const nodeIcons: Record<string, Icon> = {
   input: IconArrowRightToArc,
@@ -88,10 +88,11 @@ export const BaseNode = memo(function BaseNode({ id, data, type, sourcePosition,
         )}
         <Box fz="xs" c="cyan">{id || ''}</Box>
       </Box>
-      {/* Plain output (no branch selection) - first slot when branch handles exist */}
+      {/* Plain output (no branch selection) - first slot when branch handles exist.
+          Dragging from it to another node adds a runAfter ordering dependency */}
       <Handle
           type="source"
-          isConnectableStart={false}
+          isConnectableStart={canRunAfter(type)}
           position={sourcePos}
           hidden={type === 'output'}
           style={branchSources.length > 0 ? handleOffsetStyle(0) : undefined}

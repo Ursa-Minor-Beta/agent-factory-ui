@@ -34,6 +34,14 @@ export interface NodeTypeOption {
   values?: string[]; // For enum type
 }
 
+// Top-level node field (lives next to id/type, not inside data)
+// - node[]: list of other node ids (e.g. runAfter ordering dependencies)
+export interface NodeTypeField {
+  name: string;
+  type: 'node[]';
+  description?: string;
+}
+
 export interface NodeTypeExample {
   name?: string;
   title?: string;
@@ -49,6 +57,7 @@ export interface NodeType {
   inputs?: string[];
   outputs?: string[];
   options?: NodeTypeOption[];
+  nodeFields?: NodeTypeField[];
   features?: string[];
   examples?: NodeTypeExample[];
 }

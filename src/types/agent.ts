@@ -14,6 +14,8 @@ export interface AgentNode {
   id: string;
   type: string;
   position?: { x: number; y: number };
+  // Ordering-only dependencies: ids of nodes that must finish (or be skipped) before this node runs
+  runAfter?: string[];
   data: {
     schema?: InputSchema;
     [key: string]: unknown;

@@ -160,6 +160,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     onNodesChange,
     onEdgesChange,
     onConnect,
+    isValidConnection,
     onNodeClick,
     onPaneClick,
     saveAgent,
@@ -287,6 +288,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          isValidConnection={isValidConnection}
           onNodeClick={onNodeClick}
           onPaneClick={onPaneClick}
           onNodeDragStart={ () => setIsNodesDragging(true) }
