@@ -131,15 +131,6 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     });
   }, []);
 
-  // Handle Run button - open panel and switch to Run tab
-  const handleRunClick = useCallback(() => {
-    if (!isPaletteOpen) {
-      setIsPaletteOpen(true);
-      localStorage.setItem(PALETTE_STORAGE_KEY, 'true');
-    }
-    handleActiveTabChange('run');
-  }, [isPaletteOpen, handleActiveTabChange]);
-
   // Handle Export button
   const handleExport = useCallback(async () => {
     if (!agentId) return;
@@ -257,6 +248,20 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     }
   }, [saveAgent, agent?.id, agent?.github?.rootId]);
 
+  // Memoized so it doesn't break PanelLeft memoization
+  const editorToolbar = useMemo(() => (
+    <EditorToolbar
+      agentName={agent?.name || ''}
+      agentId={agent?.id}
+      workspaceName={agent?.workspaceName}
+      github={agent?.github}
+      saving={saving}
+      isPaletteOpen={isPaletteOpen}
+      onSave={handleSave}
+      onTogglePalette={togglePalette}
+    />
+  ), [agent?.name, agent?.id, agent?.workspaceName, agent?.github, saving, isPaletteOpen, handleSave, togglePalette]);
+
   if (loading) {
     return (
       <Center style={{ width: '100%', height: '100%' }}>
@@ -272,17 +277,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
         style={{ width: '100%', height: '100%', position: 'relative' }}
         {...clipboardMouseHandlers}
       >
-        <EditorToolbar
-          agentName={agent?.name || ''}
-          agentId={agent?.id}
-          workspaceName={agent?.workspaceName}
-          github={agent?.github}
-          saving={saving}
-          isPaletteOpen={isPaletteOpen}
-          onSave={handleSave}
-          onRun={handleRunClick}
-          onTogglePalette={togglePalette}
-        />
+        {!isPaletteOpen && editorToolbar}
         <ReactFlow
           nodes={displayNodes}
           edges={displayEdges}
@@ -326,6 +321,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
 
       {isPaletteOpen &&
         <PanelLeft
+          header={editorToolbar}
           isNodesDragging={isNodesDragging}
           activeTab={activeTab}
           agent={agent}
@@ -340,7 +336,6 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
           onAddNode={handleAddNode}
           onAgentInfoChange={updateAgentInfo}
           onWorkspaceChange={updateWorkspace}
-          onClose={togglePalette}
           onEdgeTypeChange={changeEdgeType}
           onExport={handleExport}
           onLayoutDirectionChange={changeLayoutDirection}

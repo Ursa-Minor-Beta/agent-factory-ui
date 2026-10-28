@@ -71,6 +71,7 @@ export const BaseNode = memo(function BaseNode({ id, data, type, sourcePosition,
     <>
       <Handle
           type="target"
+          isConnectableStart={false}
           position={targetPosition ?? Position.Left}
           hidden={type === 'input'}
           />
@@ -90,6 +91,7 @@ export const BaseNode = memo(function BaseNode({ id, data, type, sourcePosition,
       {/* Plain output (no branch selection) - first slot when branch handles exist */}
       <Handle
           type="source"
+          isConnectableStart={false}
           position={sourcePos}
           hidden={type === 'output'}
           style={branchSources.length > 0 ? handleOffsetStyle(0) : undefined}
@@ -114,10 +116,10 @@ export const BaseNode = memo(function BaseNode({ id, data, type, sourcePosition,
       {branchSources.map((branch, index) => (
             <Handle
                 key={index}
+                isConnectableStart={false}
                 id={branchHandleId(index)}
                 type="source"
                 position={sourcePos}
-                isConnectableStart={false}
                 title={branch?.name}
                 style={handleOffsetStyle(index + 1)}
                 >

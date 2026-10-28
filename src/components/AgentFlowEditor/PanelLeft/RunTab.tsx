@@ -278,7 +278,7 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }
         <Card style={{ flex: 1, minHeight: 0 }} withBorder>
           <Group mb="xs">
             <Text size="xs" fw={500}>Output</Text>
-            {output.runId && !running && (
+            {output.runId && (
               <ActionIcon
                 size="xs"
                 variant="subtle"

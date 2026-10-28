@@ -1,6 +1,5 @@
-import { useEffect, useState, useCallback, useRef, memo } from 'react';
-import { Box, Text, Group, ActionIcon, Divider, Tabs } from '@mantine/core';
-import { IconLayoutSidebar } from '@tabler/icons-react';
+import { useEffect, useState, useCallback, useRef, memo, type ReactNode } from 'react';
+import { Box, Divider, Tabs } from '@mantine/core';
 import type { NodeType, AgentExample } from '../../../api';
 import type { Agent } from '../../../types/agent';
 import type { ChatStatusEvent } from '../../../api/sessions';
@@ -17,6 +16,7 @@ const STORAGE_KEY = 'agent-editor-palette-width';
 const TAB_STORAGE_KEY = 'agent-editor-active-tab';
 
 interface PanelLeftProps {
+  header: ReactNode;
   isNodesDragging: boolean;
   nodeTypes: NodeType[];
   existingNodeTypes: Set<string>;
@@ -33,7 +33,6 @@ interface PanelLeftProps {
   onAgentInfoChange: (data: { name?: string; description?: string }) => Promise<void>;
   onWorkspaceChange?: (workspaceId: string | null) => Promise<void>;
   onLoadTemplate: (template: AgentExample) => void;
-  onClose: () => void;
   onExport?: () => void;
   exporting?: boolean;
   onReloadAgent?: () => void;
@@ -43,7 +42,7 @@ interface PanelLeftProps {
   onRunClear?: () => void;
 }
 
-export const PanelLeft = memo(function({ nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, savedAt, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onWorkspaceChange, onLoadTemplate, onClose, onExport, exporting, onReloadAgent, onRunStart, onNodeStatus, onRunEnd, onRunClear }: PanelLeftProps) {
+export const PanelLeft = memo(function({ header, nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, savedAt, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onWorkspaceChange, onLoadTemplate, onExport, exporting, onReloadAgent, onRunStart, onNodeStatus, onRunEnd, onRunClear }: PanelLeftProps) {
   const [viewingNodeType, setViewingNodeType] = useState<NodeType | null>(null);
   const [internalActiveTab, setInternalActiveTab] = useState<string | null>(() => {
     const saved = localStorage.getItem(TAB_STORAGE_KEY);
@@ -141,21 +140,7 @@ export const PanelLeft = memo(function({ nodeTypes, existingNodeTypes, edgeType,
         }}
       >
         <>
-          <Group gap="xs" align="center" justify="space-between" style={{ paddingLeft: 16, paddingRight: 16, paddingTop: 16, paddingBottom: 8 }}>
-            <Text fw={600} size="sm">Agent Editor</Text>
-            <ActionIcon
-              size="md"
-              variant="subtle"
-              title="Hide Panel"
-              onClick={(e) => {
-                e.stopPropagation();
-                onClose();
-              }}
-              onMouseDown={(e) => e.stopPropagation()}
-            >
-              <IconLayoutSidebar size={16} />
-            </ActionIcon>
-          </Group>
+          {header}
           <Divider />
 
           <Tabs value={activeTab} onChange={setActiveTab} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
