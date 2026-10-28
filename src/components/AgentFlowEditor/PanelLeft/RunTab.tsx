@@ -273,6 +273,8 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }
             leftSection={<IconPlayerStop size={16} />}
             color='dark'
             size="xs"
+            miw={200}
+            style={{ alignSelf: 'center' }}
             onClick={handleStop}
           >
             Stop
@@ -282,6 +284,8 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }
             leftSection={<IconPlayerPlay size={16} />}
             color="cyan"
             size="xs"
+            miw={200}
+            style={{ alignSelf: 'center' }}
             onClick={handleRun}
           >
             Run
@@ -305,11 +309,11 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }
               </ActionIcon>
             )}
           </Group>
-          <ScrollArea style={{ flex: 1 }} offsetScrollbars>
+          <ScrollArea style={{ flex: 1 }} offsetScrollbars scrollbars="y" styles={{ content: { display: 'block' } }}>
             <>
               {/* Node statuses */}
-              {/* {output.nodeStatuses.length > 0 && (
-                <ScrollArea.Autosize mah={80} offsetScrollbars mb="xs" ps='xs' style={{ border: '1px solid var(--mantine-color-default-border)', borderRadius: 'var(--mantine-radius-sm)' }}>
+              {!animate && output.nodeStatuses.length > 0 && (
+                <ScrollArea.Autosize mah={80} offsetScrollbars scrollbars="y" styles={{ content: { display: 'block', minWidth: 0 } }} mb="xs" ps='xs' style={{ border: '1px solid var(--mantine-color-default-border)', borderRadius: 'var(--mantine-radius-sm)' }}>
                   <Stack gap={2}>
                     {output.nodeStatuses.map((ns, i) => (
                       <Text key={i} size="xs" c="dimmed">
@@ -318,7 +322,7 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }
                     ))}
                   </Stack>
                 </ScrollArea.Autosize>
-              )} */}
+              )}
 
               {/* Loading indicator */}
               {running && (

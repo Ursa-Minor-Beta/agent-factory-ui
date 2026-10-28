@@ -11,6 +11,7 @@ import { edgeTypes } from './edges';
 import type { AgentFlowEditorProps } from './types';
 import type { NodeType } from '../../api';
 import { agentsApi } from '../../api';
+import { config } from '../../config';
 import type { ChatStatusEvent } from '../../api/sessions';
 import type { NodeStatus } from '../../types';
 import { PanelLeft } from './PanelLeft';
@@ -177,6 +178,17 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     setViewportGetter,
     reloadAgent,
   } = useAgentEditor({ agentId, workspaceId });
+
+  // Show agent name in browser tab title, restore Layout's title on leave
+  const agentName = agent?.name;
+  useEffect(() => {
+    if (!agentName) return;
+    const prevTitle = document.title;
+    document.title = `${agentName} | ${config.appName}`;
+    return () => {
+      document.title = prevTitle;
+    };
+  }, [agentName]);
 
   // Apply run status classes for rendering only - stored nodes stay untouched
   const displayNodes = useMemo(() => {
