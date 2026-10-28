@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
-import { Box, Button, TextInput, Textarea, Stack, Text, Alert, ScrollArea, Loader, Group, ActionIcon, Card, Switch, Slider } from '@mantine/core';
-import { IconPlayerPlay, IconPlayerStop, IconAlertCircle, IconListDetails } from '@tabler/icons-react';
+import { Box, Button, TextInput, Textarea, Stack, Text, Alert, ScrollArea, Loader, Group, ActionIcon, Card, Switch, Slider, Collapse } from '@mantine/core';
+import { IconPlayerPlay, IconPlayerStop, IconAlertCircle, IconListDetails, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 import { sessionsApi, type ChatStatusEvent } from '../../../api/sessions';
 import type { Agent, InputSchema } from '../../../types';
 import { getInputSchema } from '../../../pages/Chat/types';
@@ -19,6 +19,7 @@ const INPUTS_STORAGE_KEY = 'agent-editor-run-inputs';
 
 const ANIMATE_STORAGE_KEY = 'agent-editor-run-animate';
 const SPEED_STORAGE_KEY = 'agent-editor-run-speed';
+const INPUTS_OPEN_STORAGE_KEY = 'agent-editor-run-inputs-open';
 
 // Min time each executed node is shown as "running" during the animation
 const MIN_RUNNING_MS = 50;
@@ -43,6 +44,15 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }
       return {};
     }
   });
+  const [inputsOpen, setInputsOpen] = useState(() => localStorage.getItem(INPUTS_OPEN_STORAGE_KEY) !== 'false');
+
+  const toggleInputsOpen = useCallback(() => {
+    setInputsOpen((prev) => {
+      localStorage.setItem(INPUTS_OPEN_STORAGE_KEY, String(!prev));
+      return !prev;
+    });
+  }, []);
+
   const [animate, setAnimate] = useState(() => localStorage.getItem(ANIMATE_STORAGE_KEY) === 'true');
   // Ref so stream callbacks of an ongoing run see toggle changes
   const animateRef = useRef(animate);
@@ -183,7 +193,12 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }
       <Card withBorder >
         {inputFields.length > 0 ? (
           <>
-            <Text size="xs" fw={500}>Inputs</Text>
+            <Group gap={4} mb="xs" onClick={toggleInputsOpen} style={{ cursor: 'pointer', userSelect: 'none' }}>
+              {inputsOpen ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}
+              <Text size="xs" fw={500}>Inputs</Text>
+              {!inputsOpen && <Text size="xs" c="dimmed">({inputFields.length})</Text>}
+            </Group>
+            <Collapse expanded={inputsOpen}>
             {inputFields.map(([key, schema]) => {
               const label = key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim();
               const placeholder = schema.default ? `Default: ${schema.default}` : '';
@@ -217,6 +232,7 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }
                 />
               );
             })}
+            </Collapse>
           </>
         ) : (
           <Text size="xs" c="dimmed">No input fields defined</Text>
