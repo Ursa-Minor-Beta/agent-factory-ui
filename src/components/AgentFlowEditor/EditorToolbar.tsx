@@ -38,7 +38,7 @@ export function EditorToolbar({
       wrap="nowrap"
       style={isPaletteOpen
         ? { padding: '12px 12px 8px', minWidth: 0 }
-        : { position: 'absolute', top: 16, left: 16, zIndex: 10, padding: '4px 12px 4px 4px', ...glassStyle }
+        : { position: 'absolute', top: 8, left: 8, zIndex: 10, padding: '4px 12px 4px 4px', ...glassStyle }
       }
     >
       <ActionIcon
@@ -76,7 +76,7 @@ export function EditorToolbar({
         )}
       </Group>
 
-      <Group gap="xs" wrap="nowrap" ml="auto" style={{ flexShrink: 0 }}>
+      <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
         <ActionIcon
           size="xs"
           variant="subtle"
