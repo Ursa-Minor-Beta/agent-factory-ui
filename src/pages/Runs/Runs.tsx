@@ -103,7 +103,10 @@ export function RunsPage() {
       if (startedBefore) params.startedBefore = startedBefore.toISOString();
 
       const response = await runsApi.listAll(params);
-      setRuns(response.runs);
+      setRuns(response.runs.map( r => ({
+        ...r,
+        status: r.serviceStatus === 'active' ? 'running' : r.status
+      })));
       setTotal(response.total);
       setError('');
     } catch (err) {
@@ -445,8 +448,7 @@ export function RunsPage() {
                   />
                 </Table.Th>
                 <Table.Th>Status</Table.Th>
-                <Table.Th>Status Manager</Table.Th>
-                <Table.Th>Agent ID</Table.Th>
+                <Table.Th>Agent</Table.Th>
                 <Table.Th>Started</Table.Th>
                 <Table.Th>Duration</Table.Th>
                 {includeChildren && <Table.Th>Child Runs</Table.Th>}
@@ -483,9 +485,6 @@ export function RunsPage() {
                     >
                       {run.status}
                     </Badge>
-                  </Table.Td>
-                  <Table.Td>
-                      {run.serviceStatus}
                   </Table.Td>
                   <Table.Td>
                     <Group gap="xs">
