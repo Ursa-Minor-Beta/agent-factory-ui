@@ -82,7 +82,7 @@ export const TextInput = memo(function TextInput({ name, description, nodeLabel,
             onScroll={handleScroll}
             onKeyDown={handleKeyDown}
             minRows={3}
-            maxRows={8}
+            maxRows={12}
             autosize
             styles={{
               input: {

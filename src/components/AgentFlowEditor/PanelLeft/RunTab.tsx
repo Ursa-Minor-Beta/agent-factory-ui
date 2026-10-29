@@ -213,7 +213,8 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }
                     value={inputs[key] || ''}
                     onChange={(e) => handleInputChange(key, e.target.value)}
                     minRows={2}
-                    maxRows={4}
+                    maxRows={12}
+                    autosize
                     size="xs"
                     mb="xs"
                   />

@@ -154,14 +154,8 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, onUpdate, onUpdateId,
   const nodesMetadata = useMemo((): NodeMetadata[] => {
     if (!nodes || nodes.length === 0) return [];
 
-    // Create a map of nodeId -> node type for quick lookup
-    const nodeTypeMap = new Map<string, string>();
-    nodes.forEach(n => {
-      nodeTypeMap.set(n.id, n.type || 'default');
-    });
-
     // Exclude the current node - it can't reference its own outputs
-    return nodes.filter(n => n.id !== node.id).map(n => {
+    return nodes.filter(n => n.id !== node.id && n.type !== 'output' ).map(n => {
       // Find the node type definition for this node's type
       const nodeTypeDef = nodeTypes.find(nt => nt.type === n.type);
 
