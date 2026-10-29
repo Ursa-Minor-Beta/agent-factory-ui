@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "vite": "vite",
     "dev": "npm audit --audit-level=high && vite",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",

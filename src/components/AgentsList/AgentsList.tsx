@@ -234,6 +234,7 @@ export function AgentsList({
         description: fullAgent.description,
         nodes: fullAgent.nodes,
         workspaceId: fullAgent.workspaceId || workspaceId,
+        editorData: fullAgent.editorData
       });
       loadAgents();
       onCreate?.();
