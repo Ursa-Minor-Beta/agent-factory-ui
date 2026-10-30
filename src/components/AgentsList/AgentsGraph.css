@@ -13,6 +13,10 @@
   stroke-width: 1;
 }
 
+.agents-graph .agents-graph-edge-tool .react-flow__edge-path {
+  stroke-dasharray: 5; /* xyflow's dashed edge look (as on its animated edges), static */
+}
+
 .agents-graph .react-flow__edge-text {
   fill: var(--mantine-color-dimmed);
 }

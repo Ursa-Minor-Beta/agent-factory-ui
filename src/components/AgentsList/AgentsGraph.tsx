@@ -325,6 +325,7 @@ function AgentsGraphInner({ workspaceId, refreshKey, compact, currentAgentId, ru
       source: r.source,
       target: r.target,
       label: compact ? undefined : r.via,
+      className: r.via === 'tool' ? 'agents-graph-edge-tool' : undefined, // agent node call: solid, tool call: dotted
     }));
     // Horizontal extent straight from the layout - no need to wait for React Flow to measure nodes
     const xs = layoutNodes.map((n) => n.position.x);
