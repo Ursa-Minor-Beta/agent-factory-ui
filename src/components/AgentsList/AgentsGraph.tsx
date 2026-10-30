@@ -255,6 +255,7 @@ interface AgentsGraphProps extends Partial<CardActions> {
   refreshKey?: unknown; // Graph refetches when this changes (e.g. after delete/clone in the list), otherwise uses the cache
   compact?: boolean; // Name-only nodes that fill the parent (editor side panel); click opens the agent's editor
   currentAgentId?: string; // Highlighted agent
+  topInset?: number; // Extra top space (px) kept free when fitting, e.g. for a toolbar floating over the graph
 }
 
 export function AgentsGraph(props: AgentsGraphProps) {
@@ -266,7 +267,7 @@ export function AgentsGraph(props: AgentsGraphProps) {
   );
 }
 
-function AgentsGraphInner({ workspaceId, refreshKey, compact, currentAgentId, ...handlers }: AgentsGraphProps) {
+function AgentsGraphInner({ workspaceId, refreshKey, compact, currentAgentId, topInset = 0, ...handlers }: AgentsGraphProps) {
   const navigate = useNavigate();
   const colorScheme = useComputedColorScheme('dark');
   const cacheKey = workspaceId ?? '';
@@ -341,16 +342,16 @@ function AgentsGraphInner({ workspaceId, refreshKey, compact, currentAgentId, ..
     const zoom = Math.min(FIT_MAX_ZOOM, (containerWidth - FIT_PADDING * 2) / graphWidth);
     setViewport({
       x: (containerWidth - graphWidth * zoom) / 2 - bounds.minX * zoom,
-      y: FIT_PADDING - bounds.minY * zoom,
+      y: FIT_PADDING + topInset - bounds.minY * zoom,
       zoom,
     });
-  }, [bounds, containerWidth]);
+  }, [bounds, containerWidth, topInset]);
 
   return (
     <Box
       style={compact
         ? { display: 'flex', flexDirection: 'column', height: '100%' }
-        : { display: 'flex', flexDirection: 'column', height: 'calc(100vh - 200px)', minHeight: 400 }}
+        : { display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)', minHeight: 400 }}
     >
 
       {error && (

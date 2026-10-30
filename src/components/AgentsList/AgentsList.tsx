@@ -290,9 +290,14 @@ export function AgentsList({
   const totalPages = Math.ceil(total / limit);
 
   return (
-    <Box>
-      {/* Main toolbar */}
-      <Group mb="md" gap="sm" wrap="wrap">
+    <Box pos="relative">
+      {/* Main toolbar - floats over the graph in graph mode so the graph gets the full height */}
+      <Group
+        mb={viewMode === 'graph' ? 0 : 'md'}
+        gap="sm"
+        wrap="wrap"
+        style={viewMode === 'graph' ? { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 } : undefined}
+      >
         {workspaceId && (
           <SegmentedControl
             value={viewMode}
@@ -430,11 +435,12 @@ export function AgentsList({
           {total} agent{total !== 1 ? 's' : ''} found
         </Text>
       )} */}
-      <Box mb="xl" />
+      {viewMode === 'list' && <Box mb="xl" />}
 
       {viewMode === 'graph' ? (
         <AgentsGraph
           workspaceId={workspaceId}
+          topInset={48}
           refreshKey={graphVersion}
           onEdit={handleOpenEditModal}
           onDelete={setAgentToDelete}
