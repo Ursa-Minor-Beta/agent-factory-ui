@@ -205,13 +205,27 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     };
   }, [agentName]);
 
-  // Apply run status classes for rendering only - stored nodes stay untouched
+  // Apply run status classes for rendering only - stored nodes stay untouched.
+  // Copies are reused while node and status are unchanged, so a status update re-renders only that node
+  const displayNodeCache = useRef(new Map<string, { source: (typeof nodes)[number]; display: (typeof nodes)[number] }>());
   const displayNodes = useMemo(() => {
-    if (!runStatuses) return nodes;
-    return nodes.map((node) => ({
-      ...node,
-      className: `run-${runStatuses[node.id] ?? 'pending'}`,
-    }));
+    if (!runStatuses) {
+      displayNodeCache.current.clear();
+      return nodes;
+    }
+    const cache = displayNodeCache.current;
+    const next = new Map<string, { source: (typeof nodes)[number]; display: (typeof nodes)[number] }>();
+    const result = nodes.map((node) => {
+      const className = `run-${runStatuses[node.id] ?? 'pending'}`;
+      const cached = cache.get(node.id);
+      const display = cached && cached.source === node && cached.display.className === className
+        ? cached.display
+        : { ...node, className };
+      next.set(node.id, { source: node, display });
+      return display;
+    });
+    displayNodeCache.current = next;
+    return result;
   }, [nodes, runStatuses]);
 
   // Photons flow along edges carrying data: source finished, target running
