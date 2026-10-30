@@ -109,10 +109,9 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
       setNodes(positionedNodes);
       setEdges(flowEdges);
 
-      // Load saved viewport if available
-      if (data.editorData?.viewport) {
-        setInitialViewport(data.editorData.viewport);
-      }
+      // Saved viewport (cleared when absent, so switching agents doesn't reuse the previous one)
+      setInitialViewport(data.editorData?.viewport);
+      setSelectedNodeId(null);
     } catch (err) {
       console.error('Failed to fetch agent:', err);
     } finally {

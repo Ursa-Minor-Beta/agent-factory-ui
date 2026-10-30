@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ReactFlow,
+  ReactFlowProvider,
   Background,
   MarkerType,
   Position,
@@ -9,10 +10,12 @@ import {
   type Node,
   type Edge,
   type NodeProps,
+  type Viewport,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import './AgentsGraph.css';
-import { Alert, Box, Center, Loader, Paper, useComputedColorScheme } from '@mantine/core';
+import { Alert, Box, Center, Loader, Paper, Text, useComputedColorScheme } from '@mantine/core';
+import { useElementSize } from '@mantine/hooks';
 import { IconAlertCircle } from '@tabler/icons-react';
 import { agentsApi } from '../../api';
 import type { Agent } from '../../types';
@@ -20,9 +23,15 @@ import { routes } from '../../config/routes';
 import { AgentCard } from './AgentCard';
 import type { AgentCardProps } from './types';
 
-const NODE_WIDTH = 300;
-const COL_GAP = 80;
-const ROW_GAP = 240;
+interface GraphSizes {
+  nodeWidth: number;
+  slot: number; // node width + horizontal gap
+  rowGap: number;
+}
+
+// Full AgentCard nodes (agents list) vs. name-only nodes (editor side panel)
+const CARD_SIZES: GraphSizes = { nodeWidth: 300, slot: 380, rowGap: 240 };
+const COMPACT_SIZES: GraphSizes = { nodeWidth: 160, slot: 190, rowGap: 90 };
 
 interface Relation {
   source: string;
@@ -31,7 +40,7 @@ interface Relation {
 }
 
 type CardActions = Omit<AgentCardProps, 'agent'>;
-type AgentNodeData = { agent: Agent; actions: CardActions };
+type AgentNodeData = { agent: Agent; actions?: CardActions; current: boolean };
 
 // Walk node data recursively: `agent` nodes hold data.agentId, LLM tool definitions hold { agentId }
 function collectAgentIds(value: unknown, out: Set<string>) {
@@ -65,7 +74,6 @@ function extractRelations(agents: Agent[]): Relation[] {
   return [...relations.values()];
 }
 
-const SLOT = NODE_WIDTH + COL_GAP;
 const ORDER_SWEEPS = 6;
 const POSITION_SWEEPS = 8;
 
@@ -79,7 +87,11 @@ const average = (values: number[]) => values.reduce((s, v) => s + v, 0) / values
  *  3. Placement  - pull each agent toward the average x of its callers/callees, keeping min spacing
  * Agents without any relations are put in a grid below the tree.
  */
-function layout(agents: Agent[], relations: Relation[]): Map<string, { x: number; y: number }> {
+function layout(
+  agents: Agent[],
+  relations: Relation[],
+  { slot: SLOT, rowGap: ROW_GAP }: GraphSizes,
+): Map<string, { x: number; y: number }> {
   const nameOf = new Map(agents.map((a) => [a.id, a.name]));
   const byName = (a: string, b: string) => nameOf.get(a)!.localeCompare(nameOf.get(b)!);
   const children = new Map<string, string[]>();
@@ -183,17 +195,45 @@ function layout(agents: Agent[], relations: Relation[]): Map<string, { x: number
 function AgentRelationNode({ data }: NodeProps<Node<AgentNodeData>>) {
   const { agent, actions } = data;
   return (
-    <Box style={{ width: NODE_WIDTH, boxShadow: 'var(--mantine-shadow-xs)' }}>
+    <Box style={{ width: CARD_SIZES.nodeWidth, boxShadow: 'var(--mantine-shadow-xs)' }}>
       <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
-      <AgentCard agent={agent} {...actions} />
+      {actions && <AgentCard agent={agent} {...actions} />}
       <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
     </Box>
   );
 }
 
-const nodeTypes = { agent: AgentRelationNode };
+function CompactAgentNode({ data }: NodeProps<Node<AgentNodeData>>) {
+  const { agent, current } = data;
+  return (
+    <Paper
+      withBorder
+      radius="md"
+      px="xs"
+      py={6}
+      style={{
+        width: COMPACT_SIZES.nodeWidth,
+        cursor: current ? 'default' : 'pointer',
+        background: current
+          ? 'light-dark(var(--mantine-color-cyan-0), var(--mantine-color-cyan-9))'
+          : 'light-dark(var(--mantine-color-white), var(--mantine-color-dark-6))',
+        borderColor: current ? 'var(--mantine-color-cyan-5)' : undefined,
+        boxShadow: current ? '0 0 0 2px var(--mantine-color-cyan-5)' : 'var(--mantine-shadow-xs)',
+      }}
+    >
+      <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
+      <Text size="xs" fw={current ? 700 : 500} ta="center" truncate>{agent.name}</Text>
+      <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
+    </Paper>
+  );
+}
+
+const cardNodeTypes = { agent: AgentRelationNode };
+const compactNodeTypes = { agent: CompactAgentNode };
 
 const PAGE_SIZE = 100; // backend max for list
+const FIT_PADDING = 16; // px around the graph
+const FIT_MAX_ZOOM = 1; // never enlarge small graphs
 
 // In-memory cache per workspace: survives in-app navigation, cleared on page reload
 const agentsCache = new Map<string, Agent[]>();
@@ -211,12 +251,23 @@ async function fetchAllAgents(workspaceId?: string): Promise<Agent[]> {
   return Promise.all(listed.map(async (a) => ({ ...a, nodes: (await agentsApi.getById(a.id)).nodes })));
 }
 
-interface AgentsGraphProps extends CardActions {
+interface AgentsGraphProps extends Partial<CardActions> {
   workspaceId?: string; // If provided, only agents of this workspace are shown
   refreshKey?: unknown; // Graph refetches when this changes (e.g. after delete/clone in the list), otherwise uses the cache
+  compact?: boolean; // Name-only nodes that fill the parent (editor side panel); click opens the agent's editor
+  currentAgentId?: string; // Highlighted agent
 }
 
-export function AgentsGraph({ workspaceId, refreshKey, ...actions }: AgentsGraphProps) {
+export function AgentsGraph(props: AgentsGraphProps) {
+  // Own provider so the graph never shares the agent editor's React Flow store
+  return (
+    <ReactFlowProvider>
+      <AgentsGraphInner {...props} />
+    </ReactFlowProvider>
+  );
+}
+
+function AgentsGraphInner({ workspaceId, refreshKey, compact, currentAgentId, ...handlers }: AgentsGraphProps) {
   const navigate = useNavigate();
   const colorScheme = useComputedColorScheme('dark');
   const cacheKey = workspaceId ?? '';
@@ -252,47 +303,78 @@ export function AgentsGraph({ workspaceId, refreshKey, ...actions }: AgentsGraph
     return () => { cancelled = true; };
   }, [cacheKey, workspaceId, refreshKey]);
 
-  const { nodes, edges } = useMemo(() => {
+  const sizes = compact ? COMPACT_SIZES : CARD_SIZES;
+  const actions = compact ? undefined : (handlers as CardActions);
+
+  const { nodes, edges, bounds } = useMemo(() => {
     const relations = extractRelations(agents);
-    const positions = layout(agents, relations);
+    const positions = layout(agents, relations, sizes);
     const nodes: Node<AgentNodeData>[] = agents.map((agent) => ({
       id: agent.id,
       type: 'agent',
       position: positions.get(agent.id) ?? { x: 0, y: 0 },
-      data: { agent, actions },
+      data: { agent, actions, current: agent.id === currentAgentId },
     }));
     const edges: Edge[] = relations.map((r) => ({
       id: `${r.source}->${r.target}`,
       source: r.source,
       target: r.target,
-      label: r.via,
-      markerEnd: { type: MarkerType.ArrowClosed },
+      label: compact ? undefined : r.via,
       style: { stroke: r.via === 'tool' ? 'var(--mantine-color-violet-5)' : 'var(--mantine-color-cyan-5)' },
     }));
-    return { nodes, edges };
+    // Horizontal extent straight from the layout - no need to wait for React Flow to measure nodes
+    const xs = nodes.map((n) => n.position.x);
+    const ys = nodes.map((n) => n.position.y);
+    const bounds = nodes.length
+      ? { minX: Math.min(...xs), maxX: Math.max(...xs) + sizes.nodeWidth, minY: Math.min(...ys) }
+      : null;
+    return { nodes, edges, bounds };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- handlers are recreated each render of the list
-  }, [agents]);
+  }, [agents, compact, currentAgentId]);
+
+  // Fit to width, centred horizontally, pinned to the top. Recomputed on container resize or new data;
+  // controlled viewport so it applies immediately, while pan/zoom still update it via onViewportChange.
+  const { ref: containerRef, width: containerWidth } = useElementSize();
+  const [viewport, setViewport] = useState<Viewport>({ x: 0, y: 0, zoom: 1 });
+  useEffect(() => {
+    if (!bounds || containerWidth === 0) return;
+    const graphWidth = bounds.maxX - bounds.minX;
+    const zoom = Math.min(FIT_MAX_ZOOM, (containerWidth - FIT_PADDING * 2) / graphWidth);
+    setViewport({
+      x: (containerWidth - graphWidth * zoom) / 2 - bounds.minX * zoom,
+      y: FIT_PADDING - bounds.minY * zoom,
+      zoom,
+    });
+  }, [bounds, containerWidth]);
 
   return (
-    <Box style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 200px)', minHeight: 400 }}>
+    <Box
+      style={compact
+        ? { display: 'flex', flexDirection: 'column', height: '100%' }
+        : { display: 'flex', flexDirection: 'column', height: 'calc(100vh - 200px)', minHeight: 400 }}
+    >
 
       {error && (
         <Alert icon={<IconAlertCircle size={16} />} color="red" mb="md">{error}</Alert>
       )}
 
-      <Paper style={{ flex: 1, overflow: 'hidden' }}>
+      <Paper ref={containerRef} style={{ flex: 1, overflow: 'hidden' }}>
         {loading ? (
           <Center h="100%"><Loader /></Center>
         ) : (
           <ReactFlow
             nodes={nodes}
             edges={edges}
-            nodeTypes={nodeTypes}
+            nodeTypes={compact ? compactNodeTypes : cardNodeTypes}
             className="agents-graph"
             colorMode={colorScheme}
-            fitView
+            viewport={viewport}
+            onViewportChange={setViewport}
+            minZoom={0.05}
             nodesConnectable={false}
-            onNodeDoubleClick={(_, node) => navigate(routes.agentEditor(node.id))}
+            nodesDraggable={!compact}
+            onNodeClick={compact ? (_, node) => { if (node.id !== currentAgentId) navigate(routes.agentEditor(node.id)); } : undefined}
+            onNodeDoubleClick={compact ? undefined : (_, node) => navigate(routes.agentEditor(node.id))}
             proOptions={{ hideAttribution: true }}
           >
             <Background />

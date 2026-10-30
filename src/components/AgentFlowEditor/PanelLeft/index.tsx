@@ -9,6 +9,7 @@ import { SettingsTab } from './SettingsTab';
 import { RunTab } from './RunTab';
 import { TemplatesTab } from './TemplatesTab';
 import { GitTab } from './GitTab';
+import { AgentsGraph } from '../../AgentsList/AgentsGraph';
 
 const MIN_WIDTH = 120;
 const MAX_WIDTH_RATIO = 0.7; // 40% of viewport
@@ -51,7 +52,10 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
   });
 
   // Use external tab if provided, otherwise internal
-  const activeTab = externalActiveTab ?? internalActiveTab;
+  const workspaceId = agent?.workspaceId;
+  const requestedTab = externalActiveTab ?? internalActiveTab;
+  // Relations tab only exists for agents in a workspace
+  const activeTab = requestedTab === 'relations' && !workspaceId ? 'nodes' : requestedTab;
   const setActiveTab = (tab: string | null) => {
     if (onActiveTabChange) {
       onActiveTabChange(tab);
@@ -150,6 +154,7 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
               <Tabs.Tab value="settings">Settings</Tabs.Tab>
               <Tabs.Tab value="git">Git</Tabs.Tab>
               <Tabs.Tab value="run">Run</Tabs.Tab>
+              {workspaceId && <Tabs.Tab value="relations">Relations</Tabs.Tab>}
             </Tabs.List>
 
             <Tabs.Panel value="nodes" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
@@ -184,6 +189,14 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
                 exporting={exporting}
               />
             </Tabs.Panel>
+
+            {workspaceId && (
+              <Tabs.Panel value="relations" style={{ flex: 1, minHeight: 0 }}>
+                {activeTab === 'relations' && (
+                  <AgentsGraph compact workspaceId={workspaceId} currentAgentId={agent?.id} refreshKey={savedAt} />
+                )}
+              </Tabs.Panel>
+            )}
 
             <Tabs.Panel value="git" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
               <GitTab agent={agent} savedAt={savedAt} onReloadAgent={onReloadAgent} />

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ReactFlow, MiniMap, type ReactFlowInstance } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import './AgentFlowEditor.css';
-import { Center, Loader } from '@mantine/core';
+import { Center, Loader, LoadingOverlay } from '@mantine/core';
 import { useAgentEditor } from './hooks/useAgentEditor';
 import { useNodeClipboard } from './hooks/useNodeClipboard';
 import { EditorToolbar } from './EditorToolbar';
@@ -275,7 +275,18 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     />
   ), [agent?.name, agent?.id, agent?.workspaceName, agent?.github, saving, isPaletteOpen, handleSave, togglePalette]);
 
-  if (loading) {
+  // Apply the loaded agent's viewport when switching agents in place (first load is handled by onInit)
+  useEffect(() => {
+    const instance = reactFlowInstance.current;
+    if (!instance || loading) return;
+    if (initialViewport) instance.setViewport(initialViewport);
+    else requestAnimationFrame(() => instance.fitView());
+    setRunStatuses(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- only when a different agent finished loading
+  }, [agent?.id, loading]);
+
+  // Full-screen loader only for the first load; switching agents keeps the editor mounted
+  if (loading && !agent?.id) {
     return (
       <Center style={{ width: '100%', height: '100%' }}>
         <Loader />
@@ -291,6 +302,8 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
         {...clipboardMouseHandlers}
       >
         {!isPaletteOpen && editorToolbar}
+        {/* Switching agents: cover only the canvas, side panels stay usable (they sit above at zIndex 100) */}
+        <LoadingOverlay visible={loading} zIndex={5} overlayProps={{ blur: 2 }} />
         <ReactFlow
           nodes={displayNodes}
           edges={displayEdges}
