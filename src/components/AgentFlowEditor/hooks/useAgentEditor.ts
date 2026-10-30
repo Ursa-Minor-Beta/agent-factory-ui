@@ -124,12 +124,17 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     if (!agentId) return;
 
     if (agentId === 'new') {
+      // Editor may stay mounted when switching from another agent - start from an empty canvas
       setAgent({ workspaceId });
+      setNodes([]);
+      setEdges([]);
+      setSelectedNodeId(null);
+      setInitialViewport(undefined);
       return;
     }
 
     fetchAgent();
-  }, [agentId, fetchAgent, workspaceId]);
+  }, [agentId, fetchAgent, workspaceId, setNodes, setEdges]);
 
   // Set target's runAfter list, keeping flow data in sync
   const setNodeRunAfter = useCallback(

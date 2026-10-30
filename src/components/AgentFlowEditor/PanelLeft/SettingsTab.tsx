@@ -73,7 +73,7 @@ export function SettingsTab({ agent, edgeType, layoutDirection, onAgentInfoChang
   useEffect(() => {
     if (agent) {
       reset({
-        name: agent.name,
+        name: agent.name || '', // undefined would keep the previous agent's value (e.g. on /new)
         description: agent.description || '',
       });
     }

@@ -39,7 +39,9 @@ interface Relation {
 }
 
 type CardActions = Omit<AgentCardProps, 'agent'>;
-type AgentNodeData = { agent: Agent; actions?: CardActions; current: boolean };
+type AgentNodeData = { agent: Agent; actions?: CardActions; current: boolean; isNew?: boolean };
+
+const NEW_AGENT_NODE_ID = '__new-agent__';
 
 // Walk node data recursively: `agent` nodes hold data.agentId, LLM tool definitions hold { agentId }
 function collectAgentIds(value: unknown, out: Set<string>) {
@@ -203,7 +205,7 @@ function AgentRelationNode({ data }: NodeProps<Node<AgentNodeData>>) {
 }
 
 function CompactAgentNode({ data }: NodeProps<Node<AgentNodeData>>) {
-  const { agent, current } = data;
+  const { agent, current, isNew } = data;
   return (
     <Paper
       withBorder
@@ -218,10 +220,13 @@ function CompactAgentNode({ data }: NodeProps<Node<AgentNodeData>>) {
           : 'light-dark(var(--mantine-color-white), var(--mantine-color-dark-6))',
         borderColor: current ? 'var(--mantine-color-cyan-5)' : undefined,
         boxShadow: current ? '0 0 0 2px var(--mantine-color-cyan-5)' : 'var(--mantine-shadow-xs)',
+        borderStyle: isNew ? 'dashed' : undefined,
       }}
     >
       <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
-      <Text size="xs" fw={current ? 700 : 500} ta="center" truncate>{agent.name}</Text>
+      <Text size="xs" fw={current ? 700 : 500} ta="center" truncate fs={isNew ? 'italic' : undefined}>
+        {agent.name}
+      </Text>
       <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
     </Paper>
   );
@@ -230,31 +235,15 @@ function CompactAgentNode({ data }: NodeProps<Node<AgentNodeData>>) {
 const cardNodeTypes = { agent: AgentRelationNode };
 const compactNodeTypes = { agent: CompactAgentNode };
 
-const PAGE_SIZE = 100; // backend max for list
 const FIT_PADDING = 16; // px around the graph
 const FIT_MAX_ZOOM = 1; // never enlarge small graphs
-
-// In-memory cache per workspace: survives in-app navigation, cleared on page reload
-const agentsCache = new Map<string, Agent[]>();
-
-async function fetchAllAgents(workspaceId?: string): Promise<Agent[]> {
-  const listed: Agent[] = [];
-  let total = Infinity;
-  while (listed.length < total) {
-    const page = await agentsApi.list({ workspaceId, skip: listed.length, limit: PAGE_SIZE });
-    listed.push(...page.agents);
-    total = page.total;
-    if (page.agents.length === 0) break;
-  }
-  // List omits nodes, so fetch each agent's definition; keep list fields (workspaceName, nodesCount) for the card
-  return Promise.all(listed.map(async (a) => ({ ...a, nodes: (await agentsApi.getById(a.id)).nodes })));
-}
 
 interface AgentsGraphProps extends Partial<CardActions> {
   workspaceId?: string; // If provided, only agents of this workspace are shown
   refreshKey?: unknown; // Graph refetches when this changes (e.g. after delete/clone in the list), otherwise uses the cache
   compact?: boolean; // Name-only nodes that fill the parent (editor side panel); click opens the agent's editor
   currentAgentId?: string; // Highlighted agent
+  newAgent?: boolean; // Show an empty highlighted placeholder for an unsaved agent (editor on /new)
   topInset?: number; // Extra top space (px) kept free when fitting, e.g. for a toolbar floating over the graph
 }
 
@@ -267,18 +256,20 @@ export function AgentsGraph(props: AgentsGraphProps) {
   );
 }
 
-function AgentsGraphInner({ workspaceId, refreshKey, compact, currentAgentId, topInset = 0, ...handlers }: AgentsGraphProps) {
+function AgentsGraphInner({ workspaceId, refreshKey, compact, currentAgentId, newAgent, topInset = 0, ...handlers }: AgentsGraphProps) {
   const navigate = useNavigate();
   const colorScheme = useComputedColorScheme('dark');
-  const cacheKey = workspaceId ?? '';
-  const [agents, setAgents] = useState<Agent[]>(() => agentsCache.get(cacheKey) ?? []);
-  const [loading, setLoading] = useState(() => !agentsCache.has(cacheKey));
+  const [agents, setAgents] = useState<Agent[]>(() => agentsApi.listAllWithNodes.peek(workspaceId) ?? []);
+  const [loading, setLoading] = useState(() => !agentsApi.listAllWithNodes.peek(workspaceId));
   const [error, setError] = useState<string | null>(null);
-  const loadedRefreshKey = useRef(refreshKey);
+  const agentsRef = useRef(agents);
+  agentsRef.current = agents;
 
+  // Cache is dropped by any agent mutation (api/agents.ts); refreshKey/currentAgentId re-check it.
+  // Also refetch when the current agent is missing (e.g. just created) even if a cache exists.
   useEffect(() => {
-    const cached = agentsCache.get(cacheKey);
-    if (cached && loadedRefreshKey.current === refreshKey) {
+    const cached = agentsApi.listAllWithNodes.peek(workspaceId);
+    if (cached && (!currentAgentId || cached.some((a) => a.id === currentAgentId))) {
       setAgents(cached);
       setLoading(false);
       return;
@@ -286,12 +277,11 @@ function AgentsGraphInner({ workspaceId, refreshKey, compact, currentAgentId, to
 
     let cancelled = false;
     const load = async () => {
-      setLoading(true);
+      // Full loader only without data; otherwise refresh in the background
+      if (!cached) setLoading((prev) => prev || agentsRef.current.length === 0);
       setError(null);
       try {
-        const full = await fetchAllAgents(workspaceId);
-        agentsCache.set(cacheKey, full);
-        loadedRefreshKey.current = refreshKey;
+        const full = await agentsApi.listAllWithNodes.fetch(workspaceId);
         if (!cancelled) setAgents(full);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load agents');
@@ -301,7 +291,7 @@ function AgentsGraphInner({ workspaceId, refreshKey, compact, currentAgentId, to
     };
     load();
     return () => { cancelled = true; };
-  }, [cacheKey, workspaceId, refreshKey]);
+  }, [workspaceId, refreshKey, currentAgentId]);
 
   const sizes = compact ? COMPACT_SIZES : CARD_SIZES;
   const actions = compact ? undefined : (handlers as CardActions);
@@ -315,6 +305,18 @@ function AgentsGraphInner({ workspaceId, refreshKey, compact, currentAgentId, to
       position: positions.get(agent.id) ?? { x: 0, y: 0 },
       data: { agent, actions, current: agent.id === currentAgentId },
     }));
+    if (newAgent) {
+      // Placeholder below everything, centred horizontally
+      const xs = nodes.map((n) => n.position.x);
+      const centerX = nodes.length ? (Math.min(...xs) + Math.max(...xs)) / 2 : 0;
+      const bottomY = nodes.length ? Math.max(...nodes.map((n) => n.position.y)) + sizes.rowGap : 0;
+      nodes.push({
+        id: NEW_AGENT_NODE_ID,
+        type: 'agent',
+        position: { x: centerX, y: bottomY },
+        data: { agent: { id: NEW_AGENT_NODE_ID, name: 'New agent' } as Agent, current: true, isNew: true },
+      });
+    }
     const edges: Edge[] = relations.map((r) => ({
       id: `${r.source}->${r.target}`,
       source: r.source,
@@ -330,7 +332,7 @@ function AgentsGraphInner({ workspaceId, refreshKey, compact, currentAgentId, to
       : null;
     return { nodes, edges, bounds };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- handlers are recreated each render of the list
-  }, [agents, compact, currentAgentId]);
+  }, [agents, compact, currentAgentId, newAgent]);
 
   // Fit to width, centred horizontally, pinned to the top. Recomputed on container resize or new data;
   // controlled viewport so it applies immediately, while pan/zoom still update it via onViewportChange.
@@ -373,7 +375,7 @@ function AgentsGraphInner({ workspaceId, refreshKey, compact, currentAgentId, to
             minZoom={0.05}
             nodesConnectable={false}
             nodesDraggable={!compact}
-            onNodeClick={compact ? (_, node) => { if (node.id !== currentAgentId) navigate(routes.agentEditor(node.id)); } : undefined}
+            onNodeClick={compact ? (_, node) => { if (node.id !== currentAgentId && node.id !== NEW_AGENT_NODE_ID) navigate(routes.agentEditor(node.id)); } : undefined}
             onNodeDoubleClick={compact ? undefined : (_, node) => navigate(routes.agentEditor(node.id))}
             proOptions={{ hideAttribution: true }}
           >

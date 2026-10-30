@@ -1,5 +1,8 @@
 import { useEffect, useState, useCallback, useRef, memo, type ReactNode } from 'react';
-import { Box, Tabs } from '@mantine/core';
+import { ActionIcon, Box, Tabs, Tooltip } from '@mantine/core';
+import { IconPlus } from '@tabler/icons-react';
+import { Link } from 'react-router-dom';
+import { routes } from '../../../config/routes';
 import type { NodeType, AgentExample } from '../../../api';
 import type { Agent } from '../../../types/agent';
 import type { ChatStatusEvent } from '../../../api/sessions';
@@ -191,9 +194,27 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
             </Tabs.Panel>
 
             {workspaceId && (
-              <Tabs.Panel value="relations" style={{ flex: 1, minHeight: 0 }}>
+              <Tabs.Panel value="relations" style={{ flex: 1, minHeight: 0, position: 'relative' }}>
                 {activeTab === 'relations' && (
-                  <AgentsGraph compact workspaceId={workspaceId} currentAgentId={agent?.id} refreshKey={savedAt} />
+                  <AgentsGraph
+                    compact
+                    workspaceId={workspaceId}
+                    currentAgentId={agent?.id}
+                    newAgent={!agent?.id}
+                    refreshKey={savedAt}
+                  />
+                )}
+                {agent?.id && (
+                  <Tooltip label="New agent">
+                    <ActionIcon
+                      component={Link}
+                      to={routes.newAgentEditor(workspaceId)}
+                      variant="default"
+                      style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}
+                    >
+                      <IconPlus size={16} />
+                    </ActionIcon>
+                  </Tooltip>
                 )}
               </Tabs.Panel>
             )}

@@ -1,4 +1,5 @@
 import { api } from './client';
+import { clearAgentsCache } from './agents';
 import type {
   GitHubSync,
   GitHubCommit,
@@ -30,12 +31,18 @@ export const githubApi = {
     api.post(`/api/agents/${agentId}/github/push`, data),
 
   // Pull agent changes from GitHub (updates existing agent)
-  pullAgent: (agentId: string, data?: GitHubPullRequest): Promise<GitHubPullResponse> =>
-    api.post(`/api/agents/${agentId}/github/pull`, data),
+  pullAgent: async (agentId: string, data?: GitHubPullRequest): Promise<GitHubPullResponse> => {
+    const result = await api.post<GitHubPullResponse>(`/api/agents/${agentId}/github/pull`, data);
+    clearAgentsCache(); // pulled nodes may change agent relations
+    return result;
+  },
 
   // Import a new agent from GitHub
-  importAgent: (data: GitHubImportRequest): Promise<GitHubImportResponse> =>
-    api.post('/api/agents/github/import', data),
+  importAgent: async (data: GitHubImportRequest): Promise<GitHubImportResponse> => {
+    const result = await api.post<GitHubImportResponse>('/api/agents/github/import', data);
+    clearAgentsCache();
+    return result;
+  },
 
   // List commits for an agent's linked repository
   listAgentCommits: (agentId: string): Promise<GitHubCommit[]> =>
