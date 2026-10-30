@@ -218,13 +218,11 @@ function CompactAgentNode({ data }: NodeProps<Node<AgentNodeData>>) {
         background: current
           ? 'light-dark(var(--mantine-color-cyan-0), var(--mantine-color-cyan-9))'
           : 'light-dark(var(--mantine-color-white), var(--mantine-color-dark-6))',
-        borderColor: current ? 'var(--mantine-color-cyan-5)' : undefined,
         boxShadow: current ? '0 0 0 2px var(--mantine-color-cyan-5)' : 'var(--mantine-shadow-xs)',
-        borderStyle: isNew ? 'dashed' : undefined,
       }}
     >
       <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
-      <Text size="xs" fw={current ? 700 : 500} ta="center" truncate fs={isNew ? 'italic' : undefined}>
+      <Text size="xs" ta="center" truncate fs={isNew ? 'italic' : undefined}>
         {agent.name}
       </Text>
       <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
