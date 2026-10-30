@@ -4,7 +4,6 @@ import {
   ReactFlow,
   ReactFlowProvider,
   Background,
-  MarkerType,
   Position,
   Handle,
   type Node,
