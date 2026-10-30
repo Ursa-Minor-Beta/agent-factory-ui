@@ -1,0 +1,16 @@
+/* Reset the global node chrome from AgentFlowEditor.css - the card is drawn by AgentRelationNode */
+.agents-graph .react-flow__node,
+[data-mantine-color-scheme] .agents-graph .react-flow__node {
+  border: none;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
+.agents-graph .react-flow__edge-text {
+  fill: var(--mantine-color-dimmed);
+}
+
+.agents-graph .react-flow__edge-textbg {
+  fill: var(--mantine-color-body);
+}

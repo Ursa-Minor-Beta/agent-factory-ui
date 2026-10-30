@@ -13,6 +13,7 @@ import {
   SimpleGrid,
   Center,
   Tooltip,
+  SegmentedControl,
 } from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import {
@@ -23,6 +24,8 @@ import {
   IconCode,
   IconDownload,
   IconBrandGithub,
+  IconHierarchy2,
+  IconLayoutGrid,
 } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { agentsApi } from '../../api';
@@ -30,6 +33,7 @@ import { workspacesApi } from '../../api/workspaces';
 import type { Agent, AgentQueryParams } from '../../types';
 import type { Workspace } from '../../types/workspace';
 import { AgentCard } from './AgentCard';
+import { AgentsGraph } from './AgentsGraph';
 import { AgentFilters } from './AgentFilters';
 import { AgentDeleteModal } from './AgentDeleteModal';
 import { AgentWorkspaceModal } from './AgentWorkspaceModal';
@@ -40,6 +44,11 @@ import { routes } from '../../config/routes';
 
 const ITEMS_PER_PAGE = 12;
 const SORT_STORAGE_KEY = 'agents-sort';
+
+type ViewMode = 'list' | 'graph';
+
+// Last chosen view: module-level so it survives tab switches and opening an agent, resets on page reload
+let lastViewMode: ViewMode = 'list';
 
 function downloadJson(data: unknown, filename: string) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -103,6 +112,14 @@ export function AgentsList({
   // Workspaces for filter
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [workspacesLoading, setWorkspacesLoading] = useState(false);
+
+  // Graph view is only offered inside a workspace
+  const [selectedViewMode, setSelectedViewMode] = useState<ViewMode>(lastViewMode);
+  const viewMode: ViewMode = workspaceId ? selectedViewMode : 'list';
+  const setViewMode = (value: ViewMode) => {
+    lastViewMode = value;
+    setSelectedViewMode(value);
+  };
 
   // Persist sort value
   const handleSortChange = (val: string | null) => {
@@ -214,12 +231,19 @@ export function AgentsList({
     loadAgents();
   }, [loadAgents]);
 
+  // Bumped on every mutation so the graph view refetches; plain list reloads (paging, filters) don't touch it
+  const [graphVersion, setGraphVersion] = useState(0);
+  const reloadAgents = useCallback(() => {
+    loadAgents();
+    setGraphVersion((v) => v + 1);
+  }, [loadAgents]);
+
   // Listen for agent-saved event from global modal
   useEffect(() => {
-    const handleAgentSaved = () => { loadAgents(); onCreate?.(); };
+    const handleAgentSaved = () => { reloadAgents(); onCreate?.(); };
     window.addEventListener('agent-saved', handleAgentSaved);
     return () => window.removeEventListener('agent-saved', handleAgentSaved);
-  }, [loadAgents, onCreate]);
+  }, [reloadAgents, onCreate]);
 
   const handleOpenEditModal = (agent: Agent) => {
     openEditAgent(agent.id);
@@ -236,7 +260,7 @@ export function AgentsList({
         workspaceId: fullAgent.workspaceId || workspaceId,
         editorData: fullAgent.editorData
       });
-      loadAgents();
+      reloadAgents();
       onCreate?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to clone agent');
@@ -269,6 +293,17 @@ export function AgentsList({
     <Box>
       {/* Main toolbar */}
       <Group mb="md" gap="sm" wrap="wrap">
+        {workspaceId && (
+          <SegmentedControl
+            value={viewMode}
+            onChange={(value) => setViewMode(value as ViewMode)}
+            data={[
+              { value: 'list', label: <Center><IconLayoutGrid size={16} /></Center> },
+              { value: 'graph', label: <Center><IconHierarchy2 size={16} /></Center> },
+            ]}
+          />
+        )}
+        {viewMode === 'list' && (<>
         <TextInput
           placeholder="Search by name..."
           value={search}
@@ -304,6 +339,7 @@ export function AgentsList({
           ]}
           style={{ minWidth: 160 }}
         />
+        </>)}
         <Box style={{ flex: 1 }} />
         {showCreateButton && (
           <Group gap="md">
@@ -350,7 +386,7 @@ export function AgentsList({
       </Group>
 
       {/* Expandable filters */}
-      {showFilters && filtersOpened && !workspaceId && (
+      {viewMode === 'list' && showFilters && filtersOpened && !workspaceId && (
         <AgentFilters
           descriptionFilter={descriptionFilter}
           onDescriptionChange={setDescriptionFilter}
@@ -396,7 +432,17 @@ export function AgentsList({
       )} */}
       <Box mb="xl" />
 
-      {loading ? (
+      {viewMode === 'graph' ? (
+        <AgentsGraph
+          workspaceId={workspaceId}
+          refreshKey={graphVersion}
+          onEdit={handleOpenEditModal}
+          onDelete={setAgentToDelete}
+          onClone={handleClone}
+          onWorkspace={setAgentForWorkspace}
+          onExport={handleExport}
+        />
+      ) : loading ? (
         <Center py="xl">
           <Loader />
         </Center>
@@ -440,26 +486,26 @@ export function AgentsList({
       <AgentDeleteModal
         agent={agentToDelete}
         onClose={() => setAgentToDelete(null)}
-        onDeleted={() => { loadAgents(); onDelete?.(); }}
+        onDeleted={() => { reloadAgents(); onDelete?.(); }}
       />
 
       <AgentWorkspaceModal
         agent={agentForWorkspace}
         onClose={() => setAgentForWorkspace(null)}
-        onSaved={loadAgents}
+        onSaved={reloadAgents}
       />
 
       <ModalAgentImport
         opened={importModalOpened}
         onClose={() => setImportModalOpened(false)}
-        onImported={() => { loadAgents(); onCreate?.(); }}
+        onImported={() => { reloadAgents(); onCreate?.(); }}
         workspaceId={workspaceId}
       />
 
       <ModalGitHubImport
         opened={githubImportModalOpened}
         onClose={() => setGithubImportModalOpened(false)}
-        onImported={() => { loadAgents(); onCreate?.(); }}
+        onImported={() => { reloadAgents(); onCreate?.(); }}
         workspaceId={workspaceId}
       />
     </Box>

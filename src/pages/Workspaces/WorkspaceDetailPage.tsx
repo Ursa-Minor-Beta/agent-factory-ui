@@ -44,7 +44,11 @@ export function WorkspaceDetailPage() {
 
   const handleTabChange = (value: string | null) => {
     if (value) {
-      setSearchParams({ tab: value }, { replace: true });
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.set('tab', value);
+        return next;
+      }, { replace: true });
     }
   };
 
