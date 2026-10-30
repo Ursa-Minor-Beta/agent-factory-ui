@@ -37,6 +37,7 @@ import {
   IconPlayerStop,
 } from '@tabler/icons-react';
 import { runsApi, sessionsApi } from '../../api';
+import { NodeTypeIcon } from '../../nodes';
 import type { Run } from '../../types';
 import { statusColors, nodeStatusColors, formatDuration, resolveRunOutput } from '../../types';
 import { DataWithFileRefs } from './utils';
@@ -340,6 +341,11 @@ export function RunDetailsModal() {
                 <Accordion.Item key={nodeId} value={nodeId}>
                   <Accordion.Control>
                     <Group gap="sm">
+                      {!!state.nodeType && (
+                        <Tooltip label={`Node: ${state.nodeType}`}>
+                          <NodeTypeIcon type={state.nodeType} size={16} />
+                        </Tooltip>
+                      )}
                       <Badge
                         size="sm"
                         color={nodeStatusColors[state.status]}

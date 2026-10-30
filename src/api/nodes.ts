@@ -1,18 +1,5 @@
 import { api } from './client';
-
-export const NODE_TYPES = [
-  'input',
-  'output',
-  'llm',
-  'http',
-  'js',
-  'agent',
-  'branch',
-  'memory-store',
-  'memory-search',
-  'memory-update',
-  'memory-delete',
-] as const;
+import type { NodeTypeName } from '../nodes';
 
 /**
  * Valid node option types:
@@ -50,7 +37,7 @@ export interface NodeTypeExample {
 }
 
 export interface NodeType {
-  type: typeof NODE_TYPES[number];
+  type: NodeTypeName;
   name?: string;
   description?: string;
   category?: string;

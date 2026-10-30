@@ -1,7 +1,10 @@
+import type { NodeTypeName } from '../nodes';
+
 export type NodeStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
 export type RunStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelling' | 'cancelled';
 
 export interface NodeState {
+  nodeType: NodeTypeName;
   status: NodeStatus;
   input?: unknown;
   output?: unknown;

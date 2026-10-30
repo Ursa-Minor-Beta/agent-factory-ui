@@ -1,35 +1,8 @@
 import { memo, useEffect } from 'react';
 import { Handle, Position, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { Box } from '@mantine/core';
-import {
-  IconWorld,
-  IconCode,
-  IconRobot,
-  IconGitBranch,
-  type Icon,
-  IconArrowRightToArc,
-  IconArrowLeftFromArc,
-  IconCpu2,
-  IconDatabasePlus,
-  IconDatabaseSearch,
-  IconDatabaseEdit,
-  IconDatabaseMinus,
-} from '@tabler/icons-react';
+import { getNodeTypeMeta } from '../../../nodes';
 import { branchHandleId, canRunAfter } from '../utils/converters';
-
-const nodeIcons: Record<string, Icon> = {
-  input: IconArrowRightToArc,
-  output: IconArrowLeftFromArc,
-  llm: IconCpu2,
-  http: IconWorld,
-  js: IconCode,
-  agent: IconRobot,
-  branch: IconGitBranch,
-  'memory-store': IconDatabasePlus,
-  'memory-search': IconDatabaseSearch,
-  'memory-update': IconDatabaseEdit,
-  'memory-delete': IconDatabaseMinus,
-};
 
 const rotate = (type: string, isVertical: boolean) => {
   switch(type) {
@@ -44,7 +17,7 @@ const rotate = (type: string, isVertical: boolean) => {
 }
 
 export const BaseNode = memo(function BaseNode({ id, data, type, sourcePosition, targetPosition }: NodeProps) {
-  const IconComponent = nodeIcons[type];
+  const IconComponent = getNodeTypeMeta(type).icon;
 
   // Rotate input/output icons based on flow direction (TB = 90deg)
   const isVertical = sourcePosition === Position.Bottom || targetPosition === Position.Top;
