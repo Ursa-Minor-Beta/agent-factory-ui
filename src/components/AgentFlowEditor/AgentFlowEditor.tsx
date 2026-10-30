@@ -17,6 +17,8 @@ import type { NodeStatus } from '../../types';
 import { PanelLeft } from './PanelLeft';
 import { PanelRight } from './PanelRight';
 import { clearGitHubCache } from './PanelLeft/GitTab/useGitHubData';
+import { useNavigate } from 'react-router-dom';
+import { routes } from '../../config/routes';
 
 function downloadJson(data: unknown, filename: string) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -30,6 +32,9 @@ function downloadJson(data: unknown, filename: string) {
 
 const PALETTE_STORAGE_KEY = 'agent-editor-palette-open';
 const TAB_STORAGE_KEY = 'agent-editor-active-tab';
+
+// Agents opened in the editor during this session, most recent last - used to pick where to go after a delete
+const visitedAgentIds: string[] = [];
 
 export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) {
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
@@ -261,6 +266,27 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     }
   }, [saveAgent, agent?.id, agent?.github?.rootId]);
 
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!agent?.id) return;
+    const i = visitedAgentIds.indexOf(agent.id);
+    if (i !== -1) visitedAgentIds.splice(i, 1);
+    visitedAgentIds.push(agent.id);
+  }, [agent?.id]);
+
+  // After delete: open the previously visited agent, else the workspace, else the agents list
+  const handleAgentDeleted = useCallback(() => {
+    const deletedId = agent?.id;
+    const i = deletedId ? visitedAgentIds.indexOf(deletedId) : -1;
+    if (i !== -1) visitedAgentIds.splice(i, 1);
+    const previousId = visitedAgentIds[visitedAgentIds.length - 1];
+    const target = previousId
+      ? routes.agentEditor(previousId)
+      : agent?.workspaceId ? routes.workspace(agent.workspaceId) : routes.agents();
+    navigate(target, { replace: true });
+  }, [agent?.id, agent?.workspaceId, navigate]);
+
   // Memoized so it doesn't break PanelLeft memoization
   const editorToolbar = useMemo(() => (
     <EditorToolbar
@@ -366,6 +392,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
           onWorkspaceChange={updateWorkspace}
           onEdgeTypeChange={changeEdgeType}
           onExport={handleExport}
+          onAgentDeleted={handleAgentDeleted}
           onLayoutDirectionChange={changeLayoutDirection}
           onLoadTemplate={loadTemplate}
           onReloadAgent={reloadAgent}

@@ -39,6 +39,7 @@ interface PanelLeftProps {
   onWorkspaceChange?: (workspaceId: string | null) => Promise<void>;
   onLoadTemplate: (template: AgentExample) => void;
   onExport?: () => void;
+  onAgentDeleted?: () => void;
   exporting?: boolean;
   onReloadAgent?: () => void;
   onRunStart?: () => void;
@@ -47,7 +48,7 @@ interface PanelLeftProps {
   onRunClear?: () => void;
 }
 
-export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, savedAt, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onWorkspaceChange, onLoadTemplate, onExport, exporting, onReloadAgent, onRunStart, onNodeStatus, onRunEnd, onRunClear }: PanelLeftProps) {
+export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, savedAt, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onWorkspaceChange, onLoadTemplate, onExport, onAgentDeleted, exporting, onReloadAgent, onRunStart, onNodeStatus, onRunEnd, onRunClear }: PanelLeftProps) {
   const [viewingNodeType, setViewingNodeType] = useState<NodeType | null>(null);
   const [internalActiveTab, setInternalActiveTab] = useState<string | null>(() => {
     const saved = localStorage.getItem(TAB_STORAGE_KEY);
@@ -189,6 +190,7 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
                 onLayoutDirectionChange={onLayoutDirectionChange}
                 onWorkspaceChange={onWorkspaceChange}
                 onExport={onExport}
+                onDeleted={onAgentDeleted}
                 exporting={exporting}
               />
             </Tabs.Panel>
