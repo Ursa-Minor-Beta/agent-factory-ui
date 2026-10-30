@@ -375,7 +375,12 @@ function AgentsGraphInner({ workspaceId, refreshKey, compact, currentAgentId, ne
             minZoom={0.05}
             nodesConnectable={false}
             nodesDraggable={!compact}
-            onNodeClick={compact ? (_, node) => { if (node.id !== currentAgentId && node.id !== NEW_AGENT_NODE_ID) navigate(routes.agentEditor(node.id)); } : undefined}
+            onNodeClick={compact ? (event, node) => {
+              if (node.id === NEW_AGENT_NODE_ID) return;
+              // Cmd/Ctrl+click opens in a new tab, like a link
+              if (event.metaKey || event.ctrlKey) window.open(routes.agentEditor(node.id), '_blank');
+              else if (node.id !== currentAgentId) navigate(routes.agentEditor(node.id));
+            } : undefined}
             onNodeDoubleClick={compact ? undefined : (_, node) => navigate(routes.agentEditor(node.id))}
             proOptions={{ hideAttribution: true }}
           >

@@ -34,7 +34,7 @@ const PALETTE_STORAGE_KEY = 'agent-editor-palette-open';
 const TAB_STORAGE_KEY = 'agent-editor-active-tab';
 
 // Agents opened in the editor during this session, most recent last - used to pick where to go after a delete
-const visitedAgentIds: string[] = [];
+const visitedAgents: { id: string; workspaceId?: string }[] = [];
 
 export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) {
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
@@ -270,17 +270,18 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
 
   useEffect(() => {
     if (!agent?.id) return;
-    const i = visitedAgentIds.indexOf(agent.id);
-    if (i !== -1) visitedAgentIds.splice(i, 1);
-    visitedAgentIds.push(agent.id);
-  }, [agent?.id]);
+    const i = visitedAgents.findIndex((v) => v.id === agent.id);
+    if (i !== -1) visitedAgents.splice(i, 1);
+    visitedAgents.push({ id: agent.id, workspaceId: agent.workspaceId });
+  }, [agent?.id, agent?.workspaceId]);
 
-  // After delete: open the previously visited agent, else the workspace, else the agents list
+  // After delete: open the previously visited agent of the same workspace, else the workspace, else the agents list
   const handleAgentDeleted = useCallback(() => {
     const deletedId = agent?.id;
-    const i = deletedId ? visitedAgentIds.indexOf(deletedId) : -1;
-    if (i !== -1) visitedAgentIds.splice(i, 1);
-    const previousId = visitedAgentIds[visitedAgentIds.length - 1];
+    const i = visitedAgents.findIndex((v) => v.id === deletedId);
+    if (i !== -1) visitedAgents.splice(i, 1);
+    // Most recently visited agent from the same workspace
+    const previousId = visitedAgents.findLast((v) => v.workspaceId === agent?.workspaceId)?.id;
     const target = previousId
       ? routes.agentEditor(previousId)
       : agent?.workspaceId ? routes.workspace(agent.workspaceId) : routes.agents();
