@@ -265,7 +265,7 @@ export function AgentsGraph({ workspaceId, refreshKey, ...actions }: AgentsGraph
       id: `${r.source}->${r.target}`,
       source: r.source,
       target: r.target,
-      label: r.via === 'tool' ? 'tool' : undefined,
+      label: r.via,
       markerEnd: { type: MarkerType.ArrowClosed },
       style: { stroke: r.via === 'tool' ? 'var(--mantine-color-violet-5)' : 'var(--mantine-color-cyan-5)' },
     }));
