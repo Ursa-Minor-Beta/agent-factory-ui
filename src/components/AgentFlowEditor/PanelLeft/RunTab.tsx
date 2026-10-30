@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Box, Button, TextInput, Textarea, Stack, Text, Alert, ScrollArea, Loader, Group, ActionIcon, Card, Switch, Slider, Collapse } from '@mantine/core';
 import { IconPlayerPlay, IconPlayerStop, IconAlertCircle, IconListDetails, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 import { sessionsApi, type ChatStatusEvent } from '../../../api/sessions';
@@ -13,6 +13,9 @@ interface RunTabProps {
   onNodeStatus?: (nodeId: string, status: ChatStatusEvent['status'], minRunningMs: number) => void;
   onRunEnd?: () => void;
   onRunClear?: () => void;
+  runRequest?: number; // Incremented by the editor toolbar Run button to start a run from outside
+  onInputsRequired?: () => void; // Required inputs are empty - editor shows this tab
+  onRunningChange?: (running: boolean) => void;
 }
 
 const INPUTS_STORAGE_KEY = 'agent-editor-run-inputs';
@@ -33,7 +36,7 @@ interface RunOutput {
   nodeStatuses: Array<{ nodeId: string; status: string; statusText?: string }>;
 }
 
-export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }: RunTabProps) {
+export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, runRequest, onInputsRequired, onRunningChange }: RunTabProps) {
   // Last used inputs are remembered per agent
   const inputsStorageKey = agent?.id ? `${INPUTS_STORAGE_KEY}-${agent.id}` : null;
   const [inputs, setInputs] = useState<Record<string, string>>(() => {
@@ -44,6 +47,14 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }
       return {};
     }
   });
+  // Tab stays mounted when the editor switches agents - load that agent's remembered inputs
+  useEffect(() => {
+    try {
+      setInputs(inputsStorageKey ? JSON.parse(localStorage.getItem(inputsStorageKey) || '{}') : {});
+    } catch {
+      setInputs({});
+    }
+  }, [inputsStorageKey]);
   const [inputsOpen, setInputsOpen] = useState(() => localStorage.getItem(INPUTS_OPEN_STORAGE_KEY) !== 'false');
 
   const toggleInputsOpen = useCallback(() => {
@@ -166,6 +177,29 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear }
       setRunning(false);
     }
   }, [agent, running, inputs, inputSchema, onRunStart, onNodeStatus, onRunEnd]);
+
+  useEffect(() => {
+    onRunningChange?.(running);
+  }, [running, onRunningChange]);
+
+  // Toolbar Run: run if every required input has a value (or default), otherwise ask to show this tab
+  const handleRunRef = useRef(handleRun);
+  handleRunRef.current = handleRun;
+  const missingRequired = inputFields.some(
+    ([key, schema]) => schema.required && !inputs[key] && schema.default === undefined
+  );
+  const missingRequiredRef = useRef(missingRequired);
+  missingRequiredRef.current = missingRequired;
+  useEffect(() => {
+    if (!runRequest) return;
+    if (missingRequiredRef.current) {
+      setInputsOpen(true);
+      onInputsRequired?.();
+      return;
+    }
+    handleRunRef.current();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- react to new run requests only
+  }, [runRequest]);
 
   const handleStop = useCallback(() => {
     abortControllerRef.current?.abort();

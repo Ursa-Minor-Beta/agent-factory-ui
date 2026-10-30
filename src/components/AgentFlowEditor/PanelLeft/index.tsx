@@ -46,9 +46,12 @@ interface PanelLeftProps {
   onNodeStatus?: (nodeId: string, status: ChatStatusEvent['status'], minRunningMs: number) => void;
   onRunEnd?: () => void;
   onRunClear?: () => void;
+  runRequest?: number;
+  onRunInputsRequired?: () => void;
+  onRunningChange?: (running: boolean) => void;
 }
 
-export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, savedAt, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onWorkspaceChange, onLoadTemplate, onExport, onAgentDeleted, exporting, onReloadAgent, onRunStart, onNodeStatus, onRunEnd, onRunClear }: PanelLeftProps) {
+export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, savedAt, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onWorkspaceChange, onLoadTemplate, onExport, onAgentDeleted, exporting, onReloadAgent, onRunStart, onNodeStatus, onRunEnd, onRunClear, runRequest, onRunInputsRequired, onRunningChange }: PanelLeftProps) {
   const [viewingNodeType, setViewingNodeType] = useState<NodeType | null>(null);
   const [internalActiveTab, setInternalActiveTab] = useState<string | null>(() => {
     const saved = localStorage.getItem(TAB_STORAGE_KEY);
@@ -151,7 +154,8 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
         <>
           {header}
 
-          <Tabs value={activeTab} onChange={setActiveTab} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+          {/* display-none (not the default 'activity'): hidden tabs keep running effects, e.g. Run tab reacting to toolbar Run */}
+          <Tabs value={activeTab} onChange={setActiveTab} keepMountedMode="display-none" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
             <Tabs.List px="xs" pt="xs">
               <Tabs.Tab value="nodes">Nodes</Tabs.Tab>
               <Tabs.Tab value="templates">Templates</Tabs.Tab>
@@ -177,7 +181,16 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
             </Tabs.Panel>
 
             <Tabs.Panel value="run" style={{ flex: 1, minHeight: 0 }} p="xs">
-              <RunTab agent={agent} onRunStart={onRunStart} onNodeStatus={onNodeStatus} onRunEnd={onRunEnd} onRunClear={onRunClear} />
+              <RunTab
+                agent={agent}
+                onRunStart={onRunStart}
+                onNodeStatus={onNodeStatus}
+                onRunEnd={onRunEnd}
+                onRunClear={onRunClear}
+                runRequest={runRequest}
+                onInputsRequired={onRunInputsRequired}
+                onRunningChange={onRunningChange}
+              />
             </Tabs.Panel>
 
             <Tabs.Panel value="settings" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }} p="xs">

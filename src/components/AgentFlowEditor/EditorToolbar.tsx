@@ -1,5 +1,5 @@
 import { Group, Text, ActionIcon, Badge, Tooltip } from '@mantine/core';
-import { IconDeviceFloppy, IconLayoutSidebar, IconBrandGithub } from '@tabler/icons-react';
+import { IconDeviceFloppy, IconLayoutSidebar, IconBrandGithub, IconPlayerPlay } from '@tabler/icons-react';
 import { WorkspaceBadge } from '../Workspace';
 import type { AgentGitHubInfo } from '../../types/agent';
 
@@ -12,6 +12,8 @@ interface EditorToolbarProps {
   isPaletteOpen: boolean;
   onSave: () => void;
   onTogglePalette: () => void;
+  running?: boolean;
+  onRun?: () => void;
 }
 
 const glassStyle = {
@@ -30,6 +32,8 @@ export function EditorToolbar({
   isPaletteOpen,
   onSave,
   onTogglePalette,
+  running,
+  onRun,
 }: EditorToolbarProps) {
   const isSubAgent = github?.rootId && github.rootId !== agentId;
   return (
@@ -77,6 +81,18 @@ export function EditorToolbar({
       </Group>
 
       <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
+        {!!agentId && onRun && (
+          <ActionIcon
+            size="xs"
+            variant="subtle"
+            color="cyan"
+            title="Run"
+            loading={running}
+            onClick={onRun}
+          >
+            <IconPlayerPlay size={16} />
+          </ActionIcon>
+        )}
         <ActionIcon
           size="xs"
           variant="subtle"
@@ -86,8 +102,8 @@ export function EditorToolbar({
         >
           <IconDeviceFloppy size={16} />
         </ActionIcon>
-
       </Group>
+      
     </Group>
   );
 }

@@ -137,6 +137,16 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     });
   }, []);
 
+  // Toolbar Run: bumps a counter the Run tab reacts to; Run tab reports back running state / missing inputs
+  const [runRequest, setRunRequest] = useState(0);
+  const [isRunning, setIsRunning] = useState(false);
+  const handleToolbarRun = useCallback(() => setRunRequest((n) => n + 1), []);
+  const handleRunInputsRequired = useCallback(() => {
+    handleActiveTabChange('run');
+    setIsPaletteOpen(true);
+    localStorage.setItem(PALETTE_STORAGE_KEY, 'true');
+  }, [handleActiveTabChange]);
+
   // Handle Export button
   const handleExport = useCallback(async () => {
     if (!agentId) return;
@@ -299,8 +309,10 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
       isPaletteOpen={isPaletteOpen}
       onSave={handleSave}
       onTogglePalette={togglePalette}
+      running={isRunning}
+      onRun={handleToolbarRun}
     />
-  ), [agent?.name, agent?.id, agent?.workspaceName, agent?.github, saving, isPaletteOpen, handleSave, togglePalette]);
+  ), [agent?.name, agent?.id, agent?.workspaceName, agent?.github, saving, isPaletteOpen, handleSave, togglePalette, isRunning, handleToolbarRun]);
 
   // Apply the loaded agent's viewport when switching agents in place (first load is handled by onInit)
   useEffect(() => {
@@ -401,6 +413,9 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
           onNodeStatus={handleNodeStatus}
           onRunEnd={handleRunEnd}
           onRunClear={handleRunClear}
+          runRequest={runRequest}
+          onRunInputsRequired={handleRunInputsRequired}
+          onRunningChange={setIsRunning}
         />
 
       {selectedNode && (
