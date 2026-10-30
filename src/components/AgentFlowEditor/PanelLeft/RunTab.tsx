@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { Box, Button, TextInput, Textarea, Stack, Text, Alert, ScrollArea, Loader, Group, ActionIcon, Card, Switch, Slider, Collapse } from '@mantine/core';
 import { IconPlayerPlay, IconPlayerStop, IconAlertCircle, IconListDetails, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 import { sessionsApi, type ChatStatusEvent } from '../../../api/sessions';
-import type { Agent, InputSchema } from '../../../types';
+import type { Agent, InputSchema, NodeStatus } from '../../../types';
 import { getInputSchema } from '../../../pages/Chat/types';
 import { useRunDetailsModal } from '../../RunDetailsModal';
 import { MessageContent } from '../../../pages/Chat/ChatMessages';
@@ -16,6 +16,7 @@ interface RunTabProps {
   runRequest?: number; // Incremented by the editor toolbar Run button to start a run from outside
   onInputsRequired?: () => void; // Required inputs are empty - editor shows this tab
   onRunningChange?: (running: boolean) => void;
+  onAgentStatusesChange?: (statuses: Record<string, NodeStatus>) => void; // Run status per agent: this one + called sub-agents
 }
 
 const INPUTS_STORAGE_KEY = 'agent-editor-run-inputs';
@@ -33,10 +34,11 @@ interface RunOutput {
   response?: unknown; // Raw response - MessageContent will parse it
   error?: string;
   runId?: string;
-  nodeStatuses: Array<{ nodeId: string; status: string; statusText?: string }>;
+  // depth 0 = node of this agent, 1+ = node inside a (nested) sub-agent
+  nodeStatuses: Array<{ nodeId: string; label: string; depth: number; status: string; statusText?: string }>;
 }
 
-export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, runRequest, onInputsRequired, onRunningChange }: RunTabProps) {
+export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, runRequest, onInputsRequired, onRunningChange, onAgentStatusesChange }: RunTabProps) {
   // Last used inputs are remembered per agent
   const inputsStorageKey = agent?.id ? `${INPUTS_STORAGE_KEY}-${agent.id}` : null;
   const [inputs, setInputs] = useState<Record<string, string>>(() => {
@@ -90,6 +92,9 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
   const [running, setRunning] = useState(false);
   const [output, setOutput] = useState<RunOutput | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  // Sub-agent id -> its nodes that started and haven't finished yet, and whether any node failed
+  const subagentsRef = useRef(new Map<string, { nodes: Set<string>; failed: boolean }>());
+  const [agentStatuses, setAgentStatuses] = useState<Record<string, NodeStatus>>({});
   const { openRunDetails } = useRunDetailsModal();
 
   // Use saved agent to get input schema (matches what backend will run)
@@ -110,6 +115,8 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
 
     setRunning(true);
     setOutput({ nodeStatuses: [] });
+    subagentsRef.current.clear();
+    setAgentStatuses({ [agent.id]: 'running' });
     if (animateRef.current) onRunStart?.();
 
     const abortController = new AbortController();
@@ -149,10 +156,35 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
               ...prev!,
               nodeStatuses: [
                 ...(prev?.nodeStatuses || []),
-                { nodeId: data.nodeId, status: data.status, statusText: data.statusText },
+                { nodeId: data.nodeId, label: data.nodeId, depth: 0, status: data.status, statusText: data.statusText },
               ],
             }));
             if (animateRef.current) onNodeStatus?.(data.nodeId, data.status, runningMsRef.current);
+          },
+          onSubagentStatus: (data) => {
+            // Sub-agent runs while any of its nodes runs
+            const sub = subagentsRef.current.get(data.agentId) ?? { nodes: new Set<string>(), failed: false };
+            if (data.status === 'started') sub.nodes.add(data.nodeId);
+            else sub.nodes.delete(data.nodeId);
+            if (data.status === 'failed') sub.failed = true;
+            subagentsRef.current.set(data.agentId, sub);
+            const subStatus: NodeStatus = sub.nodes.size > 0 ? 'running' : sub.failed ? 'failed' : 'completed';
+            setAgentStatuses((prev) => (prev[data.agentId] === subStatus ? prev : { ...prev, [data.agentId]: subStatus }));
+            // Path "parentNode / SUB: node / SUBSUB: node" - last segment is the node, segment count gives nesting
+            const segments = data.path.split(' / ');
+            setOutput((prev) => ({
+              ...prev!,
+              nodeStatuses: [
+                ...(prev?.nodeStatuses || []),
+                {
+                  nodeId: data.nodeId,
+                  label: segments[segments.length - 1] || `${data.agentName}: ${data.nodeId}`,
+                  depth: Math.max(1, segments.length - 1),
+                  status: data.status,
+                  statusText: data.statusText,
+                },
+              ],
+            }));
           },
           onDone: (data) => {
             // Store raw response - MessageContent will handle parsing
@@ -174,6 +206,11 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
       abortControllerRef.current = null;
       if (animateRef.current) onRunEnd?.();
       setOutput((prev) => ({ ...prev!, ...result }));
+      // Settle everything still running (stopped / failed run)
+      const endStatus: NodeStatus = result.error ? 'failed' : 'completed';
+      setAgentStatuses((prev) => Object.fromEntries(
+        Object.entries(prev).map(([id, status]) => [id, status === 'running' || id === agent.id ? endStatus : status])
+      ));
       setRunning(false);
     }
   }, [agent, running, inputs, inputSchema, onRunStart, onNodeStatus, onRunEnd]);
@@ -181,6 +218,15 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
   useEffect(() => {
     onRunningChange?.(running);
   }, [running, onRunningChange]);
+
+  // Statuses belong to the agent that ran - drop them when the editor switches agents
+  useEffect(() => {
+    setAgentStatuses({});
+  }, [agent?.id]);
+
+  useEffect(() => {
+    onAgentStatusesChange?.(agentStatuses);
+  }, [agentStatuses, onAgentStatusesChange]);
 
   // Toolbar Run: run if every required input has a value (or default), otherwise ask to show this tab
   const handleRunRef = useRef(handleRun);
@@ -351,8 +397,8 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
                 <ScrollArea.Autosize mah={80} offsetScrollbars scrollbars="y" styles={{ content: { display: 'block', minWidth: 0 } }} mb="xs" ps='xs' style={{ border: '1px solid var(--mantine-color-default-border)', borderRadius: 'var(--mantine-radius-sm)' }}>
                   <Stack gap={2}>
                     {output.nodeStatuses.map((ns, i) => (
-                      <Text key={i} size="xs" c="dimmed">
-                        {ns.nodeId}: {ns.statusText || ns.status}
+                      <Text key={i} size="xs" c="dimmed" pl={ns.depth * 12} truncate>
+                        {ns.depth > 0 && '↳ '}{ns.label}: {ns.statusText || ns.status}
                       </Text>
                     ))}
                   </Stack>

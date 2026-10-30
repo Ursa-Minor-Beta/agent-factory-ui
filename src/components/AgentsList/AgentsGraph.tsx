@@ -13,11 +13,11 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import './AgentsGraph.css';
-import { Alert, Box, Center, Loader, Paper, Text, useComputedColorScheme } from '@mantine/core';
+import { Alert, Box, Center, Loader, Paper, Text, Tooltip, useComputedColorScheme } from '@mantine/core';
 import { useElementSize } from '@mantine/hooks';
 import { IconAlertCircle } from '@tabler/icons-react';
 import { agentsApi } from '../../api';
-import type { Agent } from '../../types';
+import type { Agent, NodeStatus } from '../../types';
 import { routes } from '../../config/routes';
 import { AgentCard } from './AgentCard';
 import type { AgentCardProps } from './types';
@@ -39,7 +39,7 @@ interface Relation {
 }
 
 type CardActions = Omit<AgentCardProps, 'agent'>;
-type AgentNodeData = { agent: Agent; actions?: CardActions; current: boolean; isNew?: boolean };
+type AgentNodeData = { agent: Agent; actions?: CardActions; current: boolean; isNew?: boolean; runStatus?: NodeStatus };
 
 const NEW_AGENT_NODE_ID = '__new-agent__';
 
@@ -205,26 +205,29 @@ function AgentRelationNode({ data }: NodeProps<Node<AgentNodeData>>) {
 }
 
 function CompactAgentNode({ data }: NodeProps<Node<AgentNodeData>>) {
-  const { agent, current, isNew } = data;
+  const { agent, current, isNew, runStatus } = data;
   return (
     <Paper
       withBorder
+      className={runStatus ? `agents-graph-run-${runStatus}` : undefined}
       radius="md"
       px="xs"
       py={6}
       style={{
         width: COMPACT_SIZES.nodeWidth,
         cursor: current ? 'default' : 'pointer',
-        background: current
-          ? 'light-dark(var(--mantine-color-cyan-0), var(--mantine-color-cyan-9))'
-          : 'light-dark(var(--mantine-color-white), var(--mantine-color-dark-6))',
+        // background: current
+        //   ? 'light-dark(var(--mantine-color-cyan-0), var(--mantine-color-cyan-9))'
+        //   : 'light-dark(var(--mantine-color-white), var(--mantine-color-dark-6))',
         boxShadow: current ? '0 0 0 2px var(--mantine-color-cyan-5)' : 'var(--mantine-shadow-xs)',
       }}
     >
       <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
-      <Text size="xs" ta="center" truncate fs={isNew ? 'italic' : undefined}>
-        {agent.name}
-      </Text>
+      <Tooltip label={current ? null : 'Switch to the agent'} openDelay={1000}>
+        <Text size="xs" ta="center" truncate fs={isNew ? 'italic' : undefined}>
+          {agent.name}
+        </Text>
+    </Tooltip>
       <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
     </Paper>
   );
@@ -241,6 +244,7 @@ interface AgentsGraphProps extends Partial<CardActions> {
   refreshKey?: unknown; // Graph refetches when this changes (e.g. after delete/clone in the list), otherwise uses the cache
   compact?: boolean; // Name-only nodes that fill the parent (editor side panel); click opens the agent's editor
   currentAgentId?: string; // Highlighted agent
+  runStatuses?: Record<string, NodeStatus>; // Editor run status per agent - running agents get a shadow
   newAgent?: boolean; // Show an empty highlighted placeholder for an unsaved agent (editor on /new)
   topInset?: number; // Extra top space (px) kept free when fitting, e.g. for a toolbar floating over the graph
 }
@@ -254,7 +258,7 @@ export function AgentsGraph(props: AgentsGraphProps) {
   );
 }
 
-function AgentsGraphInner({ workspaceId, refreshKey, compact, currentAgentId, newAgent, topInset = 0, ...handlers }: AgentsGraphProps) {
+function AgentsGraphInner({ workspaceId, refreshKey, compact, currentAgentId, runStatuses, newAgent, topInset = 0, ...handlers }: AgentsGraphProps) {
   const navigate = useNavigate();
   const colorScheme = useComputedColorScheme('dark');
   const [agents, setAgents] = useState<Agent[]>(() => agentsApi.listAllWithNodes.peek(workspaceId) ?? []);
@@ -294,10 +298,11 @@ function AgentsGraphInner({ workspaceId, refreshKey, compact, currentAgentId, ne
   const sizes = compact ? COMPACT_SIZES : CARD_SIZES;
   const actions = compact ? undefined : (handlers as CardActions);
 
-  const { nodes, edges, bounds } = useMemo(() => {
+  // Layout - recomputed only when the graph itself changes, never on run status updates
+  const { layoutNodes, edges, bounds } = useMemo(() => {
     const relations = extractRelations(agents);
     const positions = layout(agents, relations, sizes);
-    const nodes: Node<AgentNodeData>[] = agents.map((agent) => ({
+    const layoutNodes: Node<AgentNodeData>[] = agents.map((agent) => ({
       id: agent.id,
       type: 'agent',
       position: positions.get(agent.id) ?? { x: 0, y: 0 },
@@ -305,10 +310,10 @@ function AgentsGraphInner({ workspaceId, refreshKey, compact, currentAgentId, ne
     }));
     if (newAgent) {
       // Placeholder below everything, centred horizontally
-      const xs = nodes.map((n) => n.position.x);
-      const centerX = nodes.length ? (Math.min(...xs) + Math.max(...xs)) / 2 : 0;
-      const bottomY = nodes.length ? Math.max(...nodes.map((n) => n.position.y)) + sizes.rowGap : 0;
-      nodes.push({
+      const xs = layoutNodes.map((n) => n.position.x);
+      const centerX = layoutNodes.length ? (Math.min(...xs) + Math.max(...xs)) / 2 : 0;
+      const bottomY = layoutNodes.length ? Math.max(...layoutNodes.map((n) => n.position.y)) + sizes.rowGap : 0;
+      layoutNodes.push({
         id: NEW_AGENT_NODE_ID,
         type: 'agent',
         position: { x: centerX, y: bottomY },
@@ -320,22 +325,32 @@ function AgentsGraphInner({ workspaceId, refreshKey, compact, currentAgentId, ne
       source: r.source,
       target: r.target,
       label: compact ? undefined : r.via,
-      style: { stroke: r.via === 'tool' ? 'var(--mantine-color-violet-5)' : 'var(--mantine-color-cyan-5)' },
     }));
     // Horizontal extent straight from the layout - no need to wait for React Flow to measure nodes
-    const xs = nodes.map((n) => n.position.x);
-    const ys = nodes.map((n) => n.position.y);
-    const bounds = nodes.length
+    const xs = layoutNodes.map((n) => n.position.x);
+    const ys = layoutNodes.map((n) => n.position.y);
+    const bounds = layoutNodes.length
       ? { minX: Math.min(...xs), maxX: Math.max(...xs) + sizes.nodeWidth, minY: Math.min(...ys) }
       : null;
-    return { nodes, edges, bounds };
+    return { layoutNodes, edges, bounds };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- handlers are recreated each render of the list
   }, [agents, compact, currentAgentId, newAgent]);
+
+  // Run statuses applied on top; untouched nodes keep their identity so React Flow skips them
+  const nodes = useMemo(() => {
+    if (!runStatuses) return layoutNodes;
+    return layoutNodes.map((node) => {
+      const runStatus = runStatuses[node.id];
+      return runStatus ? { ...node, data: { ...node.data, runStatus } } : node;
+    });
+  }, [layoutNodes, runStatuses]);
+
 
   // Fit to width, centred horizontally, pinned to the top. Recomputed on container resize or new data;
   // controlled viewport so it applies immediately, while pan/zoom still update it via onViewportChange.
   const { ref: containerRef, width: containerWidth } = useElementSize();
   const [viewport, setViewport] = useState<Viewport>({ x: 0, y: 0, zoom: 1 });
+  
   useEffect(() => {
     if (!bounds || containerWidth === 0) return;
     const graphWidth = bounds.maxX - bounds.minX;

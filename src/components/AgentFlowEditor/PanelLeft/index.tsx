@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { routes } from '../../../config/routes';
 import type { NodeType, AgentExample } from '../../../api';
 import type { Agent } from '../../../types/agent';
+import type { NodeStatus } from '../../../types';
 import type { ChatStatusEvent } from '../../../api/sessions';
 import type { LayoutDirection } from '../utils/converters';
 import { NodesTab } from './NodesTab';
@@ -52,6 +53,7 @@ interface PanelLeftProps {
 }
 
 export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, savedAt, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onWorkspaceChange, onLoadTemplate, onExport, onAgentDeleted, exporting, onReloadAgent, onRunStart, onNodeStatus, onRunEnd, onRunClear, runRequest, onRunInputsRequired, onRunningChange }: PanelLeftProps) {
+  const [agentRunStatuses, setAgentRunStatuses] = useState<Record<string, NodeStatus>>({});
   const [viewingNodeType, setViewingNodeType] = useState<NodeType | null>(null);
   const [internalActiveTab, setInternalActiveTab] = useState<string | null>(() => {
     const saved = localStorage.getItem(TAB_STORAGE_KEY);
@@ -190,6 +192,7 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
                 runRequest={runRequest}
                 onInputsRequired={onRunInputsRequired}
                 onRunningChange={onRunningChange}
+                onAgentStatusesChange={setAgentRunStatuses}
               />
             </Tabs.Panel>
 
@@ -217,6 +220,7 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
                     currentAgentId={agent?.id}
                     newAgent={!agent?.id}
                     refreshKey={savedAt}
+                    runStatuses={agentRunStatuses}
                   />
                 )}
                 {agent?.id && (
