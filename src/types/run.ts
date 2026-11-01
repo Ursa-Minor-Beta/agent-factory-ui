@@ -80,6 +80,39 @@ export function formatDuration(startedAt: string, completedAt?: string | null): 
   return `${(duration / 60000).toFixed(1)}m`;
 }
 
+export interface TokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+}
+
+function asUsage(value: unknown): TokenUsage | null {
+  const usage = (value as { usage?: Partial<TokenUsage> } | null | undefined)?.usage;
+  if (!usage || typeof usage !== 'object') return null;
+  return { inputTokens: Number(usage.inputTokens) || 0, outputTokens: Number(usage.outputTokens) || 0 };
+}
+
+// LLM nodes report `usage` in their output (or state)
+export function getNodeUsage(state: NodeState): TokenUsage | null {
+  return asUsage(state.output) ?? asUsage(state.state) ?? asUsage(state);
+}
+
+export function getRunUsage(run: Run): TokenUsage | null {
+  const total: TokenUsage = { inputTokens: 0, outputTokens: 0 };
+  let found = false;
+  for (const state of Object.values(run.nodeStates)) {
+    const usage = getNodeUsage(state);
+    if (!usage) continue;
+    found = true;
+    total.inputTokens += usage.inputTokens;
+    total.outputTokens += usage.outputTokens;
+  }
+  return found ? total : null;
+}
+
+export function formatTokens(count: number): string {
+  return count.toLocaleString();
+}
+
 // Resolve nodeRef references in run output
 // Format: "nodeRef:<nodeId>:<handle>"
 export function resolveRunOutput(run: Run): Record<string, unknown> {
