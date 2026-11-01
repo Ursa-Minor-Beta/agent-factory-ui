@@ -120,3 +120,21 @@
 .react-flow__edge.edge-run-after .react-flow__edge-path {
   stroke-dasharray: 6 4;
 }
+
+/* Run tab title mirrors the run: lamp while executing, then success / error */
+.run-tab-running .mantine-Tabs-tabLabel {
+  color: var(--mantine-color-yellow-3);
+  text-shadow: 0 0 6px rgba(250, 200, 80, 0.9), 0 0 12px rgba(250, 200, 80, 0.6);
+}
+
+[data-mantine-color-scheme='light'] .run-tab-running .mantine-Tabs-tabLabel {
+  color: var(--mantine-color-yellow-8);
+}
+
+.run-tab-completed .mantine-Tabs-tabLabel {
+  color: var(--mantine-color-green-5);
+}
+
+.run-tab-failed .mantine-Tabs-tabLabel {
+  color: var(--mantine-color-red-5);
+}

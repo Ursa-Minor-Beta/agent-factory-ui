@@ -163,7 +163,12 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
               <Tabs.Tab value="templates">Templates</Tabs.Tab>
               <Tabs.Tab value="settings">Settings</Tabs.Tab>
               <Tabs.Tab value="git">Git</Tabs.Tab>
-              <Tabs.Tab value="run">Run</Tabs.Tab>
+              <Tabs.Tab
+                value="run"
+                className={agent?.id && agentRunStatuses[agent.id] ? `run-tab-${agentRunStatuses[agent.id]}` : undefined}
+              >
+                Run
+              </Tabs.Tab>
               {workspaceId && <Tabs.Tab value="relations">Relations</Tabs.Tab>}
             </Tabs.List>
 
