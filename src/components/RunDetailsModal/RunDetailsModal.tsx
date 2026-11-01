@@ -39,7 +39,7 @@ import {
 import { runsApi, sessionsApi } from '../../api';
 import { NodeTypeIcon } from '../../nodes';
 import type { Run } from '../../types';
-import { statusColors, nodeStatusColors, formatDuration, resolveRunOutput } from '../../types';
+import { statusColors, nodeStatusColors, formatDuration, resolveRunOutput, getNodeUsage, getRunUsage, formatTokens } from '../../types';
 import { DataWithFileRefs } from './utils';
 import { buildRunDetailsSearch, useRunDetailsModal } from './useRunDetailsModal';
 
@@ -80,6 +80,8 @@ export function RunDetailsModal() {
     if (!run) return null;
     return resolveRunOutput(run);
   }, [run]);
+
+  const runUsage = useMemo(() => (run ? getRunUsage(run) : null), [run]);
 
   const handleRefresh = async () => {
     if (!runId) return;
@@ -221,6 +223,19 @@ export function RunDetailsModal() {
                 </Text>
                 <Text size="sm">{formatDuration(run.startedAt, run.completedAt)}</Text>
               </Box>
+              {runUsage && (
+                <Box>
+                  <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
+                    Token Usage
+                  </Text>
+                  <Text size="sm">
+                    {formatTokens(runUsage.inputTokens)} in · {formatTokens(runUsage.outputTokens)} out
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    {formatTokens(runUsage.inputTokens + runUsage.outputTokens)} total
+                  </Text>
+                </Box>
+              )}
               <Box>
                 <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
                   Run ID
@@ -365,6 +380,16 @@ export function RunDetailsModal() {
                           {formatDuration(state.startedAt, state.completedAt)}
                         </Badge>
                       )}
+                      {(() => {
+                        const usage = getNodeUsage(state);
+                        return usage && (
+                          <Tooltip label={`Input: ${formatTokens(usage.inputTokens)} / Output: ${formatTokens(usage.outputTokens)} tokens`}>
+                            <Badge size="xs" variant="outline" color="violet">
+                              {formatTokens(usage.inputTokens)} in · {formatTokens(usage.outputTokens)} out
+                            </Badge>
+                          </Tooltip>
+                        );
+                      })()}
                     </Group>
                   </Accordion.Control>
                   <Accordion.Panel>
