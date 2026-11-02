@@ -317,6 +317,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     <EditorToolbar
       agentName={agent?.name || ''}
       agentId={agent?.id}
+      workspaceId={agent?.workspaceId}
       workspaceName={agent?.workspaceName}
       github={agent?.github}
       saving={saving}
@@ -326,7 +327,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
       running={isRunning}
       onRun={handleToolbarRun}
     />
-  ), [agent?.name, agent?.id, agent?.workspaceName, agent?.github, saving, isPaletteOpen, handleSave, togglePalette, isRunning, handleToolbarRun]);
+  ), [agent?.name, agent?.id, agent?.workspaceId, agent?.workspaceName, agent?.github, saving, isPaletteOpen, handleSave, togglePalette, isRunning, handleToolbarRun]);
 
   // Apply the loaded agent's viewport when switching agents in place (first load is handled by onInit)
   useEffect(() => {
