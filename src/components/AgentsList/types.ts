@@ -11,6 +11,7 @@ export interface AgentCardProps {
   onClone: (agent: Agent) => void;
   onWorkspace: (agent: Agent) => void;
   onExport: (agent: Agent) => void;
+  compact?: boolean; // graph mode: no description, tighter spacing
 }
 
 export interface AgentFiltersProps {

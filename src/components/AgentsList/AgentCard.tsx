@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Card, Text, Group, Stack, ActionIcon, Tooltip, Menu, Box, Button, Badge } from '@mantine/core';
+import { Card, Text, Group, Stack, ActionIcon, Tooltip, Menu, Box, Button, Badge, Flex } from '@mantine/core';
 import {
   IconTrash,
   IconMessageCircle,
@@ -16,11 +16,11 @@ import type { AgentCardProps } from './types';
 import { WorkspaceBadge } from '../Workspace';
 import { routes } from '../../config/routes';
 
-export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExport }: AgentCardProps) {
+export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExport, compact }: AgentCardProps) {
   return (
     <Card
       withBorder
-      padding="md"
+      padding={compact ? 'sm' : 'md'}
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -28,10 +28,16 @@ export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExp
       }}
     >
       <Stack gap="xs" style={{ flex: 1 }}>
-        <Group justify="space-between" align="flex-start" wrap="nowrap">
+        <Flex
+          direction={compact ? 'column' : 'row'}
+          justify={compact ? undefined : 'space-between'}
+          align={compact ? 'center' : 'flex-start'}
+          gap={compact ? 6 : 'md'}
+          wrap="nowrap"
+        >
 
-          <Stack gap="xs">
-            <Group gap={6} wrap="nowrap" style={{ flex: 1, overflow: 'hidden' }}>
+          <Stack gap="xs" align={compact ? 'center' : undefined} style={compact ? { width: '100%', minWidth: 0 } : undefined}>
+            <Group gap={6} wrap="nowrap" justify={compact ? 'center' : undefined} style={{ flex: 1, overflow: 'hidden', maxWidth: '100%' }}>
               <Text
                 fw={600}
                 style={{
@@ -54,12 +60,19 @@ export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExp
                 </Tooltip>
               )}
             </Group>
-            <Text size="xs" c="dimmed">
-              {agent.nodesCount || 0} nodes
-            </Text>
+            {!compact && (
+              <Text size="xs" c="dimmed">
+                {agent.nodesCount || 0} nodes
+              </Text>
+            )}
           </Stack>
 
-          <Stack gap="xs" align="flex-end">
+          <Flex
+            direction={compact ? 'row' : 'column'}
+            gap="xs"
+            align={compact ? 'center' : 'flex-end'}
+            style={compact ? { alignSelf: 'flex-start' } : undefined}
+          >
             <WorkspaceBadge workspaceName={agent.workspaceName} size="xs" />
             {agent.github && (
               <Tooltip label={`${agent.github.rootId ? 'Sub' : 'Root'} agent: ${agent.github.repository}/${agent.github.path}`}>
@@ -73,26 +86,28 @@ export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExp
                 </Badge>
               </Tooltip>
             )}
-          </Stack>
+          </Flex>
 
-        </Group>
+        </Flex>
 
-        <Text
-          size="sm"
-          c="dimmed"
-          style={{
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            minHeight: '2.5em',
-          }}
-        >
-          {agent.description || ''}
-        </Text>
+        {!compact && (
+          <Text
+            size="sm"
+            c="dimmed"
+            style={{
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              minHeight: '2.5em',
+            }}
+          >
+            {agent.description || ''}
+          </Text>
+        )}
       </Stack>
-      <Group mt="sm" gap="xs" justify="space-between">
+      <Group mt={compact ? 'xs' : 'sm'} gap="xs" justify="space-between">
         <Box>
           <Button
             component={Link}

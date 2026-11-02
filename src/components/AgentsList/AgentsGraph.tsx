@@ -29,7 +29,7 @@ interface GraphSizes {
 }
 
 // Full AgentCard nodes (agents list) vs. name-only nodes (editor side panel)
-const CARD_SIZES: GraphSizes = { nodeWidth: 300, slot: 380, rowGap: 240 };
+const CARD_SIZES: GraphSizes = { nodeWidth: 300, slot: 380, rowGap: 180 };
 const COMPACT_SIZES: GraphSizes = { nodeWidth: 160, slot: 190, rowGap: 90 };
 
 interface Relation {
@@ -198,7 +198,7 @@ function AgentRelationNode({ data }: NodeProps<Node<AgentNodeData>>) {
   return (
     <Box style={{ width: CARD_SIZES.nodeWidth, boxShadow: 'var(--mantine-shadow-xs)' }}>
       <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
-      {actions && <AgentCard agent={agent} {...actions} />}
+      {actions && <AgentCard agent={agent} {...actions} compact />}
       <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
     </Box>
   );
