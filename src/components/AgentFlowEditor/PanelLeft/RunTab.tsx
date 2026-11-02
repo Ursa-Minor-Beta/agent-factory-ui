@@ -6,6 +6,7 @@ import type { Agent, InputSchema, NodeStatus } from '../../../types';
 import { getInputSchema } from '../../../pages/Chat/types';
 import { useRunDetailsModal } from '../../RunDetailsModal';
 import { MessageContent } from '../../../pages/Chat/ChatMessages';
+import { useChatFavicon } from '../../../pages/Chat/useChatFavicon';
 
 interface RunTabProps {
   agent: Partial<Agent> | null;
@@ -90,6 +91,7 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
     localStorage.setItem(SPEED_STORAGE_KEY, String(value));
   }, []);
   const [running, setRunning] = useState(false);
+  useChatFavicon(running);
   const [output, setOutput] = useState<RunOutput | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   // Sub-agent id -> its nodes that started and haven't finished yet, and whether any node failed
