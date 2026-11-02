@@ -7,9 +7,11 @@ import { ChatSidebar } from './ChatSidebar';
 import { useAgentModal } from '../../components/AgentCreateModal';
 import { useRunDetailsModal } from '../../components/RunDetailsModal';
 import { useChatViewModel } from './viewmodels';
+import { useChatFavicon } from './useChatFavicon';
 
 export function ChatPage() {
   const vm = useChatViewModel();
+  useChatFavicon(vm.sending);
   const { openEditAgent } = useAgentModal();
   const { openRunDetails } = useRunDetailsModal();
 
