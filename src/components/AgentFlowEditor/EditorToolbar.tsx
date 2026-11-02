@@ -6,6 +6,7 @@ import type { AgentGitHubInfo } from '../../types/agent';
 interface EditorToolbarProps {
   agentName: string;
   agentId?: string;
+  workspaceId?: string | null;
   workspaceName?: string | null;
   github?: AgentGitHubInfo | null;
   saving: boolean;
@@ -24,6 +25,7 @@ const glassStyle = {
 export function EditorToolbar({
   agentName,
   agentId,
+  workspaceId,
   workspaceName,
   github,
   saving,
@@ -59,7 +61,7 @@ export function EditorToolbar({
           {agentName || 'Untitled Agent'}
         </Text>
         {!!agentId
-          ? <WorkspaceBadge workspaceName={workspaceName} size="xs" />
+          ? <WorkspaceBadge workspaceId={workspaceId} workspaceName={workspaceName} size="xs" />
           : <Text fz="xs" c="dimmed">Not saved</Text>
         }
         {github && (

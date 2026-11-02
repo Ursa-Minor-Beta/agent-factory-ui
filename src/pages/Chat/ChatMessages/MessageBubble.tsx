@@ -41,7 +41,7 @@ export function MessageBubble({ message, isFirst, showRetry, onViewRun, onRepeat
       }}
     >
       <Paper
-        className="message-bubble"
+        className={message.role === 'user' ? 'message-bubble message-bubble-user' : 'message-bubble'}
         p="sm"
         radius="lg"
         style={{
@@ -113,6 +113,10 @@ export function MessageBubble({ message, isFirst, showRetry, onViewRun, onRepeat
         <style>{`
           .message-bubble:hover .message-hover-btns {
             opacity: 1 !important;
+          }
+          /* Markdown collapses single newlines; keep the user's typed line breaks */
+          .message-bubble-user p {
+            white-space: pre-wrap;
           }
         `}</style>
       </Paper>

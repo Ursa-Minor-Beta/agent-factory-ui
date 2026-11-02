@@ -266,6 +266,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     <EditorToolbar
       agentName={agent?.name || ''}
       agentId={agent?.id}
+      workspaceId={agent?.workspaceId}
       workspaceName={agent?.workspaceName}
       github={agent?.github}
       saving={saving}
@@ -273,7 +274,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
       onSave={handleSave}
       onTogglePalette={togglePalette}
     />
-  ), [agent?.name, agent?.id, agent?.workspaceName, agent?.github, saving, isPaletteOpen, handleSave, togglePalette]);
+  ), [agent?.name, agent?.id, agent?.workspaceId, agent?.workspaceName, agent?.github, saving, isPaletteOpen, handleSave, togglePalette]);
 
   if (loading) {
     return (
