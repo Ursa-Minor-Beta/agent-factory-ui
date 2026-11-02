@@ -139,8 +139,8 @@ export function ChatInput({ onSend, sending, inputSchema, draftKey, isMobile, on
       }
     }
 
-    if (!hasAllRequired || sending) {
-      console.warn('Cannot send:', { hasAllRequired, sending });
+    if (!hasAllRequired) {
+      console.warn('Cannot send:', { hasAllRequired });
       return;
     }
 
@@ -153,6 +153,7 @@ export function ChatInput({ onSend, sending, inputSchema, draftKey, isMobile, on
   };
 
   const hasRequiredContent = requiredFields.every(([key]) => !!values[key]?.trim());
+  const hasAnyContent = Object.values(values).some((v) => !!v.trim());
 
   const formatLabel = (key: string) => {
     return key
@@ -180,7 +181,6 @@ export function ChatInput({ onSend, sending, inputSchema, draftKey, isMobile, on
               autosize
               minRows={isSingleField ? 2 : 1}
               maxRows={6}
-              disabled={sending}
             />
   };
 
@@ -254,8 +254,8 @@ export function ChatInput({ onSend, sending, inputSchema, draftKey, isMobile, on
               {requiredFields.map(([key, schema]) => renderField(key, schema))}
             </Stack>
 
-            {/* Send/Stop button */}
-            {sending ? (
+            {/* Stop while running with empty input; otherwise Send (queued while running) */}
+            {sending && !hasAnyContent ? (
               <ActionIcon
                 size="lg"
                 variant="filled"
@@ -270,7 +270,7 @@ export function ChatInput({ onSend, sending, inputSchema, draftKey, isMobile, on
                 variant="filled"
                 onClick={handleSend}
                 disabled={!hasRequiredContent}
-                title={isSingleField ? 'Press Enter to send' : 'Fill required fields'}
+                title={sending ? 'Send after current run' : isSingleField ? 'Press Enter to send' : 'Fill required fields'}
               >
                 <IconSend size={18} />
               </ActionIcon>

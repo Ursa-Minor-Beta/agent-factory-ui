@@ -26,6 +26,11 @@ export interface ChatMessage {
   rawInput?: Record<string, unknown>; // Original input for user messages (for repeat)
 }
 
+export interface QueuedMessage {
+  id: string;
+  input: Record<string, unknown>;
+}
+
 export interface ChatHeaderProps {
   agent: Agent;
   workspaceName?: string;
@@ -44,8 +49,7 @@ export interface ChatInputProps {
   draftKey: string;
   isMobile: boolean;
   onCancel?: () => void;
-  onHeightChange?: (height: number) => void;
-}
+  onHeightChange?: (height: number) => void;}
 
 // Helper to extract input schema from agent nodes
 export function getInputSchema(agent: Agent): InputSchema {
