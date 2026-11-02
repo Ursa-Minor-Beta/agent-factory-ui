@@ -1,8 +1,8 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useMediaQuery } from '@mantine/hooks';
 import type { Agent, Session, InputSchema } from '../../../types';
-import type { ChatMessage } from '../types';
+import type { ChatMessage, QueuedMessage } from '../types';
 import { useAgentViewModel } from './useAgentViewModel';
 import { useSessionsViewModel } from './useSessionsViewModel';
 import { useMessagesViewModel } from './useMessagesViewModel';
@@ -112,7 +112,7 @@ export function useChatViewModel(): UseChatViewModelReturn {
   );
 
   // Wrapped send that adds optimistic user message
-  const send = useCallback(
+  const sendNow = useCallback(
     (input: Record<string, unknown>) => {
       const userMessage = streamVM.createUserMessage(input);
       messagesVM.addMessage(userMessage);
@@ -120,6 +120,34 @@ export function useChatViewModel(): UseChatViewModelReturn {
     },
     [streamVM, messagesVM]
   );
+
+  // Messages sent while a run is active are queued and sent one by one after it finishes
+  const [queue, setQueue] = useState<QueuedMessage[]>([]);
+
+  const send = useCallback(
+    (input: Record<string, unknown>) => {
+      if (streamVM.sending || queue.length > 0) {
+        setQueue((prev) => [...prev, { id: crypto.randomUUID(), input }]);
+        return;
+      }
+      sendNow(input);
+    },
+    [streamVM.sending, queue.length, sendNow]
+  );
+
+  // Flush next queued message once the run ends (paused while an error is shown)
+  useEffect(() => {
+    if (streamVM.sending || streamVM.error || queue.length === 0) return;
+    const [next, ...rest] = queue;
+    setQueue(rest);
+    sendNow(next.input);
+  }, [streamVM.sending, streamVM.error, queue, sendNow]);
+
+  // Stop clears the queue
+  const cancel = useCallback(async () => {
+    setQueue([]);
+    await streamVM.cancel();
+  }, [streamVM]);
 
   // Retry removes last message then re-sends
   const retry = useCallback(() => {
@@ -139,6 +167,7 @@ export function useChatViewModel(): UseChatViewModelReturn {
   // New chat clears messages
   const startNewChat = useCallback(
     (incognito = false) => {
+      setQueue([]);
       messagesVM.clearMessages();
       sessionsVM.startNewChat(incognito);
     },
@@ -174,6 +203,7 @@ export function useChatViewModel(): UseChatViewModelReturn {
   // Select session clears current messages (they'll reload)
   const selectSession = useCallback(
     (session: Session) => {
+      setQueue([]);
       sessionsVM.selectSession(session);
     },
     [sessionsVM]
@@ -224,7 +254,7 @@ export function useChatViewModel(): UseChatViewModelReturn {
     currentRunId: streamVM.currentRunId,
     statusText: streamVM.statusText,
     send,
-    cancel: streamVM.cancel,
+    cancel,
     retry,
     clearError: streamVM.clearError,
     onRepeat,
