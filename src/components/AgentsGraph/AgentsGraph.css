@@ -1,4 +1,4 @@
-/* Reset the global node chrome from AgentFlowEditor.css - the card is drawn by AgentRelationNode */
+/* Reset the global node chrome from AgentFlowEditor.css - the card is drawn by the node components */
 .agents-graph .react-flow__node,
 [data-mantine-color-scheme] .agents-graph .react-flow__node {
   border: none;

@@ -33,7 +33,7 @@ import { workspacesApi } from '../../api/workspaces';
 import type { Agent, AgentQueryParams } from '../../types';
 import type { Workspace } from '../../types/workspace';
 import { AgentCard } from './AgentCard';
-import { AgentsGraph } from './AgentsGraph';
+import { AgentsRelationsGraph } from '../AgentsGraph';
 import { AgentFilters } from './AgentFilters';
 import { AgentDeleteModal } from './AgentDeleteModal';
 import { AgentWorkspaceModal } from './AgentWorkspaceModal';
@@ -438,7 +438,7 @@ export function AgentsList({
       {viewMode === 'list' && <Box mb="xl" />}
 
       {viewMode === 'graph' ? (
-        <AgentsGraph
+        <AgentsRelationsGraph
           workspaceId={workspaceId}
           topInset={48}
           refreshKey={graphVersion}

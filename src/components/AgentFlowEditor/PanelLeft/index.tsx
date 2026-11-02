@@ -13,7 +13,7 @@ import { SettingsTab } from './SettingsTab';
 import { RunTab } from './RunTab';
 import { TemplatesTab } from './TemplatesTab';
 import { GitTab } from './GitTab';
-import { AgentsGraph } from '../../AgentsList/AgentsGraph';
+import { AgentsNavigatorGraph } from '../../AgentsGraph';
 
 const MIN_WIDTH = 120;
 const MAX_WIDTH_RATIO = 0.7; // 40% of viewport
@@ -219,8 +219,7 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
             {workspaceId && (
               <Tabs.Panel value="relations" style={{ flex: 1, minHeight: 0, position: 'relative' }}>
                 {activeTab === 'relations' && (
-                  <AgentsGraph
-                    compact
+                  <AgentsNavigatorGraph
                     workspaceId={workspaceId}
                     currentAgentId={agent?.id}
                     newAgent={!agent?.id}
