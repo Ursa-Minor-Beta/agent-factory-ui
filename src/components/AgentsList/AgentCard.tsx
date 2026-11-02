@@ -16,7 +16,7 @@ import type { AgentCardProps } from './types';
 import { WorkspaceBadge } from '../Workspace';
 import { routes } from '../../config/routes';
 
-export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExport, compact }: AgentCardProps) {
+export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExport, compact, currentWorkspaceId }: AgentCardProps) {
   return (
     <Card
       withBorder
@@ -71,9 +71,12 @@ export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExp
             direction={compact ? 'row' : 'column'}
             gap="xs"
             align={compact ? 'center' : 'flex-end'}
-            style={compact ? { alignSelf: 'flex-start' } : undefined}
+            // Keep the row even without badges (hidden workspace badge) so graph cards stay the same height
+            style={compact ? { alignSelf: 'flex-start', minHeight: 'var(--badge-height-xs, 16px)' } : undefined}
           >
-            <WorkspaceBadge workspaceName={agent.workspaceName} size="xs" />
+            {(!currentWorkspaceId || agent.workspaceId !== currentWorkspaceId) && (
+              <WorkspaceBadge workspaceName={agent.workspaceName} size="xs" />
+            )}
             {agent.github && (
               <Tooltip label={`${agent.github.rootId ? 'Sub' : 'Root'} agent: ${agent.github.repository}/${agent.github.path}`}>
                 <Badge

@@ -1,5 +1,5 @@
 import type { Node } from '@xyflow/react';
-import type { Agent } from '../../../types';
+type LayoutAgent = { id: string; name: string };
 import type { GraphBounds, GraphSizes, Relation } from '../types';
 
 const ORDER_SWEEPS = 6;
@@ -16,7 +16,7 @@ const average = (values: number[]) => values.reduce((s, v) => s + v, 0) / values
  * Agents without any relations are put in a grid below the tree.
  */
 export function layout(
-  agents: Agent[],
+  agents: LayoutAgent[],
   relations: Relation[],
   { slot: SLOT, rowGap: ROW_GAP }: GraphSizes,
 ): Map<string, { x: number; y: number }> {

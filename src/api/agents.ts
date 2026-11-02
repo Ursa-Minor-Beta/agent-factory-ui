@@ -1,5 +1,5 @@
-import { api } from './client';
-import type { Agent, AgentQueryParams, AgentListResponse, EditorData, AgentNode, AgentExportData, AgentImportRequest, AgentImportResponse } from '../types';
+import { api, fetchWithRefresh, ApiError } from './client';
+import type { Agent, AgentGraph, AgentQueryParams, AgentListResponse, EditorData, AgentNode, AgentExportData, AgentImportRequest, AgentImportResponse } from '../types';
 
 export interface AgentExample {
   name: string;
@@ -37,12 +37,14 @@ function buildQueryString(params: AgentQueryParams): string {
 
 const PAGE_SIZE = 100; // backend max for list
 
-// Full agents (with nodes) per workspace for the relations graph. In-memory: survives in-app
-// navigation, cleared on page reload and by every agent mutation below.
-const fullAgentsCache = new Map<string, Agent[]>();
+// Per-workspace caches for the relations graph. In-memory: survive in-app navigation,
+// cleared on page reload and by every agent mutation below.
+const graphCache = new Map<string, AgentGraph>();
+const allAgentsCache = new Map<string, Agent[]>();
 
 export function clearAgentsCache() {
-  fullAgentsCache.clear();
+  graphCache.clear();
+  allAgentsCache.clear();
 }
 
 // Run a mutation and drop cached agents once it succeeds
@@ -52,7 +54,7 @@ async function mutating<T>(request: Promise<T>): Promise<T> {
   return result;
 }
 
-async function fetchAllWithNodes(workspaceId?: string): Promise<Agent[]> {
+async function fetchAll(workspaceId: string): Promise<Agent[]> {
   const listed: Agent[] = [];
   let total = Infinity;
   while (listed.length < total) {
@@ -63,8 +65,28 @@ async function fetchAllWithNodes(workspaceId?: string): Promise<Agent[]> {
     total = page.total;
     if (page.agents.length === 0) break;
   }
-  // List omits nodes, so fetch each agent's definition; keep list fields (workspaceName, nodesCount)
-  return Promise.all(listed.map(async (a) => ({ ...a, nodes: (await api.get<Agent>(`/api/agents/${a.id}`)).nodes })));
+  return listed;
+}
+
+async function fetchGraph(workspaceId: string): Promise<AgentGraph> {
+  const response = await fetchWithRefresh(`/api/workspaces/${workspaceId}/agent-graph`);
+  const data = await response.json();
+  if (!response.ok) {
+    throw new ApiError(response.status, data.error?.code || 'UNKNOWN_ERROR', data.error?.message || 'An error occurred');
+  }
+  return data;
+}
+
+// Cached fetch: peek() reads the cache synchronously, fetch() always hits the API and refreshes it
+function cached<T>(cache: Map<string, T>, load: (workspaceId: string) => Promise<T>) {
+  return {
+    peek: (workspaceId: string) => cache.get(workspaceId),
+    fetch: async (workspaceId: string) => {
+      const value = await load(workspaceId);
+      cache.set(workspaceId, value);
+      return value;
+    },
+  };
 }
 
 export const agentsApi = {
@@ -74,15 +96,11 @@ export const agentsApi = {
   getById: (id: string) =>
     api.get<Agent>(`/api/agents/${id}`),
 
-  // All agents of a workspace including nodes, cached until the next agent mutation
-  listAllWithNodes: {
-    peek: (workspaceId?: string) => fullAgentsCache.get(workspaceId ?? ''),
-    fetch: async (workspaceId?: string) => {
-      const agents = await fetchAllWithNodes(workspaceId);
-      fullAgentsCache.set(workspaceId ?? '', agents);
-      return agents;
-    },
-  },
+  // Relation graph of a workspace's agents, cached until the next agent mutation
+  graph: cached(graphCache, fetchGraph),
+
+  // All agents of a workspace (list fields, no nodes), cached until the next agent mutation
+  listAll: cached(allAgentsCache, fetchAll),
 
   create: (data: CreateAgentInput) =>
     mutating(api.post<Agent>('/api/agents', data)),

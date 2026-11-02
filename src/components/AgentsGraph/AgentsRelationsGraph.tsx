@@ -1,38 +1,60 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Node } from '@xyflow/react';
+import type { Agent } from '../../types';
 import { routes } from '../../config/routes';
 import { AgentsGraphView } from './AgentsGraphView';
-import { extractRelations, relationEdges } from './graph/relations';
+import { graphRelations, relationEdges } from './graph/relations';
 import { graphBounds, layout } from './graph/layout';
-import { useGraphAgents } from './hooks/useGraphAgents';
+import { useAgentGraph } from './hooks/useAgentGraph';
 import { AgentCardNode, CARD_NODE_SIZES, type AgentCardNodeData, type CardActions } from './nodes/AgentCardNode';
+import { AgentNameNode, nameNodeData, type AgentNameNodeData } from './nodes/AgentNameNode';
+import { BuiltinToolsNode, type BuiltinToolsNodeData } from './nodes/BuiltinToolsNode';
+import { builtinToolGroups } from './graph/builtins';
 
-const nodeTypes = { agent: AgentCardNode };
+const nodeTypes = { agent: AgentCardNode, name: AgentNameNode, tools: BuiltinToolsNode };
 
 interface AgentsRelationsGraphProps extends CardActions {
-  workspaceId?: string; // If provided, only agents of this workspace are shown
+  workspaceId: string;
   refreshKey?: unknown; // Graph refetches when this changes (e.g. after delete/clone in the list), otherwise uses the cache
   topInset?: number; // Extra top space (px) kept free when fitting, e.g. for a toolbar floating over the graph
 }
 
-// Agents list graph mode: full cards with actions, double-click opens the editor
+// Agents list graph mode: full cards with actions for the workspace's agents, name nodes for
+// external/missing ones; double-click opens the editor
 export function AgentsRelationsGraph({ workspaceId, refreshKey, topInset, ...actions }: AgentsRelationsGraphProps) {
   const navigate = useNavigate();
-  const { agents, loading, error } = useGraphAgents(workspaceId, refreshKey);
+  const { graph, agents, loading, error } = useAgentGraph(workspaceId, { refreshKey, withAgents: true });
 
   const { nodes, edges, bounds } = useMemo(() => {
-    const relations = extractRelations(agents);
-    const positions = layout(agents, relations, CARD_NODE_SIZES);
-    const nodes: Node<AgentCardNodeData>[] = agents.map((agent) => ({
-      id: agent.id,
-      type: 'agent',
-      position: positions.get(agent.id) ?? { x: 0, y: 0 },
-      data: { agent, actions },
+    const graphNodes = graph?.nodes ?? [];
+    const toolGroups = builtinToolGroups(graph?.builtins ?? []);
+    const relations = [...graphRelations(graph?.edges ?? []), ...toolGroups.map((g) => g.relation)];
+    const positions = layout([...graphNodes, ...toolGroups], relations, CARD_NODE_SIZES);
+    const agentById = new Map(agents.map((a) => [a.id, a]));
+    const nodes: Node<AgentCardNodeData | AgentNameNodeData | BuiltinToolsNodeData>[] = graphNodes.map((node) => {
+      const position = positions.get(node.id) ?? { x: 0, y: 0 };
+      if (node.missing) {
+        return { id: node.id, type: 'name', position, data: { ...nameNodeData(node), width: CARD_NODE_SIZES.nodeWidth } };
+      }
+      // External agents aren't in the workspace list - card from the graph data (card actions only need the id)
+      const agent = agentById.get(node.id) ?? ({
+        id: node.id,
+        name: node.name,
+        workspaceId: node.workspaceId ?? undefined,
+        workspaceName: node.workspaceName ?? undefined,
+      } as Agent);
+      return { id: node.id, type: 'agent', position, data: { agent, actions: { ...actions, currentWorkspaceId: workspaceId }, external: node.external } };
+    });
+    toolGroups.forEach(({ id, tools }) => nodes.push({
+      id,
+      type: 'tools',
+      position: positions.get(id) ?? { x: 0, y: 0 },
+      data: { tools, width: CARD_NODE_SIZES.nodeWidth, maxVisible: 6 },
     }));
     return { nodes, edges: relationEdges(relations, true), bounds: graphBounds(nodes, CARD_NODE_SIZES.nodeWidth) };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- actions are recreated each render of the list
-  }, [agents]);
+  }, [graph, agents]);
 
   return (
     <AgentsGraphView
@@ -45,7 +67,9 @@ export function AgentsRelationsGraph({ workspaceId, refreshKey, topInset, ...act
       style={{ height: 'calc(100vh - 120px)', minHeight: 400 }}
       topInset={topInset}
       nodesDraggable
-      onNodeDoubleClick={(_, node) => navigate(routes.agentEditor(node.id))}
+      onNodeDoubleClick={(_, node) => {
+        if (node.type !== 'tools' && !(node.data as AgentNameNodeData).missing) navigate(routes.agentEditor(node.id));
+      }}
     />
   );
 }

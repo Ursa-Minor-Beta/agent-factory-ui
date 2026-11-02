@@ -437,7 +437,7 @@ export function AgentsList({
       )} */}
       {viewMode === 'list' && <Box mb="xl" />}
 
-      {viewMode === 'graph' ? (
+      {viewMode === 'graph' && workspaceId ? (
         <AgentsRelationsGraph
           workspaceId={workspaceId}
           topInset={48}
@@ -464,6 +464,7 @@ export function AgentsList({
                 onClone={handleClone}
                 onWorkspace={setAgentForWorkspace}
                 onExport={handleExport}
+                currentWorkspaceId={workspaceId}
               />
             ))}
           </SimpleGrid>

@@ -7,7 +7,7 @@ export interface GraphSizes {
 export interface Relation {
   source: string;
   target: string;
-  via: 'agent' | 'tool';
+  via: 'agent' | 'tool' | 'builtin'; // builtin: agent -> its built-in tools node
 }
 
 export interface GraphBounds {
