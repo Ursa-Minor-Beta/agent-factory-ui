@@ -60,7 +60,6 @@ function AgentsGraphViewInner({
             nodesDraggable={nodesDraggable}
             onNodeClick={onNodeClick}
             onNodeDoubleClick={onNodeDoubleClick}
-            proOptions={{ hideAttribution: true }}
           >
             <Background />
           </ReactFlow>

@@ -9,6 +9,7 @@ export interface NodeState {
   input?: unknown;
   output?: unknown;
   state?: unknown;
+  providerConfig?: { id: string; name: string } | null;
   error?: string | null;
   startedAt?: string | null;
   completedAt?: string | null;
@@ -94,6 +95,14 @@ function asUsage(value: unknown): TokenUsage | null {
 // LLM nodes report `usage` in their output (or state)
 export function getNodeUsage(state: NodeState): TokenUsage | null {
   return asUsage(state.output) ?? asUsage(state.state) ?? asUsage(state);
+}
+
+export function getRunProviderNames(run: Run): string[] {
+  const names = new Set<string>();
+  for (const state of Object.values(run.nodeStates)) {
+    if (state.providerConfig?.name) names.add(state.providerConfig.name);
+  }
+  return [...names];
 }
 
 export function getRunUsage(run: Run): TokenUsage | null {

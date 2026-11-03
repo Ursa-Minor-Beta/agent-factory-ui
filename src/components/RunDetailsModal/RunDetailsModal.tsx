@@ -39,7 +39,7 @@ import {
 import { runsApi, sessionsApi } from '../../api';
 import { NodeTypeIcon } from '../../nodes';
 import type { Run } from '../../types';
-import { statusColors, nodeStatusColors, formatDuration, resolveRunOutput, getNodeUsage, getRunUsage, formatTokens } from '../../types';
+import { statusColors, nodeStatusColors, formatDuration, resolveRunOutput, getNodeUsage, getRunUsage, getRunProviderNames, formatTokens } from '../../types';
 import { DataWithFileRefs } from './utils';
 import { buildRunDetailsSearch, useRunDetailsModal } from './useRunDetailsModal';
 
@@ -82,6 +82,7 @@ export function RunDetailsModal() {
   }, [run]);
 
   const runUsage = useMemo(() => (run ? getRunUsage(run) : null), [run]);
+  const runProviders = useMemo(() => (run ? getRunProviderNames(run) : []), [run]);
 
   const handleRefresh = async () => {
     if (!runId) return;
@@ -234,6 +235,11 @@ export function RunDetailsModal() {
                   <Text size="xs" c="dimmed">
                     {formatTokens(runUsage.inputTokens + runUsage.outputTokens)} total
                   </Text>
+                  {runProviders.length > 0 && (
+                    <Text size="xs" c="dimmed">
+                      {runProviders.join(', ')}
+                    </Text>
+                  )}
                 </Box>
               )}
               <Box>
@@ -390,6 +396,13 @@ export function RunDetailsModal() {
                           </Tooltip>
                         );
                       })()}
+                      {state.providerConfig?.name && (
+                        <Tooltip label="Provider">
+                          <Badge size="xs" variant="outline" color="cyan">
+                            {state.providerConfig.name}
+                          </Badge>
+                        </Tooltip>
+                      )}
                     </Group>
                   </Accordion.Control>
                   <Accordion.Panel>
