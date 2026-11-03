@@ -15,21 +15,35 @@ export interface AssistantMessage extends Omit<ChatMessage, 'role'> {
   errors?: string[];
 }
 
-function readSession(agentKey: string) {
+// Unsaved agent ('new') keeps its session in memory only - a stored one would leak into the next new agent
+const isUnsaved = (sessionKey: string) => sessionKey.endsWith(':new');
+
+function readSession(sessionKey: string) {
+  if (isUnsaved(sessionKey)) return null;
   try {
-    return localStorage.getItem(SESSION_STORAGE_PREFIX + agentKey);
+    return localStorage.getItem(SESSION_STORAGE_PREFIX + sessionKey);
   } catch {
     return null;
   }
 }
 
-function writeSession(agentKey: string, sessionId: string | null) {
+function writeSession(sessionKey: string, sessionId: string | null) {
+  if (isUnsaved(sessionKey)) return;
   try {
-    if (sessionId) localStorage.setItem(SESSION_STORAGE_PREFIX + agentKey, sessionId);
-    else localStorage.removeItem(SESSION_STORAGE_PREFIX + agentKey);
+    if (sessionId) localStorage.setItem(SESSION_STORAGE_PREFIX + sessionKey, sessionId);
+    else localStorage.removeItem(SESSION_STORAGE_PREFIX + sessionKey);
   } catch {
     // Storage unavailable - session just won't survive reload
   }
+}
+
+// Drop sessions stored for unsaved agents by earlier versions
+try {
+  Object.keys(localStorage)
+    .filter((key) => key.startsWith(SESSION_STORAGE_PREFIX) && isUnsaved(key))
+    .forEach((key) => localStorage.removeItem(key));
+} catch {
+  // Storage unavailable
 }
 
 let messageSeq = 0;
@@ -38,11 +52,13 @@ const nextId = (prefix: string) => `${prefix}-${Date.now()}-${++messageSeq}`;
 /**
  * Chat with the builder agent. The agent edits the canvas through client tools:
  * each client-tool-call is executed on the editor and its validation result posted back,
- * the run waits for it. One session per edited agent, kept in localStorage.
+ * the run waits for it. One session per edited agent, kept in localStorage once the agent is saved.
  */
 export function useAssistantChat(assistantAgentId: string | undefined, agentKey: string, editor: AssistantEditor) {
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const sessionIdRef = useRef(sessionId);
+  sessionIdRef.current = sessionId;
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [sending, setSending] = useState(false);
   const [statusText, setStatusText] = useState<string>();
@@ -67,15 +83,13 @@ export function useAssistantChat(assistantAgentId: string | undefined, agentKey:
   // First save of a new agent changes the key 'new' -> id: keep the conversation and running stream.
   useEffect(() => {
     const prevAgentKey = agentKeyRef.current;
-    const prevSessionKey = sessionKeyRef.current;
     const sameAssistant = assistantAgentIdRef.current === assistantAgentId;
     agentKeyRef.current = agentKey;
     sessionKeyRef.current = sessionKey;
     assistantAgentIdRef.current = assistantAgentId;
     if (sameAssistant && prevAgentKey === 'new' && agentKey !== 'new') {
-      const carried = readSession(prevSessionKey);
-      writeSession(prevSessionKey, null);
-      if (carried) writeSession(sessionKey, carried);
+      // Now the agent has an id - persist the in-memory session under it
+      if (sessionIdRef.current) writeSession(sessionKey, sessionIdRef.current);
       return;
     }
 
