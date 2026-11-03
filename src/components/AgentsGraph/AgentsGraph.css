@@ -35,10 +35,6 @@
   color: var(--mantine-color-yellow-8);
 }
 
-.agents-graph .agents-graph-edge-builtin .react-flow__edge-path {
-  stroke-dasharray: 1 3;
-}
-
 /* Agent card from another workspace - dashed and dimmed, full opacity on hover */
 .agents-graph .agents-graph-external .mantine-Card-root {
   border-style: dashed;

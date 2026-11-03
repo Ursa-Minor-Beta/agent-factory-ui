@@ -9,10 +9,8 @@ import { graphBounds, layout } from './graph/layout';
 import { useAgentGraph } from './hooks/useAgentGraph';
 import { AgentCardNode, CARD_NODE_SIZES, type AgentCardNodeData, type CardActions } from './nodes/AgentCardNode';
 import { AgentNameNode, nameNodeData, type AgentNameNodeData } from './nodes/AgentNameNode';
-import { BuiltinToolsNode, type BuiltinToolsNodeData } from './nodes/BuiltinToolsNode';
-import { builtinToolGroups } from './graph/builtins';
 
-const nodeTypes = { agent: AgentCardNode, name: AgentNameNode, tools: BuiltinToolsNode };
+const nodeTypes = { agent: AgentCardNode, name: AgentNameNode };
 
 interface AgentsRelationsGraphProps extends CardActions {
   workspaceId: string;
@@ -28,11 +26,10 @@ export function AgentsRelationsGraph({ workspaceId, refreshKey, topInset, ...act
 
   const { nodes, edges, bounds } = useMemo(() => {
     const graphNodes = graph?.nodes ?? [];
-    const toolGroups = builtinToolGroups(graph?.builtins ?? []);
-    const relations = [...graphRelations(graph?.edges ?? []), ...toolGroups.map((g) => g.relation)];
-    const positions = layout([...graphNodes, ...toolGroups], relations, CARD_NODE_SIZES);
+    const relations = graphRelations(graph?.edges ?? []);
+    const positions = layout(graphNodes, relations, CARD_NODE_SIZES);
     const agentById = new Map(agents.map((a) => [a.id, a]));
-    const nodes: Node<AgentCardNodeData | AgentNameNodeData | BuiltinToolsNodeData>[] = graphNodes.map((node) => {
+    const nodes: Node<AgentCardNodeData | AgentNameNodeData>[] = graphNodes.map((node) => {
       const position = positions.get(node.id) ?? { x: 0, y: 0 };
       if (node.missing) {
         return { id: node.id, type: 'name', position, data: { ...nameNodeData(node), width: CARD_NODE_SIZES.nodeWidth } };
@@ -46,12 +43,6 @@ export function AgentsRelationsGraph({ workspaceId, refreshKey, topInset, ...act
       } as Agent);
       return { id: node.id, type: 'agent', position, data: { agent, actions: { ...actions, currentWorkspaceId: workspaceId }, external: node.external } };
     });
-    toolGroups.forEach(({ id, tools }) => nodes.push({
-      id,
-      type: 'tools',
-      position: positions.get(id) ?? { x: 0, y: 0 },
-      data: { tools, width: CARD_NODE_SIZES.nodeWidth, maxVisible: 6 },
-    }));
     return { nodes, edges: relationEdges(relations, true), bounds: graphBounds(nodes, CARD_NODE_SIZES.nodeWidth) };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- actions are recreated each render of the list
   }, [graph, agents]);
@@ -64,11 +55,11 @@ export function AgentsRelationsGraph({ workspaceId, refreshKey, topInset, ...act
       nodeTypes={nodeTypes}
       loading={loading}
       error={error}
-      style={{ height: 'calc(100vh - 120px)', minHeight: 400 }}
+      style={{ height: 'calc(100vh - 140px)', minHeight: 400 }}
       topInset={topInset}
       nodesDraggable
       onNodeDoubleClick={(_, node) => {
-        if (node.type !== 'tools' && !(node.data as AgentNameNodeData).missing) navigate(routes.agentEditor(node.id));
+        if (!(node.data as AgentNameNodeData).missing) navigate(routes.agentEditor(node.id));
       }}
     />
   );

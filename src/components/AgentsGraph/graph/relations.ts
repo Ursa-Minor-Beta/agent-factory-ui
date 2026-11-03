@@ -21,8 +21,7 @@ export function relationEdges(relations: Relation[], withLabels: boolean): Edge[
     id: `${r.source}->${r.target}`,
     source: r.source,
     target: r.target,
-    label: withLabels && r.via !== 'builtin' ? r.via : undefined,
-    // agent node call: solid, tool call: dashed, built-in tools: dotted
-    className: r.via === 'agent' ? undefined : `agents-graph-edge-${r.via}`,
+    label: withLabels ? r.via : undefined,
+    className: r.via === 'tool' ? 'agents-graph-edge-tool' : undefined, // agent node call: solid, tool call: dotted
   }));
 }

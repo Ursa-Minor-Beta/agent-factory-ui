@@ -8,10 +8,8 @@ import { graphRelations, relationEdges } from './graph/relations';
 import { graphBounds, layout } from './graph/layout';
 import { useAgentGraph } from './hooks/useAgentGraph';
 import { AgentNameNode, NAME_NODE_SIZES, nameNodeData, type AgentNameNodeData } from './nodes/AgentNameNode';
-import { BuiltinToolsNode, type BuiltinToolsNodeData } from './nodes/BuiltinToolsNode';
-import { builtinToolGroups } from './graph/builtins';
 
-const nodeTypes = { agent: AgentNameNode, tools: BuiltinToolsNode };
+const nodeTypes = { agent: AgentNameNode };
 
 const NEW_AGENT_NODE_ID = '__new-agent__';
 
@@ -31,20 +29,13 @@ export function AgentsNavigatorGraph({ workspaceId, refreshKey, currentAgentId, 
   // Layout - recomputed only when the graph itself changes, never on run status updates
   const { layoutNodes, edges, bounds } = useMemo(() => {
     const graphNodes = graph?.nodes ?? [];
-    const toolGroups = builtinToolGroups(graph?.builtins ?? []);
-    const relations = [...graphRelations(graph?.edges ?? []), ...toolGroups.map((g) => g.relation)];
-    const positions = layout([...graphNodes, ...toolGroups], relations, NAME_NODE_SIZES);
-    const layoutNodes: Node<AgentNameNodeData | BuiltinToolsNodeData>[] = graphNodes.map((node) => ({
+    const relations = graphRelations(graph?.edges ?? []);
+    const positions = layout(graphNodes, relations, NAME_NODE_SIZES);
+    const layoutNodes: Node<AgentNameNodeData>[] = graphNodes.map((node) => ({
       id: node.id,
       type: 'agent',
       position: positions.get(node.id) ?? { x: 0, y: 0 },
       data: nameNodeData(node, currentAgentId),
-    }));
-    toolGroups.forEach(({ id, tools }) => layoutNodes.push({
-      id,
-      type: 'tools',
-      position: positions.get(id) ?? { x: 0, y: 0 },
-      data: { tools, width: NAME_NODE_SIZES.nodeWidth, maxVisible: 3, small: true },
     }));
     if (newAgent) {
       // Placeholder below everything, centred horizontally
@@ -85,7 +76,7 @@ export function AgentsNavigatorGraph({ workspaceId, refreshKey, currentAgentId, 
       style={{ height: '100%' }}
       nodesDraggable={false}
       onNodeClick={(event, node) => {
-        if (node.id === NEW_AGENT_NODE_ID || node.type === 'tools' || (node.data as AgentNameNodeData).missing) return;
+        if (node.id === NEW_AGENT_NODE_ID || (node.data as AgentNameNodeData).missing) return;
         // Cmd/Ctrl+click opens in a new tab, like a link
         if (event.metaKey || event.ctrlKey) window.open(routes.agentEditor(node.id), '_blank');
         else if (node.id !== currentAgentId) navigate(routes.agentEditor(node.id));
