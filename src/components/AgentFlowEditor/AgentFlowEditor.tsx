@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ReactFlow, MiniMap, type ReactFlowInstance } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import './AgentFlowEditor.css';
-import { Center, Loader } from '@mantine/core';
+import { Center, Loader, LoadingOverlay } from '@mantine/core';
 import { useAgentEditor } from './hooks/useAgentEditor';
 import { useNodeClipboard } from './hooks/useNodeClipboard';
 import { EditorToolbar } from './EditorToolbar';
@@ -17,6 +17,8 @@ import type { NodeStatus } from '../../types';
 import { PanelLeft } from './PanelLeft';
 import { PanelRight } from './PanelRight';
 import { clearGitHubCache } from './PanelLeft/GitTab/useGitHubData';
+import { useNavigate } from 'react-router-dom';
+import { routes } from '../../config/routes';
 
 function downloadJson(data: unknown, filename: string) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -30,6 +32,9 @@ function downloadJson(data: unknown, filename: string) {
 
 const PALETTE_STORAGE_KEY = 'agent-editor-palette-open';
 const TAB_STORAGE_KEY = 'agent-editor-active-tab';
+
+// Agents opened in the editor during this session, most recent last - used to pick where to go after a delete
+const visitedAgents: { id: string; workspaceId?: string }[] = [];
 
 export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) {
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
@@ -132,6 +137,16 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     });
   }, []);
 
+  // Toolbar Run: bumps a counter the Run tab reacts to; Run tab reports back running state / missing inputs
+  const [runRequest, setRunRequest] = useState(0);
+  const [isRunning, setIsRunning] = useState(false);
+  const handleToolbarRun = useCallback(() => setRunRequest((n) => n + 1), []);
+  const handleRunInputsRequired = useCallback(() => {
+    handleActiveTabChange('run');
+    setIsPaletteOpen(true);
+    localStorage.setItem(PALETTE_STORAGE_KEY, 'true');
+  }, [handleActiveTabChange]);
+
   // Handle Export button
   const handleExport = useCallback(async () => {
     if (!agentId) return;
@@ -190,13 +205,27 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     };
   }, [agentName]);
 
-  // Apply run status classes for rendering only - stored nodes stay untouched
+  // Apply run status classes for rendering only - stored nodes stay untouched.
+  // Copies are reused while node and status are unchanged, so a status update re-renders only that node
+  const displayNodeCache = useRef(new Map<string, { source: (typeof nodes)[number]; display: (typeof nodes)[number] }>());
   const displayNodes = useMemo(() => {
-    if (!runStatuses) return nodes;
-    return nodes.map((node) => ({
-      ...node,
-      className: `run-${runStatuses[node.id] ?? 'pending'}`,
-    }));
+    if (!runStatuses) {
+      displayNodeCache.current.clear();
+      return nodes;
+    }
+    const cache = displayNodeCache.current;
+    const next = new Map<string, { source: (typeof nodes)[number]; display: (typeof nodes)[number] }>();
+    const result = nodes.map((node) => {
+      const className = `run-${runStatuses[node.id] ?? 'pending'}`;
+      const cached = cache.get(node.id);
+      const display = cached && cached.source === node && cached.display.className === className
+        ? cached.display
+        : { ...node, className };
+      next.set(node.id, { source: node, display });
+      return display;
+    });
+    displayNodeCache.current = next;
+    return result;
   }, [nodes, runStatuses]);
 
   // Photons flow along edges carrying data: source finished, target running
@@ -261,6 +290,28 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     }
   }, [saveAgent, agent?.id, agent?.github?.rootId]);
 
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!agent?.id) return;
+    const i = visitedAgents.findIndex((v) => v.id === agent.id);
+    if (i !== -1) visitedAgents.splice(i, 1);
+    visitedAgents.push({ id: agent.id, workspaceId: agent.workspaceId });
+  }, [agent?.id, agent?.workspaceId]);
+
+  // After delete: open the previously visited agent of the same workspace, else the workspace, else the agents list
+  const handleAgentDeleted = useCallback(() => {
+    const deletedId = agent?.id;
+    const i = visitedAgents.findIndex((v) => v.id === deletedId);
+    if (i !== -1) visitedAgents.splice(i, 1);
+    // Most recently visited agent from the same workspace
+    const previousId = visitedAgents.findLast((v) => v.workspaceId === agent?.workspaceId)?.id;
+    const target = previousId
+      ? routes.agentEditor(previousId)
+      : agent?.workspaceId ? routes.workspace(agent.workspaceId) : routes.agents();
+    navigate(target, { replace: true });
+  }, [agent?.id, agent?.workspaceId, navigate]);
+
   // Memoized so it doesn't break PanelLeft memoization
   const editorToolbar = useMemo(() => (
     <EditorToolbar
@@ -273,10 +324,35 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
       isPaletteOpen={isPaletteOpen}
       onSave={handleSave}
       onTogglePalette={togglePalette}
+      running={isRunning}
+      onRun={handleToolbarRun}
     />
-  ), [agent?.name, agent?.id, agent?.workspaceId, agent?.workspaceName, agent?.github, saving, isPaletteOpen, handleSave, togglePalette]);
+  ), [
+    agent?.name, 
+    agent?.id, 
+    agent?.workspaceId, 
+    agent?.workspaceName, 
+    agent?.github, 
+    saving, 
+    isPaletteOpen, 
+    isRunning, 
+    handleSave, 
+    togglePalette, 
+    handleToolbarRun
+  ]);
 
-  if (loading) {
+  // Apply the loaded agent's viewport when switching agents in place (first load is handled by onInit)
+  useEffect(() => {
+    const instance = reactFlowInstance.current;
+    if (!instance || loading) return;
+    if (initialViewport) instance.setViewport(initialViewport);
+    else requestAnimationFrame(() => instance.fitView());
+    setRunStatuses(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- only when a different agent finished loading
+  }, [agent?.id, loading]);
+
+  // Full-screen loader only for the first load; switching agents keeps the editor mounted
+  if (loading && !agent?.id) {
     return (
       <Center style={{ width: '100%', height: '100%' }}>
         <Loader />
@@ -292,6 +368,8 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
         {...clipboardMouseHandlers}
       >
         {!isPaletteOpen && editorToolbar}
+        {/* Switching agents: cover only the canvas, side panels stay usable (they sit above at zIndex 100) */}
+        <LoadingOverlay visible={loading} zIndex={5} overlayProps={{ blur: 2 }} />
         <ReactFlow
           nodes={displayNodes}
           edges={displayEdges}
@@ -354,6 +432,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
           onWorkspaceChange={updateWorkspace}
           onEdgeTypeChange={changeEdgeType}
           onExport={handleExport}
+          onAgentDeleted={handleAgentDeleted}
           onLayoutDirectionChange={changeLayoutDirection}
           onLoadTemplate={loadTemplate}
           onReloadAgent={reloadAgent}
@@ -361,6 +440,9 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
           onNodeStatus={handleNodeStatus}
           onRunEnd={handleRunEnd}
           onRunClear={handleRunClear}
+          runRequest={runRequest}
+          onRunInputsRequired={handleRunInputsRequired}
+          onRunningChange={setIsRunning}
         />
 
       {selectedNode && (

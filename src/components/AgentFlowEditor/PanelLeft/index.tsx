@@ -1,7 +1,11 @@
 import { useEffect, useState, useCallback, useRef, memo, type ReactNode } from 'react';
-import { Box, Tabs } from '@mantine/core';
+import { ActionIcon, Box, Tabs, Tooltip } from '@mantine/core';
+import { IconPlus } from '@tabler/icons-react';
+import { Link } from 'react-router-dom';
+import { routes } from '../../../config/routes';
 import type { NodeType, AgentExample } from '../../../api';
 import type { Agent } from '../../../types/agent';
+import type { NodeStatus } from '../../../types';
 import type { ChatStatusEvent } from '../../../api/sessions';
 import type { LayoutDirection } from '../utils/converters';
 import { NodesTab } from './NodesTab';
@@ -9,6 +13,7 @@ import { SettingsTab } from './SettingsTab';
 import { RunTab } from './RunTab';
 import { TemplatesTab } from './TemplatesTab';
 import { GitTab } from './GitTab';
+import { AgentsNavigatorGraph } from '../../AgentsGraph';
 
 const MIN_WIDTH = 120;
 const MAX_WIDTH_RATIO = 0.7; // 40% of viewport
@@ -35,15 +40,20 @@ interface PanelLeftProps {
   onWorkspaceChange?: (workspaceId: string | null) => Promise<void>;
   onLoadTemplate: (template: AgentExample) => void;
   onExport?: () => void;
+  onAgentDeleted?: () => void;
   exporting?: boolean;
   onReloadAgent?: () => void;
   onRunStart?: () => void;
   onNodeStatus?: (nodeId: string, status: ChatStatusEvent['status'], minRunningMs: number) => void;
   onRunEnd?: () => void;
   onRunClear?: () => void;
+  runRequest?: number;
+  onRunInputsRequired?: () => void;
+  onRunningChange?: (running: boolean) => void;
 }
 
-export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, savedAt, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onWorkspaceChange, onLoadTemplate, onExport, exporting, onReloadAgent, onRunStart, onNodeStatus, onRunEnd, onRunClear }: PanelLeftProps) {
+export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, savedAt, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onWorkspaceChange, onLoadTemplate, onExport, onAgentDeleted, exporting, onReloadAgent, onRunStart, onNodeStatus, onRunEnd, onRunClear, runRequest, onRunInputsRequired, onRunningChange }: PanelLeftProps) {
+  const [agentRunStatuses, setAgentRunStatuses] = useState<Record<string, NodeStatus>>({});
   const [viewingNodeType, setViewingNodeType] = useState<NodeType | null>(null);
   const [internalActiveTab, setInternalActiveTab] = useState<string | null>(() => {
     const saved = localStorage.getItem(TAB_STORAGE_KEY);
@@ -51,7 +61,10 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
   });
 
   // Use external tab if provided, otherwise internal
-  const activeTab = externalActiveTab ?? internalActiveTab;
+  const workspaceId = agent?.workspaceId;
+  const requestedTab = externalActiveTab ?? internalActiveTab;
+  // Relations tab only exists for agents in a workspace
+  const activeTab = requestedTab === 'relations' && !workspaceId ? 'nodes' : requestedTab;
   const setActiveTab = (tab: string | null) => {
     if (onActiveTabChange) {
       onActiveTabChange(tab);
@@ -143,13 +156,20 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
         <>
           {header}
 
-          <Tabs value={activeTab} onChange={setActiveTab} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+          {/* display-none (not the default 'activity'): hidden tabs keep running effects, e.g. Run tab reacting to toolbar Run */}
+          <Tabs value={activeTab} onChange={setActiveTab} keepMountedMode="display-none" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
             <Tabs.List px="xs" pt="xs">
               <Tabs.Tab value="nodes">Nodes</Tabs.Tab>
               <Tabs.Tab value="templates">Templates</Tabs.Tab>
               <Tabs.Tab value="settings">Settings</Tabs.Tab>
               <Tabs.Tab value="git">Git</Tabs.Tab>
-              <Tabs.Tab value="run">Run</Tabs.Tab>
+              <Tabs.Tab
+                value="run"
+                className={agent?.id && agentRunStatuses[agent.id] ? `run-tab-${agentRunStatuses[agent.id]}` : undefined}
+              >
+                Run
+              </Tabs.Tab>
+              {workspaceId && <Tabs.Tab value="relations">Relations</Tabs.Tab>}
             </Tabs.List>
 
             <Tabs.Panel value="nodes" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
@@ -168,7 +188,17 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
             </Tabs.Panel>
 
             <Tabs.Panel value="run" style={{ flex: 1, minHeight: 0 }} p="xs">
-              <RunTab agent={agent} onRunStart={onRunStart} onNodeStatus={onNodeStatus} onRunEnd={onRunEnd} onRunClear={onRunClear} />
+              <RunTab
+                agent={agent}
+                onRunStart={onRunStart}
+                onNodeStatus={onNodeStatus}
+                onRunEnd={onRunEnd}
+                onRunClear={onRunClear}
+                runRequest={runRequest}
+                onInputsRequired={onRunInputsRequired}
+                onRunningChange={onRunningChange}
+                onAgentStatusesChange={setAgentRunStatuses}
+              />
             </Tabs.Panel>
 
             <Tabs.Panel value="settings" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }} p="xs">
@@ -181,9 +211,36 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
                 onLayoutDirectionChange={onLayoutDirectionChange}
                 onWorkspaceChange={onWorkspaceChange}
                 onExport={onExport}
+                onDeleted={onAgentDeleted}
                 exporting={exporting}
               />
             </Tabs.Panel>
+
+            {workspaceId && (
+              <Tabs.Panel value="relations" style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+                {activeTab === 'relations' && (
+                  <AgentsNavigatorGraph
+                    workspaceId={workspaceId}
+                    currentAgentId={agent?.id}
+                    newAgent={!agent?.id}
+                    refreshKey={savedAt}
+                    runStatuses={agentRunStatuses}
+                  />
+                )}
+                {agent?.id && (
+                  <Tooltip label="New agent">
+                    <ActionIcon
+                      component={Link}
+                      to={routes.newAgentEditor(workspaceId)}
+                      variant="default"
+                      style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}
+                    >
+                      <IconPlus size={16} />
+                    </ActionIcon>
+                  </Tooltip>
+                )}
+              </Tabs.Panel>
+            )}
 
             <Tabs.Panel value="git" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
               <GitTab agent={agent} savedAt={savedAt} onReloadAgent={onReloadAgent} />

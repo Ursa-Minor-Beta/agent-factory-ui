@@ -1,0 +1,48 @@
+/* Reset the global node chrome from AgentFlowEditor.css - the card is drawn by the node components */
+.agents-graph .react-flow__node,
+[data-mantine-color-scheme] .agents-graph .react-flow__node {
+  border: none;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
+/* Same edge color as the agent editor, thinner */
+.agents-graph .react-flow__edge-path {
+  stroke: var(--mantine-color-default-border);
+  stroke-width: 1;
+}
+
+.agents-graph .agents-graph-edge-tool .react-flow__edge-path {
+  stroke-dasharray: 5; /* xyflow's dashed edge look (as on its animated edges), static */
+}
+
+.agents-graph .react-flow__edge-text {
+  fill: var(--mantine-color-dimmed);
+}
+
+.agents-graph .react-flow__edge-textbg {
+  fill: var(--mantine-color-body);
+}
+
+/* Agent running in the editor's run - lights the title, like the node icon in the editor */
+.agents-graph .agents-graph-run-running .mantine-Text-root {
+  color: var(--mantine-color-yellow-3);
+  text-shadow: 0 0 6px rgba(250, 200, 80, 0.9), 0 0 12px rgba(250, 200, 80, 0.6);
+}
+
+[data-mantine-color-scheme='light'] .agents-graph .agents-graph-run-running .mantine-Text-root {
+  color: var(--mantine-color-yellow-8);
+}
+
+/* Agent card from another workspace - dashed and dimmed, full opacity on hover */
+.agents-graph .agents-graph-external .mantine-Card-root {
+  border-style: dashed;
+  opacity: 0.6;
+  transition: opacity 150ms ease;
+}
+
+.agents-graph .agents-graph-external:hover .mantine-Card-root,
+.agents-graph .agents-graph-external:focus-within .mantine-Card-root {
+  opacity: 1;
+}

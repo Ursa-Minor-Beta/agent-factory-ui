@@ -64,6 +64,37 @@ export interface Agent {
   updatedAt: string;
 }
 
+// GET /api/workspaces/:id/agent-graph - relations of a workspace's agents, incl. cross-workspace callers/callees
+export interface AgentGraphNode {
+  id: string;
+  name: string;
+  workspaceId: string | null;
+  workspaceName: string | null;
+  external: boolean; // agent from another workspace
+  missing: boolean; // referenced agent that doesn't exist (deleted) or isn't accessible
+}
+
+export interface AgentGraphEdge {
+  from: string;
+  to: string | null; // null when the target is resolved at runtime (dynamic)
+  kind: 'agent-node' | 'agent-tool';
+  nodeId: string;
+  toolName: string | null;
+  dynamic: boolean;
+}
+
+export interface AgentGraphBuiltin {
+  agentId: string;
+  nodeId: string;
+  toolName: string;
+}
+
+export interface AgentGraph {
+  nodes: AgentGraphNode[];
+  edges: AgentGraphEdge[];
+  builtins: AgentGraphBuiltin[];
+}
+
 export interface AgentQueryParams {
   id?: string;
   name?: string;

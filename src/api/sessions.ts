@@ -14,6 +14,14 @@ export interface ChatStatusEvent {
   statusText?: string;
 }
 
+// Node status inside a sub-agent (any depth) called by the running agent
+export interface ChatSubagentStatusEvent extends ChatStatusEvent {
+  agentId: string;
+  agentName: string;
+  path: string; // "parentNode / SUB: node / SUBSUB: node" - one segment per nesting level
+  nodeType?: string;
+}
+
 export interface ChatDoneEvent {
   response: string;
   files?: string[];
@@ -32,6 +40,7 @@ export interface ChatErrorEvent {
 export interface ChatStreamCallbacks {
   onInit?: (data: ChatInitEvent) => void;
   onStatus?: (data: ChatStatusEvent) => void;
+  onSubagentStatus?: (data: ChatSubagentStatusEvent) => void;
   onDone?: (data: ChatDoneEvent) => void;
   onError?: (data: ChatErrorEvent) => void;
 }
@@ -163,6 +172,9 @@ export const sessionsApi = {
                   break;
                 case 'status':
                   callbacks.onStatus?.(eventData as ChatStatusEvent);
+                  break;
+                case 'subagent-status':
+                  callbacks.onSubagentStatus?.(eventData as ChatSubagentStatusEvent);
                   break;
                 case 'done':
                   callbacks.onDone?.(eventData as ChatDoneEvent);

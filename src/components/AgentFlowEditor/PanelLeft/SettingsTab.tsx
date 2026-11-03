@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Stack, TextInput, Textarea, Group, Code, ActionIcon, Tooltip, CopyButton, Text, Select, Divider, Button } from '@mantine/core';
-import { IconCheck, IconCopy, IconUpload } from '@tabler/icons-react';
+import { IconCheck, IconCopy, IconTrash, IconUpload } from '@tabler/icons-react';
+import { AgentDeleteModal } from '../../AgentsList/AgentDeleteModal';
 import { useForm } from 'react-hook-form';
 import type { Agent } from '../../../types/agent';
 import type { Workspace } from '../../../types/workspace';
@@ -29,6 +30,7 @@ interface SettingsTabProps {
   onLayoutDirectionChange: (value: LayoutDirection) => void;
   onWorkspaceChange?: (workspaceId: string | null) => Promise<void>;
   onExport?: () => void;
+  onDeleted?: () => void;
   exporting?: boolean;
 }
 
@@ -37,7 +39,8 @@ interface SettingsForm {
   description: string;
 }
 
-export function SettingsTab({ agent, edgeType, layoutDirection, onAgentInfoChange, onEdgeTypeChange, onLayoutDirectionChange, onWorkspaceChange, onExport, exporting }: SettingsTabProps) {
+export function SettingsTab({ agent, edgeType, layoutDirection, onAgentInfoChange, onEdgeTypeChange, onLayoutDirectionChange, onWorkspaceChange, onExport, onDeleted, exporting }: SettingsTabProps) {
+  const [deleteOpened, setDeleteOpened] = useState(false);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [workspacesLoading, setWorkspacesLoading] = useState(false);
 
@@ -73,7 +76,7 @@ export function SettingsTab({ agent, edgeType, layoutDirection, onAgentInfoChang
   useEffect(() => {
     if (agent) {
       reset({
-        name: agent.name,
+        name: agent.name || '', // undefined would keep the previous agent's value (e.g. on /new)
         description: agent.description || '',
       });
     }
@@ -157,6 +160,26 @@ export function SettingsTab({ agent, edgeType, layoutDirection, onAgentInfoChang
               </Button>
           </Group>
         </Stack>
+      )}
+      {agent?.id && onDeleted && (
+        <>
+          <Divider />
+          <Group>
+            <Button
+              variant="light"
+              color="red"
+              leftSection={<IconTrash size={16} />}
+              onClick={() => setDeleteOpened(true)}
+            >
+              Delete Agent
+            </Button>
+          </Group>
+          <AgentDeleteModal
+            agent={deleteOpened ? (agent as Agent) : null}
+            onClose={() => setDeleteOpened(false)}
+            onDeleted={onDeleted}
+          />
+        </>
       )}
     </Stack>
   );

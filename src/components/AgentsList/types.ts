@@ -11,6 +11,8 @@ export interface AgentCardProps {
   onClone: (agent: Agent) => void;
   onWorkspace: (agent: Agent) => void;
   onExport: (agent: Agent) => void;
+  compact?: boolean; // graph mode: no description, tighter spacing
+  currentWorkspaceId?: string; // workspace being viewed - its agents don't repeat the workspace badge
 }
 
 export interface AgentFiltersProps {

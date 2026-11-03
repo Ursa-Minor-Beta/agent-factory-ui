@@ -109,10 +109,9 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
       setNodes(positionedNodes);
       setEdges(flowEdges);
 
-      // Load saved viewport if available
-      if (data.editorData?.viewport) {
-        setInitialViewport(data.editorData.viewport);
-      }
+      // Saved viewport (cleared when absent, so switching agents doesn't reuse the previous one)
+      setInitialViewport(data.editorData?.viewport);
+      setSelectedNodeId(null);
     } catch (err) {
       console.error('Failed to fetch agent:', err);
     } finally {
@@ -125,12 +124,17 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     if (!agentId) return;
 
     if (agentId === 'new') {
+      // Editor may stay mounted when switching from another agent - start from an empty canvas
       setAgent({ workspaceId });
+      setNodes([]);
+      setEdges([]);
+      setSelectedNodeId(null);
+      setInitialViewport(undefined);
       return;
     }
 
     fetchAgent();
-  }, [agentId, fetchAgent, workspaceId]);
+  }, [agentId, fetchAgent, workspaceId, setNodes, setEdges]);
 
   // Set target's runAfter list, keeping flow data in sync
   const setNodeRunAfter = useCallback(
