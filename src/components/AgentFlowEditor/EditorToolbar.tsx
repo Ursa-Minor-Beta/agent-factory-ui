@@ -121,9 +121,10 @@ export function EditorToolbar({
         <ActionIcon
           size="xs"
           variant="subtle"
-          title={canSave ? 'Save' : 'No changes'}
+          title={saving ? 'Saving...' : canSave ? 'Save' : 'No changes'}
           loading={saving}
-          disabled={!canSave}
+          // Settings save instantly without graph changes - keep it enabled so the spinner shows
+          disabled={!canSave && !saving}
           onClick={onSave}
         >
           <IconDeviceFloppy size={16} />

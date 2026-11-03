@@ -1,6 +1,16 @@
 import { useEffect, useState, useCallback, useRef, memo, type ReactNode } from 'react';
 import { ActionIcon, Box, Tabs, Tooltip } from '@mantine/core';
-import { IconPlus, IconSparkles } from '@tabler/icons-react';
+import {
+  IconHierarchy2,
+  IconBrandGithub,
+  IconComponents,
+  IconPlayerPlay,
+  IconPlus,
+  IconSettings,
+  IconSparkles,
+  IconTemplate,
+  type Icon,
+} from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { routes } from '../../../config/routes';
 import type { NodeType, AgentExample } from '../../../api';
@@ -20,6 +30,17 @@ const MIN_WIDTH = 120;
 const MAX_WIDTH_RATIO = 0.7; // 40% of viewport
 const STORAGE_KEY = 'agent-editor-palette-width';
 const TAB_STORAGE_KEY = 'agent-editor-active-tab';
+
+// Icon-only tab - names live in the tooltip to keep the narrow panel on one row
+function IconTab({ value, label, icon: TabIcon, className }: { value: string; label: string; icon: Icon; className?: string }) {
+  return (
+    <Tooltip label={label} openDelay={300}>
+      <Tabs.Tab value={value} aria-label={label} className={className}>
+        <TabIcon size={16} style={{ display: 'block' }} />
+      </Tabs.Tab>
+    </Tooltip>
+  );
+}
 
 interface PanelLeftProps {
   hidden?: boolean;
@@ -162,25 +183,18 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
           {/* display-none (not the default 'activity'): hidden tabs keep running effects, e.g. Run tab reacting to toolbar Run */}
           <Tabs value={activeTab} onChange={setActiveTab} keepMountedMode="display-none" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
             <Tabs.List px="xs" pt="xs">
-              <Tabs.Tab
-                value="assistant"
-                title="Assistant"
-                aria-label="Assistant"
-                className={assistantSending ? 'run-tab-running' : undefined}
-              >
-                <IconSparkles size={16} style={{ display: 'block' }} />
-              </Tabs.Tab>
-              <Tabs.Tab
+              <IconTab value="assistant" label="Assistant" icon={IconSparkles} className={assistantSending ? 'run-tab-running' : undefined} />
+              <IconTab
                 value="run"
+                label="Run"
+                icon={IconPlayerPlay}
                 className={agent?.id && agentRunStatuses[agent.id] ? `run-tab-${agentRunStatuses[agent.id]}` : undefined}
-              >
-                Run
-              </Tabs.Tab>
-              <Tabs.Tab value="nodes">Nodes</Tabs.Tab>
-              <Tabs.Tab value="templates">Templates</Tabs.Tab>
-              <Tabs.Tab value="settings">Settings</Tabs.Tab>
-              <Tabs.Tab value="git">Git</Tabs.Tab>
-              {workspaceId && <Tabs.Tab value="relations">Relations</Tabs.Tab>}
+              />
+              <IconTab value="nodes" label="Nodes" icon={IconComponents} />
+              <IconTab value="templates" label="Templates" icon={IconTemplate} />
+              <IconTab value="settings" label="Settings" icon={IconSettings} />
+              <IconTab value="git" label="Git" icon={IconBrandGithub} />
+              {workspaceId && <IconTab value="relations" label="Relations" icon={IconHierarchy2} />}
             </Tabs.List>
 
             <Tabs.Panel value="assistant" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>

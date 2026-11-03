@@ -309,10 +309,13 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
 
       // Persist to backend only for existing agents
       if (agent.id) {
+        setSaving(true);
         try {
           await agentsApi.update(agent.id, { editorData: updatedEditorData });
         } catch (err) {
           console.error('Failed to save canvas settings:', err);
+        } finally {
+          setSaving(false);
         }
       }
     },
