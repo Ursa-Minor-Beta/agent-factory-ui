@@ -195,7 +195,16 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     loadTemplate,
     setViewportGetter,
     reloadAgent,
+    getAgentNodes,
+    upsertNode,
+    removeNode,
   } = useAgentEditor({ agentId, workspaceId });
+
+  // Canvas access for the Assistant tab's client tools (stable - keeps PanelLeft memoized)
+  const assistantEditor = useMemo(
+    () => ({ getNodes: getAgentNodes, upsertNode, removeNode, nodeTypes: availableNodeTypes }),
+    [getAgentNodes, upsertNode, removeNode, availableNodeTypes]
+  );
 
   // Show agent name in browser tab title, restore Layout's title on leave
   const agentName = agent?.name;
@@ -468,6 +477,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
           runRequest={runRequest}
           onRunInputsRequired={handleRunInputsRequired}
           onRunningChange={setIsRunning}
+          assistantEditor={assistantEditor}
         />
 
       {selectedNode && (

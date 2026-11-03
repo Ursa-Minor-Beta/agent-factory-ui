@@ -44,6 +44,10 @@ export const runsApi = {
   cancel: (id: string) =>
     api.post<CancelRunResponse>(`/api/runs/${id}/cancel`),
 
+  // Answer a client-tool-call SSE event; 409 TOOL_CALL_NOT_PENDING if already answered / timed out
+  submitToolResult: (id: string, toolCallId: string, result: unknown) =>
+    api.post<void>(`/api/runs/${id}/tool-results`, { toolCallId, result }),
+
   listAll: (params?: ListRunsParams) => {
     const searchParams = new URLSearchParams();
     if (params?.userId) searchParams.set('userId', params.userId);

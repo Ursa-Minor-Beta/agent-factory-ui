@@ -11,11 +11,12 @@ import {
   type Connection,
 } from '@xyflow/react';
 import { agentsApi, nodesApi, type NodeType, type AgentExample } from '../../../api';
-import type { Agent, CanvasSettings, EditorViewport } from '../../../types/agent';
+import type { Agent, AgentNode, CanvasSettings, EditorViewport } from '../../../types/agent';
 import {
   toFlowNode,
   toAgentNode,
   extractEdges,
+  extractReferencedNodeIds,
   generateNodeId,
   autoLayoutNodes,
   syncNodeEdges,
@@ -435,6 +436,66 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     [setNodes, setEdges, nodes]
   );
 
+  // Latest nodes, also updated synchronously by assistant edits so consecutive tool calls see each other's changes
+  const nodesRef = useRef(nodes);
+  nodesRef.current = nodes;
+
+  const getAgentNodes = useCallback(() => nodesRef.current.map(toAgentNode), []);
+
+  // Replace the graph; edges are fully derived from node data (references, branches, runAfter)
+  const commitNodes = useCallback(
+    (next: Node[]) => {
+      nodesRef.current = next;
+      setNodes(next);
+      setEdges(extractEdges(next));
+    },
+    [setNodes, setEdges]
+  );
+
+  // Add a node, or replace data of the node with the same id (position is kept)
+  const upsertNode = useCallback(
+    (agentNode: AgentNode) => {
+      const current = nodesRef.current;
+      const existing = current.find((n) => n.id === agentNode.id);
+      const flowNode = toFlowNode(agentNode, current.length);
+
+      if (existing) {
+        commitNodes(current.map((n) => (n.id === agentNode.id ? { ...n, type: flowNode.type, data: flowNode.data } : n)));
+        return;
+      }
+
+      // Place right of / below the rightmost node it reads from (or of the whole graph)
+      const refs = extractReferencedNodeIds(agentNode.data);
+      const anchors = current.filter((n) => refs.has(n.id) || agentNode.runAfter?.includes(n.id));
+      const pool = anchors.length ? anchors : current;
+      const isTB = layoutDirectionRef.current === 'TB';
+      const position = pool.length
+        ? isTB
+          ? { x: Math.max(...pool.map((n) => n.position.x)), y: Math.max(...pool.map((n) => n.position.y)) + 150 }
+          : { x: Math.max(...pool.map((n) => n.position.x)) + 300, y: Math.max(...pool.map((n) => n.position.y)) }
+        : { x: 200, y: 200 };
+
+      commitNodes([
+        ...current,
+        {
+          ...flowNode,
+          position,
+          sourcePosition: isTB ? Position.Bottom : Position.Right,
+          targetPosition: isTB ? Position.Top : Position.Left,
+        },
+      ]);
+    },
+    [commitNodes]
+  );
+
+  const removeNode = useCallback(
+    (nodeId: string) => {
+      commitNodes(nodesRef.current.filter((n) => n.id !== nodeId));
+      setSelectedNodeId((prev) => (prev === nodeId ? null : prev));
+    },
+    [commitNodes]
+  );
+
   // Clear selection when clicking canvas
   const onPaneClick = useCallback(() => {
     setSelectedNodeId(null);
@@ -452,6 +513,8 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
       ?? localStorage.getItem(DEFAULT_LAYOUT_DIRECTION_KEY);
     return (saved === 'LR' || saved === 'TB') ? saved : 'LR';
   }, [agent?.editorData?.canvasSettings?.layoutDirection]);
+  const layoutDirectionRef = useRef(layoutDirection);
+  layoutDirectionRef.current = layoutDirection;
 
   // Change layout direction and re-layout nodes
   const changeLayoutDirection = useCallback((direction: LayoutDirection) => {
@@ -527,5 +590,8 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     loadTemplate,
     setViewportGetter,
     reloadAgent: fetchAgent,
+    getAgentNodes,
+    upsertNode,
+    removeNode,
   };
 }

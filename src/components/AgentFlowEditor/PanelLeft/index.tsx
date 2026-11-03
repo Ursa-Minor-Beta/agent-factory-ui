@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef, memo, type ReactNode } from 'react';
 import { ActionIcon, Box, Tabs, Tooltip } from '@mantine/core';
-import { IconPlus } from '@tabler/icons-react';
+import { IconPlus, IconSparkles } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { routes } from '../../../config/routes';
 import type { NodeType, AgentExample } from '../../../api';
@@ -13,6 +13,7 @@ import { SettingsTab } from './SettingsTab';
 import { RunTab } from './RunTab';
 import { TemplatesTab } from './TemplatesTab';
 import { GitTab } from './GitTab';
+import { AssistantTab, type AssistantEditor } from './AssistantTab';
 import { AgentsNavigatorGraph } from '../../AgentsGraph';
 
 const MIN_WIDTH = 120;
@@ -50,10 +51,12 @@ interface PanelLeftProps {
   runRequest?: number;
   onRunInputsRequired?: () => void;
   onRunningChange?: (running: boolean) => void;
+  assistantEditor: AssistantEditor;
 }
 
-export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, savedAt, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onWorkspaceChange, onLoadTemplate, onExport, onAgentDeleted, exporting, onReloadAgent, onRunStart, onNodeStatus, onRunEnd, onRunClear, runRequest, onRunInputsRequired, onRunningChange }: PanelLeftProps) {
+export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, savedAt, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onWorkspaceChange, onLoadTemplate, onExport, onAgentDeleted, exporting, onReloadAgent, onRunStart, onNodeStatus, onRunEnd, onRunClear, runRequest, onRunInputsRequired, onRunningChange, assistantEditor }: PanelLeftProps) {
   const [agentRunStatuses, setAgentRunStatuses] = useState<Record<string, NodeStatus>>({});
+  const [assistantSending, setAssistantSending] = useState(false);
   const [viewingNodeType, setViewingNodeType] = useState<NodeType | null>(null);
   const [internalActiveTab, setInternalActiveTab] = useState<string | null>(() => {
     const saved = localStorage.getItem(TAB_STORAGE_KEY);
@@ -159,18 +162,34 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
           {/* display-none (not the default 'activity'): hidden tabs keep running effects, e.g. Run tab reacting to toolbar Run */}
           <Tabs value={activeTab} onChange={setActiveTab} keepMountedMode="display-none" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
             <Tabs.List px="xs" pt="xs">
-              <Tabs.Tab value="nodes">Nodes</Tabs.Tab>
-              <Tabs.Tab value="templates">Templates</Tabs.Tab>
-              <Tabs.Tab value="settings">Settings</Tabs.Tab>
-              <Tabs.Tab value="git">Git</Tabs.Tab>
+              <Tabs.Tab
+                value="assistant"
+                title="Assistant"
+                aria-label="Assistant"
+                className={assistantSending ? 'run-tab-running' : undefined}
+              >
+                <IconSparkles size={16} style={{ display: 'block' }} />
+              </Tabs.Tab>
               <Tabs.Tab
                 value="run"
                 className={agent?.id && agentRunStatuses[agent.id] ? `run-tab-${agentRunStatuses[agent.id]}` : undefined}
               >
                 Run
               </Tabs.Tab>
+              <Tabs.Tab value="nodes">Nodes</Tabs.Tab>
+              <Tabs.Tab value="templates">Templates</Tabs.Tab>
+              <Tabs.Tab value="settings">Settings</Tabs.Tab>
+              <Tabs.Tab value="git">Git</Tabs.Tab>
               {workspaceId && <Tabs.Tab value="relations">Relations</Tabs.Tab>}
             </Tabs.List>
+
+            <Tabs.Panel value="assistant" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+              <AssistantTab
+                agentKey={agent?.id ?? 'new'}
+                editor={assistantEditor}
+                onSendingChange={setAssistantSending}
+              />
+            </Tabs.Panel>
 
             <Tabs.Panel value="nodes" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               <NodesTab
