@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
-import { ActionIcon, Alert, Box, Center, Group, Loader, Paper, ScrollArea, Stack, Text, Textarea, Tooltip } from '@mantine/core';
-import { IconAlertTriangle, IconArrowUp, IconCheck, IconCode, IconMessagePlus, IconPlayerStop } from '@tabler/icons-react';
-import { MarkdownRenderer } from '../../../MarkdownRenderer';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { ActionIcon, Alert, Box, Center, Group, Loader, ScrollArea, Stack, Text, Tooltip } from '@mantine/core';
+import { IconAlertTriangle, IconCheck, IconCode, IconMessagePlus } from '@tabler/icons-react';
+import { AssistantInput } from './AssistantInput';
+import { MessageBubble } from '../../../../pages/Chat/ChatMessages/MessageBubble';
 import { useAgentModal } from '../../../AgentCreateModal';
+import { useRunDetailsModal } from '../../../RunDetailsModal';
 import { useAssistantChat, type AssistantMessage } from './useAssistantChat';
 import { AssistantAgentSelect } from './AssistantAgentSelect';
 import type { AssistantEditor } from './assistantTools';
@@ -36,20 +38,13 @@ interface AssistantTabProps {
   onSendingChange?: (sending: boolean) => void;
 }
 
-function MessageItem({ message }: { message: AssistantMessage }) {
-  if (message.role === 'user') {
-    return (
-      <Paper px="sm" py={6} radius="md" bg="var(--mantine-color-cyan-light)" ml="xl" style={{ alignSelf: 'flex-end' }}>
-        <Text size="sm" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-          {message.content}
-        </Text>
-      </Paper>
-    );
-  }
+const noop = () => {};
 
+// Memoized: messages are immutable, a new message must not re-render (re-parse markdown of) older ones
+const MessageItem = memo(function MessageItem({ message, onViewRun }: { message: AssistantMessage; onViewRun: (runId: string) => void }) {
   if (message.role === 'tool') {
     return (
-      <Box>
+      <Box px="md" py={4}>
         <Group gap={6} wrap="nowrap">
           {message.ok
             ? <IconCheck size={14} color="var(--mantine-color-green-5)" />
@@ -67,16 +62,26 @@ function MessageItem({ message }: { message: AssistantMessage }) {
     );
   }
 
+  // Same bubble as the Chat page (copy, timestamp, run details, file previews)
   return (
-    <Box style={{ wordBreak: 'break-word' }}>
-      <MarkdownRenderer>{message.content}</MarkdownRenderer>
-    </Box>
+    <MessageBubble
+      message={{ ...message, role: message.role }}
+      isFirst={false}
+      showRetry={false}
+      onRetry={noop}
+      onViewRun={onViewRun}
+    />
   );
-}
+});
 
 export function AssistantTab({ agentKey, editor, onSendingChange }: AssistantTabProps) {
   const [assistantAgentId, setAssistantAgentId] = useState(readAssistantAgentId);
   const { openEditAgent } = useAgentModal();
+  const { openRunDetails } = useRunDetailsModal();
+  // useRunDetailsModal returns a new function on every URL change - keep a stable one for memoized messages
+  const openRunDetailsRef = useRef(openRunDetails);
+  openRunDetailsRef.current = openRunDetails;
+  const handleViewRun = useCallback((runId: string) => openRunDetailsRef.current(runId), []);
   const { messages, loadingHistory, sending, statusText, error, clearError, send, cancel, newChat } =
     useAssistantChat(assistantAgentId ?? undefined, agentKey, editor);
 
@@ -84,7 +89,6 @@ export function AssistantTab({ agentKey, editor, onSendingChange }: AssistantTab
     setAssistantAgentId(agentId);
     writeAssistantAgentId(agentId);
   };
-  const [draft, setDraft] = useState('');
   const viewportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -95,12 +99,6 @@ export function AssistantTab({ agentKey, editor, onSendingChange }: AssistantTab
   useEffect(() => {
     viewportRef.current?.scrollTo({ top: viewportRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, statusText]);
-
-  const handleSend = () => {
-    if (!draft.trim() || sending || !assistantAgentId) return;
-    send(draft);
-    setDraft('');
-  };
 
   return (
     <Stack gap={0} style={{ flex: 1, minHeight: 0 }}>
@@ -137,9 +135,9 @@ export function AssistantTab({ agentKey, editor, onSendingChange }: AssistantTab
             Describe the agent you want, or ask to change it - e.g. "Add an LLM node that summarizes the HTTP response"
           </Text>
         ) : (
-          <Stack gap="sm" py="xs">
+          <Stack gap={0} py="xs" style={{ wordBreak: 'break-word' }}>
             {messages.map((message) => (
-              <MessageItem key={message.id} message={message} />
+              <MessageItem key={message.id} message={message} onViewRun={handleViewRun} />
             ))}
           </Stack>
         )}
@@ -160,40 +158,7 @@ export function AssistantTab({ agentKey, editor, onSendingChange }: AssistantTab
         )}
       </ScrollArea>
 
-      <Box p="xs" style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}>
-        <Group gap={6} align="flex-end" wrap="nowrap">
-          <Textarea
-            value={draft}
-            onChange={(e) => setDraft(e.currentTarget.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
-            placeholder={assistantAgentId ? 'Ask the assistant...' : 'Select a builder agent first'}
-            disabled={!assistantAgentId}
-            autosize
-            minRows={1}
-            maxRows={8}
-            size="sm"
-            style={{ flex: 1 }}
-          />
-          {sending ? (
-            <Tooltip label="Stop">
-              <ActionIcon size="lg" variant="light" color="red" onClick={cancel}>
-                <IconPlayerStop size={16} />
-              </ActionIcon>
-            </Tooltip>
-          ) : (
-            <Tooltip label="Send (Enter)">
-              <ActionIcon size="lg" variant="filled" onClick={handleSend} disabled={!draft.trim() || !assistantAgentId}>
-                <IconArrowUp size={16} />
-              </ActionIcon>
-            </Tooltip>
-          )}
-        </Group>
-      </Box>
+      <AssistantInput disabled={!assistantAgentId} sending={sending} onSend={send} onCancel={cancel} />
     </Stack>
   );
 }

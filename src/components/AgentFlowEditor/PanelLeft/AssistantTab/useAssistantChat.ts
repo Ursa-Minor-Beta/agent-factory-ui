@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { sessionsApi, runsApi, ApiError } from '../../../../api';
 import { mapApiMessageToChatMessage, parseMessageContent } from '../../../../pages/Chat/models/messageParser';
+import type { ChatMessage } from '../../../../pages/Chat/types';
 import { ASSISTANT_CLIENT_TOOLS, executeAssistantTool, nodesForAssistant, type AssistantEditor } from './assistantTools';
 
 const SESSION_STORAGE_PREFIX = 'agent-editor-assistant-session:';
 const HISTORY_LIMIT = 50;
 
-export interface AssistantMessage {
-  id: string;
+// User / assistant messages are rendered by the Chat page's MessageBubble
+export interface AssistantMessage extends Omit<ChatMessage, 'role'> {
   role: 'user' | 'assistant' | 'tool';
-  content: string;
   // Tool messages: validation outcome reported back to the assistant
   ok?: boolean;
   errors?: string[];
@@ -102,10 +102,11 @@ export function useAssistantChat(assistantAgentId: string | undefined, agentKey:
           .reverse()
           .filter((m) => m.role === 'user' || m.role === 'assistant')
           .map((m): AssistantMessage => ({
-            id: m.id,
+            ...m,
             role: m.role as 'user' | 'assistant',
             // User input is { message, nodes } - show only the message
             content: m.role === 'user' && typeof m.rawInput?.message === 'string' ? m.rawInput.message : m.content,
+            rawInput: undefined,
           }));
         setMessages(history);
       })
@@ -138,7 +139,7 @@ export function useAssistantChat(assistantAgentId: string | undefined, agentKey:
       setSending(true);
       setError('');
       setStatusText('Sending...');
-      addMessage({ id: nextId('user'), role: 'user', content: message });
+      addMessage({ id: nextId('user'), role: 'user', content: message, createdAt: new Date().toISOString() });
 
       const abortController = new AbortController();
       abortRef.current = abortController;
@@ -169,7 +170,14 @@ export function useAssistantChat(assistantAgentId: string | undefined, agentKey:
                 execution = { summary: data.name, result: { ok: false as const, errors: [String(err)] } };
               }
               const { summary, result } = execution;
-              addMessage({ id: nextId('tool'), role: 'tool', content: summary, ok: result.ok, errors: result.errors });
+              addMessage({
+                id: nextId('tool'),
+                role: 'tool',
+                content: summary,
+                createdAt: new Date().toISOString(),
+                ok: result.ok,
+                errors: result.errors,
+              });
               try {
                 await runsApi.submitToolResult(data.runId, data.toolCallId, result);
               } catch (err) {
@@ -181,8 +189,16 @@ export function useAssistantChat(assistantAgentId: string | undefined, agentKey:
             },
             onDone: (data) => {
               if (data.cancelled) return;
-              const { text: content } = parseMessageContent(data.response);
-              if (content) addMessage({ id: nextId('assistant'), role: 'assistant', content });
+              const { text: content, fileRefs } = parseMessageContent(data.response);
+              if (!content) return;
+              addMessage({
+                id: nextId('assistant'),
+                role: 'assistant',
+                content,
+                fileRefs: fileRefs.length ? fileRefs : undefined,
+                createdAt: new Date().toISOString(),
+                runId: data.runId,
+              });
             },
             onError: (data) => setError(data.message),
           },
