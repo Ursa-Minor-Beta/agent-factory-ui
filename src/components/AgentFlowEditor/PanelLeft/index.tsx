@@ -183,7 +183,12 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
           {/* display-none (not the default 'activity'): hidden tabs keep running effects, e.g. Run tab reacting to toolbar Run */}
           <Tabs value={activeTab} onChange={setActiveTab} keepMountedMode="display-none" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
             <Tabs.List px="xs" pt="xs">
-              <IconTab value="assistant" label="Assistant" icon={IconSparkles} className={assistantSending ? 'run-tab-running' : undefined} />
+              <IconTab 
+                value="assistant" 
+                label="Assistant" 
+                icon={() => <IconSparkles size={16} style={{ display: 'block', color: 'var(--mantine-color-violet-5)' }}/>} 
+                className={assistantSending ? 'run-tab-running' : undefined} 
+                />
               <IconTab
                 value="run"
                 label="Run"
