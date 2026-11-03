@@ -1,5 +1,5 @@
 import { Group, Text, ActionIcon, Badge, Tooltip } from '@mantine/core';
-import { IconDeviceFloppy, IconLayoutSidebar, IconBrandGithub, IconPlayerPlay } from '@tabler/icons-react';
+import { IconDeviceFloppy, IconLayoutSidebar, IconBrandGithub, IconPlayerPlay, IconArrowBackUp, IconArrowForwardUp } from '@tabler/icons-react';
 import { WorkspaceBadge } from '../Workspace';
 import type { AgentGitHubInfo } from '../../types/agent';
 
@@ -15,7 +15,15 @@ interface EditorToolbarProps {
   onTogglePalette: () => void;
   running?: boolean;
   onRun?: () => void;
+  canSave?: boolean;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  onUndo?: () => void;
+  onRedo?: () => void;
 }
+
+const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
+const modKey = isMac ? '⌘' : 'Ctrl+';
 
 const glassStyle = {
   background: 'rgba(255, 255, 255, 0.1)',
@@ -36,6 +44,11 @@ export function EditorToolbar({
   onTogglePalette,
   running,
   onRun,
+  canSave = true,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
 }: EditorToolbarProps) {
   const isSubAgent = github?.rootId && github.rootId !== agentId;
   return (
@@ -83,6 +96,38 @@ export function EditorToolbar({
       </Group>
 
       <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
+        {onUndo && (
+          <ActionIcon
+            size="xs"
+            variant="subtle"
+            title={`Undo (${modKey}Z)`}
+            disabled={!canUndo}
+            onClick={onUndo}
+          >
+            <IconArrowBackUp size={16} />
+          </ActionIcon>
+        )}
+        {onRedo && (
+          <ActionIcon
+            size="xs"
+            variant="subtle"
+            title={`Redo (${modKey}${isMac ? '⇧Z' : 'Y'})`}
+            disabled={!canRedo}
+            onClick={onRedo}
+          >
+            <IconArrowForwardUp size={16} />
+          </ActionIcon>
+        )}
+        <ActionIcon
+          size="xs"
+          variant="subtle"
+          title={canSave ? 'Save' : 'No changes'}
+          loading={saving}
+          disabled={!canSave}
+          onClick={onSave}
+        >
+          <IconDeviceFloppy size={16} />
+        </ActionIcon>
         {!!agentId && onRun && (
           <ActionIcon
             size="xs"
@@ -95,15 +140,6 @@ export function EditorToolbar({
             <IconPlayerPlay size={16} />
           </ActionIcon>
         )}
-        <ActionIcon
-          size="xs"
-          variant="subtle"
-          title='Save'
-          loading={saving}
-          onClick={onSave}
-        >
-          <IconDeviceFloppy size={16} />
-        </ActionIcon>
       </Group>
       
     </Group>

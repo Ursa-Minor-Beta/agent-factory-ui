@@ -5,6 +5,7 @@ import './AgentFlowEditor.css';
 import { Center, Loader, LoadingOverlay } from '@mantine/core';
 import { useAgentEditor } from './hooks/useAgentEditor';
 import { useNodeClipboard } from './hooks/useNodeClipboard';
+import { useEditorHistory } from './hooks/useEditorHistory';
 import { EditorToolbar } from './EditorToolbar';
 import { nodeTypes } from './nodes';
 import { edgeTypes } from './edges';
@@ -173,6 +174,8 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     edgeType,
     layoutDirection,
     initialViewport,
+    setNodes,
+    setEdges,
     onNodesChange,
     onEdgesChange,
     onConnect,
@@ -279,16 +282,27 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
 
   const clipboardMouseHandlers = useNodeClipboard({ selectedNode, reactFlowInstance, addNode });
 
+  const history = useEditorHistory({
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    // Fresh history once each load finishes, baseline = loaded graph (not the empty canvas before it)
+    resetKey: `${agentId ?? ''}:${loading}`,
+    paused: loading || isNodesDragging,
+  });
+
   // Wrap save to also refresh git data
   const handleSave = useCallback(async () => {
     const success = await saveAgent();
+    if (success) history.markSaved();
     if (success && agent?.id) {
       // Clear git cache for this agent (use rootId for sub-agents)
       const syncAgentId = agent.github?.rootId || agent.id;
       clearGitHubCache(syncAgentId);
       setSavedAt(Date.now());
     }
-  }, [saveAgent, agent?.id, agent?.github?.rootId]);
+  }, [saveAgent, agent?.id, agent?.github?.rootId, history.markSaved]);
 
   const navigate = useNavigate();
 
@@ -326,8 +340,19 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
       onTogglePalette={togglePalette}
       running={isRunning}
       onRun={handleToolbarRun}
+      // New agents can always be saved (creates them)
+      canSave={!agent?.id || history.isDirty}
+      canUndo={history.canUndo}
+      canRedo={history.canRedo}
+      onUndo={history.undo}
+      onRedo={history.redo}
     />
   ), [
+    history.isDirty,
+    history.canUndo,
+    history.canRedo,
+    history.undo,
+    history.redo,
     agent?.name, 
     agent?.id, 
     agent?.workspaceId, 
@@ -447,6 +472,8 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
 
       {selectedNode && (
         <PanelRight
+          // Remount after undo/redo so editors holding local state show restored data
+          key={history.version}
           isNodesDragging={isNodesDragging}
           node={selectedNode}
           nodes={nodes}

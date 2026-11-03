@@ -505,6 +505,8 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     initialViewport,
 
     // Actions
+    setNodes,
+    setEdges,
     onNodesChange,
     onEdgesChange: handleEdgesChange,
     onConnect,
