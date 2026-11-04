@@ -39,9 +39,10 @@ import {
 import { runsApi, sessionsApi } from '../../api';
 import { NodeTypeIcon } from '../../nodes';
 import type { Run } from '../../types';
-import { statusColors, nodeStatusColors, formatDuration, resolveRunOutput, getNodeUsage, getRunUsage, getRunProviderNames, formatTokens } from '../../types';
+import { statusColors, nodeStatusColors, formatDuration, resolveRunOutput, getNodeUsage, getRunUsage, getRunProviderNames, formatTokens, PROVIDER_OPTIONS } from '../../types';
 import { DataWithFileRefs } from './utils';
 import { buildRunDetailsSearch, useRunDetailsModal } from './useRunDetailsModal';
+import { ToolCallsTree, getToolCalls } from './ToolCallsTree';
 
 export function RunDetailsModal() {
   const { runId, isOpen, closeRunDetails, showBackButton, trail, goBack } = useRunDetailsModal();
@@ -399,11 +400,17 @@ export function RunDetailsModal() {
                       {state.providerConfig?.name && (
                         <Tooltip label="Provider">
                           <Badge size="xs" variant="outline" color="cyan">
-                            {state.providerConfig.name}
+                            {state.providerConfig.provider
+                              ? `${PROVIDER_OPTIONS.find((p) => p.value === state.providerConfig?.provider)?.label ?? state.providerConfig.provider} · ${state.providerConfig.name}`
+                              : state.providerConfig.name}
                           </Badge>
                         </Tooltip>
                       )}
                     </Group>
+                    {(() => {
+                      const toolCalls = getToolCalls(state.output);
+                      return toolCalls && <ToolCallsTree calls={toolCalls} />;
+                    })()}
                   </Accordion.Control>
                   <Accordion.Panel>
                     <Stack gap="sm">
