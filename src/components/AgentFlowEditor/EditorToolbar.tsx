@@ -1,5 +1,7 @@
 import { Group, Text, ActionIcon, Badge, Tooltip } from '@mantine/core';
-import { IconDeviceFloppy, IconLayoutSidebar, IconBrandGithub, IconPlayerPlay, IconArrowBackUp, IconArrowForwardUp } from '@tabler/icons-react';
+import { IconDeviceFloppy, IconLayoutSidebar, IconBrandGithub, IconPlayerPlay, IconArrowBackUp, IconArrowForwardUp, IconMessageCircle } from '@tabler/icons-react';
+import { Link } from 'react-router-dom';
+import { routes } from '../../config/routes';
 import { WorkspaceBadge } from '../Workspace';
 import type { AgentGitHubInfo } from '../../types/agent';
 
@@ -96,6 +98,17 @@ export function EditorToolbar({
       </Group>
 
       <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
+        {!!agentId && (
+          <ActionIcon
+            component={Link}
+            to={routes.agentChat(agentId)}
+            size="xs"
+            variant="subtle"
+            title="Open Chat"
+          >
+            <IconMessageCircle size={16} />
+          </ActionIcon>
+        )}
         {onUndo && (
           <ActionIcon
             size="xs"
