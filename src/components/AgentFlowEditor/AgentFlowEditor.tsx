@@ -16,6 +16,7 @@ import { config } from '../../config';
 import type { ChatStatusEvent } from '../../api/sessions';
 import type { NodeStatus } from '../../types';
 import { PanelLeft } from './PanelLeft';
+import type { AgentRunner } from './PanelLeft/RunTab';
 import { PanelRight } from './PanelRight';
 import { clearGitHubCache } from './PanelLeft/GitTab/useGitHubData';
 import { useNavigate } from 'react-router-dom';
@@ -32,6 +33,9 @@ function downloadJson(data: unknown, filename: string) {
 }
 
 const PALETTE_STORAGE_KEY = 'agent-editor-palette-open';
+// Assistant run: how long to wait for the Run tab to be able to start (just-saved agent / other run)
+const RUN_START_ATTEMPTS = 20;
+const RUN_START_RETRY_MS = 100;
 const TAB_STORAGE_KEY = 'agent-editor-active-tab';
 
 // Agents opened in the editor during this session, most recent last - used to pick where to go after a delete
@@ -200,12 +204,6 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     removeNode,
   } = useAgentEditor({ agentId, workspaceId });
 
-  // Canvas access for the Assistant tab's client tools (stable - keeps PanelLeft memoized)
-  const assistantEditor = useMemo(
-    () => ({ getNodes: getAgentNodes, upsertNode, removeNode, nodeTypes: availableNodeTypes }),
-    [getAgentNodes, upsertNode, removeNode, availableNodeTypes]
-  );
-
   // Show agent name in browser tab title, restore Layout's title on leave
   const agentName = agent?.name;
   useEffect(() => {
@@ -301,17 +299,46 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     paused: loading || isNodesDragging,
   });
 
-  // Wrap save to also refresh git data
+  // Wrap save to also refresh git data - returns the saved agent id, null on failure
   const handleSave = useCallback(async () => {
-    const success = await saveAgent();
-    if (success) history.markSaved();
-    if (success && agent?.id) {
+    const savedId = await saveAgent();
+    if (savedId) history.markSaved();
+    if (savedId && agent?.id) {
       // Clear git cache for this agent (use rootId for sub-agents)
       const syncAgentId = agent.github?.rootId || agent.id;
       clearGitHubCache(syncAgentId);
       setSavedAt(Date.now());
     }
+    return savedId;
   }, [saveAgent, agent?.id, agent?.github?.rootId, history.markSaved]);
+
+  // Assistant tools call the latest save / Run tab runner through refs, keeping assistantEditor stable
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+  const runnerRef = useRef<AgentRunner | null>(null);
+
+  const assistantEditor = useMemo(
+    () => ({
+      getNodes: getAgentNodes,
+      upsertNode,
+      removeNode,
+      nodeTypes: availableNodeTypes,
+      save: () => handleSaveRef.current(),
+      run: async (input?: Record<string, unknown>) => {
+        // Backend runs the saved version - save first so the latest edits run
+        const savedId = await handleSaveRef.current();
+        if (!savedId) return { error: 'Failed to save the agent' };
+        // A just-created agent reaches the Run tab on the next render - retry briefly
+        for (let attempt = 0; attempt < RUN_START_ATTEMPTS; attempt++) {
+          const result = await runnerRef.current?.(input);
+          if (result) return result;
+          await new Promise((resolve) => setTimeout(resolve, RUN_START_RETRY_MS));
+        }
+        return { error: 'Could not start the run - another run may be in progress' };
+      },
+    }),
+    [getAgentNodes, upsertNode, removeNode, availableNodeTypes]
+  );
 
   const navigate = useNavigate();
 
@@ -478,6 +505,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
           onRunInputsRequired={handleRunInputsRequired}
           onRunningChange={setIsRunning}
           assistantEditor={assistantEditor}
+          runnerRef={runnerRef}
         />
 
       {selectedNode && (

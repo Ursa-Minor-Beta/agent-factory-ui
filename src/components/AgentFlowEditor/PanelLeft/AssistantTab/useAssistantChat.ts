@@ -3,7 +3,7 @@ import { sessionsApi, runsApi, ApiError } from '../../../../api';
 import { useAgentStream } from '../../../AgentStream';
 import { mapApiMessageToChatMessage, parseMessageContent } from '../../../../pages/Chat/models/messageParser';
 import type { ChatMessage } from '../../../../pages/Chat/types';
-import { ASSISTANT_CLIENT_TOOLS, executeAssistantTool, nodesForAssistant, type AssistantEditor } from './assistantTools';
+import { ASSISTANT_CLIENT_TOOLS, executeAssistantTool, nodesForAssistant, type AssistantEditor, type ToolExecution } from './assistantTools';
 
 const SESSION_STORAGE_PREFIX = 'agent-editor-assistant-session:';
 const HISTORY_LIMIT = 50;
@@ -156,11 +156,12 @@ export function useAssistantChat(assistantAgentId: string | undefined, agentKey:
             writeSession(sessionKeyRef.current, data.sessionId);
           },
           onClientToolCall: async (data) => {
-            let execution;
+            let execution: ToolExecution;
             try {
-              execution = executeAssistantTool(editorRef.current, data.name, data.args ?? {});
+              // Save / run tools take a while - the server run waits for the result
+              execution = await executeAssistantTool(editorRef.current, data.name, data.args ?? {});
             } catch (err) {
-              execution = { summary: data.name, result: { ok: false as const, errors: [String(err)] } };
+              execution = { summary: data.name, result: { ok: false, errors: [String(err)] } };
             }
             const { summary, result } = execution;
             addMessage({

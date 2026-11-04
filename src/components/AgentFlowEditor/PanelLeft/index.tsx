@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef, memo, type ReactNode } from 'react';
+import { useEffect, useState, useCallback, useRef, memo, type ReactNode, type RefObject } from 'react';
 import { ActionIcon, Box, Tabs, Tooltip } from '@mantine/core';
 import {
   IconHierarchy2,
@@ -20,7 +20,7 @@ import type { ChatStatusEvent } from '../../../api/sessions';
 import type { LayoutDirection } from '../utils/converters';
 import { NodesTab } from './NodesTab';
 import { SettingsTab } from './SettingsTab';
-import { RunTab } from './RunTab';
+import { RunTab, type AgentRunner } from './RunTab';
 import { TemplatesTab } from './TemplatesTab';
 import { GitTab } from './GitTab';
 import { AssistantTab, type AssistantEditor } from './AssistantTab';
@@ -73,9 +73,10 @@ interface PanelLeftProps {
   onRunInputsRequired?: () => void;
   onRunningChange?: (running: boolean) => void;
   assistantEditor: AssistantEditor;
+  runnerRef?: RefObject<AgentRunner | null>;
 }
 
-export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, savedAt, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onWorkspaceChange, onLoadTemplate, onExport, onAgentDeleted, exporting, onReloadAgent, onRunStart, onNodeStatus, onRunEnd, onRunClear, runRequest, onRunInputsRequired, onRunningChange, assistantEditor }: PanelLeftProps) {
+export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, savedAt, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onWorkspaceChange, onLoadTemplate, onExport, onAgentDeleted, exporting, onReloadAgent, onRunStart, onNodeStatus, onRunEnd, onRunClear, runRequest, onRunInputsRequired, onRunningChange, assistantEditor, runnerRef }: PanelLeftProps) {
   const [agentRunStatuses, setAgentRunStatuses] = useState<Record<string, NodeStatus>>({});
   const [assistantSending, setAssistantSending] = useState(false);
   const [viewingNodeType, setViewingNodeType] = useState<NodeType | null>(null);
@@ -236,6 +237,7 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
                 onInputsRequired={onRunInputsRequired}
                 onRunningChange={onRunningChange}
                 onAgentStatusesChange={setAgentRunStatuses}
+                runnerRef={runnerRef}
               />
             </Tabs.Panel>
 

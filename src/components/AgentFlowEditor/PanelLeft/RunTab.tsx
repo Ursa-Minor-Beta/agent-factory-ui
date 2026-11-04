@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, type RefObject } from 'react';
 import { Box, Button, TextInput, Textarea, Stack, Text, Alert, ScrollArea, Group, ActionIcon, Card, Switch, Slider, Collapse } from '@mantine/core';
 import { IconPlayerPlay, IconPlayerStop, IconAlertCircle, IconListDetails, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 import type { ChatStatusEvent } from '../../../api/sessions';
@@ -8,6 +8,7 @@ import { useRunDetailsModal } from '../../RunDetailsModal';
 import { MessageContent } from '../../../pages/Chat/ChatMessages';
 import { useChatFavicon } from '../../../pages/Chat/useChatFavicon';
 import { useAgentStream, RunStatus, RunSteps } from '../../AgentStream';
+import type { AgentStreamResult } from '../../AgentStream/useAgentStream';
 
 interface RunTabProps {
   agent: Partial<Agent> | null;
@@ -19,7 +20,11 @@ interface RunTabProps {
   onInputsRequired?: () => void; // Required inputs are empty - editor shows this tab
   onRunningChange?: (running: boolean) => void;
   onAgentStatusesChange?: (statuses: Record<string, NodeStatus>) => void; // Run status per agent: this one + called sub-agents
+  runnerRef?: RefObject<AgentRunner | null>; // Set to this tab's run function - lets the assistant run the agent here
 }
+
+// Runs the agent with the given input (form values when omitted); null when it can't start
+export type AgentRunner = (input?: Record<string, unknown>) => Promise<AgentStreamResult | null>;
 
 const INPUTS_STORAGE_KEY = 'agent-editor-run-inputs';
 
@@ -32,7 +37,7 @@ const MIN_RUNNING_MS = 50;
 const MAX_RUNNING_MS = 2000;
 const DEFAULT_RUNNING_MS = 400;
 
-export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, runRequest, onInputsRequired, onRunningChange, onAgentStatusesChange }: RunTabProps) {
+export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, runRequest, onInputsRequired, onRunningChange, onAgentStatusesChange, runnerRef }: RunTabProps) {
   // Last used inputs are remembered per agent
   const inputsStorageKey = agent?.id ? `${INPUTS_STORAGE_KEY}-${agent.id}` : null;
   const [inputs, setInputs] = useState<Record<string, string>>(() => {
@@ -106,17 +111,26 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
     });
   }, [inputsStorageKey]);
 
-  const handleRun = useCallback(async () => {
-    if (!agent?.id || running) return;
+  const handleRun = useCallback(async (inputOverride?: Record<string, unknown>): Promise<AgentStreamResult | null> => {
+    if (!agent?.id || running) return null;
 
     setResponse(undefined);
     subagentsRef.current.clear();
     setAgentStatuses({ [agent.id]: 'running' });
     if (animateRef.current) onRunStart?.();
 
+    // Explicit input (assistant run) - show it in the form too, so the user sees what ran
+    if (inputOverride) {
+      const formValues = Object.fromEntries(
+        Object.entries(inputOverride).map(([key, value]) => [key, typeof value === 'string' ? value : JSON.stringify(value)])
+      );
+      setInputs(formValues);
+      if (inputsStorageKey) localStorage.setItem(inputsStorageKey, JSON.stringify(formValues));
+    }
+
     // Build input object from form values (skip empty values)
-    const input: Record<string, unknown> = {};
-    for (const [key, schema] of Object.entries(inputSchema)) {
+    const input: Record<string, unknown> = inputOverride ?? {};
+    if (!inputOverride) for (const [key, schema] of Object.entries(inputSchema)) {
       const value = inputs[key];
       if (!value) continue; // Skip empty values
 
@@ -156,7 +170,10 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
     setAgentStatuses((prev) => Object.fromEntries(
       Object.entries(prev).map(([id, status]) => [id, status === 'running' || id === agent.id ? endStatus : status])
     ));
-  }, [agent, running, inputs, inputSchema, startStream, onRunStart, onNodeStatus, onRunEnd]);
+    return result;
+  }, [agent, running, inputs, inputSchema, inputsStorageKey, startStream, onRunStart, onNodeStatus, onRunEnd]);
+
+  if (runnerRef) runnerRef.current = handleRun;
 
   useEffect(() => {
     onRunningChange?.(running);
@@ -306,7 +323,7 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
             size="xs"
             miw={200}
             style={{ alignSelf: 'center' }}
-            onClick={handleRun}
+            onClick={() => handleRun()}
           >
             Run
           </Button>

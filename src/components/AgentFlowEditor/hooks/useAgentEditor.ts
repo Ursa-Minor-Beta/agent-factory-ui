@@ -53,6 +53,10 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
 
+  // Latest nodes, also updated synchronously by assistant edits so consecutive tool calls see each other's changes
+  const nodesRef = useRef(nodes);
+  nodesRef.current = nodes;
+
   // Derive selectedNode from nodes array
   const selectedNode = useMemo(
     () => (selectedNodeId ? nodes.find((n) => n.id === selectedNodeId) ?? null : null),
@@ -192,17 +196,19 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     [edges, onEdgesChange, setNodeRunAfter]
   );
 
-  // Save agent - returns true on success
-  const saveAgent = useCallback(async (): Promise<boolean> => {
-    if (!agent) return false;
+  // Save agent - returns the saved agent id, null on failure
+  const saveAgent = useCallback(async (): Promise<string | null> => {
+    if (!agent) return null;
 
     setSaving(true);
     try {
-      const agentNodes = nodes.map(toAgentNode);
+      // Ref, not state: assistant edits right before a save may not be rendered yet
+      const currentNodes = nodesRef.current;
+      const agentNodes = currentNodes.map(toAgentNode);
 
       // Build nodePositions from current node positions
       const nodePositions: Record<string, { x: number; y: number }> = {};
-      for (const node of nodes) {
+      for (const node of currentNodes) {
         nodePositions[node.id] = { x: node.position.x, y: node.position.y };
       }
 
@@ -221,26 +227,29 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
         await agentsApi.update(agent.id, { nodes: agentNodes, editorData });
         // Sync local agent so derived data (e.g. Run tab input schema) updates
         setAgent((prev) => (prev ? { ...prev, nodes: agentNodes, editorData } : prev));
-      } else {
-        // Create new agent
-        const newAgent = await agentsApi.create({
-          name: agent.name || 'Untitled Agent',
-          description: agent.description || undefined,
-          nodes: agentNodes,
-          editorData,
-          workspaceId,
-        });
-        // Navigate to the new agent's editor
-        navigate(routes.agentEditor(newAgent.id), { replace: true });
+        return agent.id;
       }
-      return true;
+
+      // Create new agent
+      const newAgent = await agentsApi.create({
+        name: agent.name || 'Untitled Agent',
+        description: agent.description || undefined,
+        nodes: agentNodes,
+        editorData,
+        workspaceId,
+      });
+      // Set it before navigating: with an id the reload shows only the canvas overlay
+      // instead of the full-screen loader, so panels (Assistant stream, Run tab) stay mounted
+      setAgent(newAgent);
+      navigate(routes.agentEditor(newAgent.id), { replace: true });
+      return newAgent.id;
     } catch (err) {
       console.error('Failed to save agent:', err);
-      return false;
+      return null;
     } finally {
       setSaving(false);
     }
-  }, [agent, nodes, navigate, workspaceId]);
+  }, [agent, navigate, workspaceId]);
 
   // Update agent info (name, description)
   const updateAgentInfo = useCallback(
@@ -438,10 +447,6 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     },
     [setNodes, setEdges, nodes]
   );
-
-  // Latest nodes, also updated synchronously by assistant edits so consecutive tool calls see each other's changes
-  const nodesRef = useRef(nodes);
-  nodesRef.current = nodes;
 
   const getAgentNodes = useCallback(() => nodesRef.current.map(toAgentNode), []);
 
