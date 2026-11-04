@@ -56,12 +56,13 @@ export function EditorToolbar({
   return (
     <Group
       gap="sm"
-      wrap="nowrap"
+      wrap="wrap"
       style={isPaletteOpen
-        ? { padding: '12px 12px 8px', minWidth: 0 }
-        : { position: 'absolute', top: 8, left: 8, zIndex: 10, padding: '4px 12px 4px 4px', ...glassStyle }
+        ? { padding: '12px 12px 8px', minWidth: 0, rowGap: 4 }
+        : { position: 'absolute', top: 8, left: 8, zIndex: 10, padding: '4px 12px 4px 4px', rowGap: 4, ...glassStyle }
       }
     >
+      <Group gap="sm" wrap="nowrap" style={{ minWidth: 0, maxWidth: '100%' }}>
       <ActionIcon
         size="md"
         variant="subtle"
@@ -75,7 +76,7 @@ export function EditorToolbar({
         <IconLayoutSidebar size={16} />
       </ActionIcon>
 
-      <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
+      <Group gap="xs" wrap="nowrap" style={{ minWidth: 0, maxWidth: '100%' }}>
         <Text fw={600} size="sm" truncate style={{ minWidth: 0, flexShrink: 1 }}>
           {agentName || 'Untitled Agent'}
         </Text>
@@ -95,6 +96,7 @@ export function EditorToolbar({
             </Badge>
           </Tooltip>
         )}
+      </Group>
       </Group>
 
       <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
