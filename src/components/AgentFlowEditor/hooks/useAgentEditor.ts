@@ -236,7 +236,8 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
         description: agent.description || undefined,
         nodes: agentNodes,
         editorData,
-        workspaceId,
+        // Workspace may have been changed before the first save
+        workspaceId: agent.workspaceId ?? workspaceId,
       });
       // Set it before navigating: with an id the reload shows only the canvas overlay
       // instead of the full-screen loader, so panels (Assistant stream, Run tab) stay mounted
@@ -294,6 +295,32 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
         setAgent(updatedAgent);
       } catch (err) {
         console.error('Failed to update workspace:', err);
+      } finally {
+        setSaving(false);
+      }
+    },
+    [agent]
+  );
+
+  // Update name / description / workspace in one call (assistant tool) - false on failure
+  const updateAgentMeta = useCallback(
+    async (data: { name?: string; description?: string; workspaceId?: string | null }) => {
+      if (!agent) return false;
+
+      // For new agents (no id), just update local state - applied on first save
+      if (!agent.id) {
+        setAgent((prev) => (prev ? { ...prev, ...data, workspaceId: data.workspaceId === null ? undefined : data.workspaceId ?? prev.workspaceId } : prev));
+        return true;
+      }
+
+      setSaving(true);
+      try {
+        const updatedAgent = await agentsApi.update(agent.id, data);
+        setAgent(updatedAgent);
+        return true;
+      } catch (err) {
+        console.error('Failed to update agent info:', err);
+        return false;
       } finally {
         setSaving(false);
       }
@@ -593,6 +620,7 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     replaceNodeData,
     updateAgentInfo,
     updateWorkspace,
+    updateAgentMeta,
     changeLayoutDirection,
     changeEdgeType,
     loadTemplate,

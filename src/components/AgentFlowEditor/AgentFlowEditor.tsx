@@ -193,6 +193,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     deleteNode,
     updateAgentInfo,
     updateWorkspace,
+    updateAgentMeta,
     changeLayoutDirection,
     changeEdgeType,
     addNode,
@@ -316,6 +317,10 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
   const handleSaveRef = useRef(handleSave);
   handleSaveRef.current = handleSave;
   const runnerRef = useRef<AgentRunner | null>(null);
+  const agentRef = useRef(agent);
+  agentRef.current = agent;
+  const updateAgentMetaRef = useRef(updateAgentMeta);
+  updateAgentMetaRef.current = updateAgentMeta;
 
   const assistantEditor = useMemo(
     () => ({
@@ -324,6 +329,13 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
       removeNode,
       nodeTypes: availableNodeTypes,
       save: () => handleSaveRef.current(),
+      getAgentInfo: () => ({
+        name: agentRef.current?.name ?? '',
+        description: agentRef.current?.description ?? '',
+        workspaceId: agentRef.current?.workspaceId ?? null,
+      }),
+      updateAgentInfo: (data: { name?: string; description?: string; workspaceId?: string | null }) =>
+        updateAgentMetaRef.current(data),
       run: async (input?: Record<string, unknown>) => {
         // Backend runs the saved version - save first so the latest edits run
         const savedId = await handleSaveRef.current();

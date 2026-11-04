@@ -1,4 +1,5 @@
 import type { NodeType } from '../../../../api';
+import { workspacesApi } from '../../../../api/workspaces';
 import type { ChatClientTool } from '../../../../api/sessions';
 import type { AgentNode } from '../../../../types/agent';
 import type { AgentStreamResult } from '../../../AgentStream/useAgentStream';
@@ -19,6 +20,15 @@ export interface AssistantEditor {
   save: () => Promise<string | null>;
   // Saves, then runs in the Run tab
   run: (input?: Record<string, unknown>) => Promise<AgentStreamResult>;
+  getAgentInfo: () => AgentInfo;
+  // Persists for a saved agent, local until first save for a new one - false on failure
+  updateAgentInfo: (data: Partial<AgentInfo>) => Promise<boolean>;
+}
+
+export interface AgentInfo {
+  name: string;
+  description: string;
+  workspaceId: string | null;
 }
 
 export const ASSISTANT_CLIENT_TOOLS: ChatClientTool[] = [
@@ -58,6 +68,21 @@ export const ASSISTANT_CLIENT_TOOLS: ChatClientTool[] = [
     nodeIds: TOOL_NODE_IDS,
   },
   {
+    name: 'editor_set_agent_info',
+    description:
+      'Update the agent name, description and/or workspace. Send only the fields to change. ' +
+      'workspace is a workspace name or id, empty string removes the agent from its workspace.',
+    parameters: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        description: { type: 'string' },
+        workspace: { type: 'string' },
+      },
+    },
+    nodeIds: TOOL_NODE_IDS,
+  },
+  {
     name: 'editor_run_agent',
     description:
       'Save and run the agent, returns its response or error. Use it to test the agent after changes. ' +
@@ -74,7 +99,15 @@ export const ASSISTANT_CLIENT_TOOLS: ChatClientTool[] = [
 
 type ToolResult =
   | GraphValidation
-  | { ok: boolean; errors?: string[]; agentId?: string; runId?: string; response?: string; warnings?: string[] };
+  | {
+      ok: boolean;
+      errors?: string[];
+      agentId?: string;
+      runId?: string;
+      response?: string;
+      warnings?: string[];
+      agent?: AgentInfo & { workspaceName?: string };
+    };
 
 export interface ToolExecution {
   // Short human-readable line for the chat
@@ -128,6 +161,42 @@ export async function executeAssistantTool(editor: AssistantEditor, name: string
       const agentId = await editor.save();
       if (!agentId) return fail(summary, 'save failed');
       return { summary, result: { ...validation, ok: true, agentId } };
+    }
+
+    case 'editor_set_agent_info': {
+      const summary = 'Update agent info';
+      const update: Partial<AgentInfo> = {};
+      let workspaceName: string | undefined;
+
+      if (args.name !== undefined) {
+        if (typeof args.name !== 'string' || !args.name.trim()) return fail(summary, 'name must be a non-empty string');
+        update.name = args.name.trim();
+      }
+      if (args.description !== undefined) {
+        if (typeof args.description !== 'string') return fail(summary, 'description must be a string');
+        update.description = args.description.trim();
+      }
+      if (args.workspace !== undefined) {
+        if (typeof args.workspace !== 'string') return fail(summary, 'workspace must be a string');
+        const query = args.workspace.trim();
+        if (!query) {
+          update.workspaceId = null;
+        } else {
+          const { workspaces } = await workspacesApi.list({ limit: 100, sortBy: 'name', sortOrder: 'asc' });
+          const match =
+            workspaces.find((w) => w.id === query) ??
+            workspaces.find((w) => w.name.toLowerCase() === query.toLowerCase());
+          if (!match) {
+            return fail(summary, `workspace "${query}" not found, available: ${workspaces.map((w) => w.name).join(', ') || 'none'}`);
+          }
+          update.workspaceId = match.id;
+          workspaceName = match.name;
+        }
+      }
+      if (!Object.keys(update).length) return fail(summary, 'nothing to update - send name, description or workspace');
+
+      if (!(await editor.updateAgentInfo(update))) return fail(summary, 'update failed');
+      return { summary, result: { ok: true, agent: { ...editor.getAgentInfo(), ...update, workspaceName } } };
     }
 
     case 'editor_run_agent': {
