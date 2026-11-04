@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { IconFolder } from '@tabler/icons-react';
+import { IconFolder, IconPlus } from '@tabler/icons-react';
 import { createElement } from 'react';
 import { workspacesApi } from '../api/workspaces';
 import type { Workspace } from '../types/workspace';
@@ -7,19 +7,25 @@ import type { NavItem } from './types';
 import { getBaseNavItems } from './navConfig';
 import { routes } from '../config/routes';
 
-export function useWorkspaceNav() {
+export function useWorkspaceNav(onCreateWorkspace: () => void) {
   const [navItems, setNavItems] = useState<NavItem[]>(getBaseNavItems());
 
   const updateWorkspaceNav = (workspaces: Workspace[]) => {
     const baseItems = getBaseNavItems();
     const workspacesIndex = baseItems.findIndex(item => item.path === routes.workspaces());
 
-    if (workspacesIndex !== -1 && workspaces.length > 0) {
+    if (workspacesIndex !== -1) {
       const workspaceChildren: NavItem[] = workspaces.map(ws => ({
         label: ws.name,
         path: routes.workspace(ws.id),
         icon: createElement(IconFolder, { size: 18 }),
       }));
+      workspaceChildren.push({
+        label: 'New',
+        path: routes.workspaceCreate(),
+        icon: createElement(IconPlus, { size: 18 }),
+        onClick: onCreateWorkspace,
+      });
 
       baseItems[workspacesIndex] = {
         ...baseItems[workspacesIndex],
@@ -29,6 +35,12 @@ export function useWorkspaceNav() {
 
     setNavItems(baseItems);
   };
+
+  // Workspace children currently in nav, excluding the '+ New' item
+  const getWorkspaceChildren = () =>
+    navItems
+      .find(item => item.path === routes.workspaces())
+      ?.children?.filter(child => child.path !== routes.workspaceCreate());
 
   // Load workspaces for navigation
   useEffect(() => {
@@ -55,8 +67,7 @@ export function useWorkspaceNav() {
         return;
       }
 
-      const currentWorkspacesItem = navItems.find(item => item.path === routes.workspaces());
-      const currentWorkspaces = currentWorkspacesItem?.children?.map(child => ({
+      const currentWorkspaces = getWorkspaceChildren()?.map(child => ({
         id: child.path.split('/').pop()!,
         name: child.label,
       })) || [];
@@ -77,10 +88,10 @@ export function useWorkspaceNav() {
         return;
       }
 
-      const currentWorkspacesItem = navItems.find(item => item.path === routes.workspaces());
+      const children = getWorkspaceChildren();
 
-      if (currentWorkspacesItem?.children) {
-        const updatedWorkspaces = currentWorkspacesItem.children
+      if (children) {
+        const updatedWorkspaces = children
           .map(child => {
             const wsId = child.path.split('/').pop();
             return wsId === workspace.id
@@ -95,10 +106,10 @@ export function useWorkspaceNav() {
 
     const handleWorkspaceDeleted = (event: Event) => {
       const { workspaceId } = (event as CustomEvent).detail;
-      const currentWorkspacesItem = navItems.find(item => item.path === routes.workspaces());
+      const children = getWorkspaceChildren();
 
-      if (currentWorkspacesItem?.children) {
-        const updatedWorkspaces = currentWorkspacesItem.children
+      if (children) {
+        const updatedWorkspaces = children
           .filter(child => child.path !== routes.workspace(workspaceId))
           .map(child => ({
             id: child.path.split('/').pop()!,

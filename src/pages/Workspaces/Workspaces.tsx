@@ -28,7 +28,7 @@ import {
 } from '@tabler/icons-react';
 import { workspacesApi } from '../../api/workspaces';
 import type { Workspace, WorkspaceQueryOptions } from '../../types/workspace';
-import { WorkspaceModal } from './WorkspaceModal';
+import { WorkspaceModal } from '../../components/Workspace';
 import { DeleteConfirmModal } from '../../components/DeleteConfirmModal';
 import { routes } from '../../config/routes';
 

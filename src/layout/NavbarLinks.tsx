@@ -25,6 +25,32 @@ export function NavbarLinks({ items, collapsed, closeMobile }: NavbarLinksProps)
     );
   };
 
+  // Action items (e.g. '+ New') run their handler instead of navigating
+  const renderChildLink = (child: NavItem, style: React.CSSProperties) =>
+    child.onClick ? (
+      <NavLink
+        key={child.path}
+        label={child.label}
+        leftSection={child.icon}
+        onClick={() => {
+          child.onClick!();
+          closeMobile();
+        }}
+        style={style}
+      />
+    ) : (
+      <NavLink
+        key={child.path}
+        component={Link}
+        to={child.path}
+        active={location.pathname === child.path}
+        label={child.label}
+        leftSection={child.icon}
+        onClick={closeMobile}
+        style={style}
+      />
+    );
+
   const renderParentNavLink = (item: NavItem) => {
     const isActive = location.pathname.startsWith(item.path);
 
@@ -73,21 +99,9 @@ export function NavbarLinks({ items, collapsed, closeMobile }: NavbarLinksProps)
         }}
       >
         {!collapsed &&
-          item.children?.map((child) => (
-            <NavLink
-              key={child.path}
-              component={Link}
-              to={child.path}
-              active={location.pathname === child.path}
-              label={child.label}
-              leftSection={child.icon}
-              onClick={closeMobile}
-              style={{
-                borderRadius: 'var(--mantine-radius-md)',
-                marginBottom: 2,
-              }}
-            />
-          ))}
+          item.children?.map((child) =>
+            renderChildLink(child, { borderRadius: 'var(--mantine-radius-md)', marginBottom: 2 })
+          )}
       </NavLink>
     );
 
@@ -106,20 +120,9 @@ export function NavbarLinks({ items, collapsed, closeMobile }: NavbarLinksProps)
           <HoverCard.Target>{navLinkContent}</HoverCard.Target>
           <HoverCard.Dropdown p="xs">
             <Stack gap={4}>
-              {item.children.map((child) => (
-                <NavLink
-                  key={child.path}
-                  component={Link}
-                  to={child.path}
-                  active={location.pathname === child.path}
-                  label={child.label}
-                  leftSection={child.icon}
-                  onClick={closeMobile}
-                  style={{
-                    borderRadius: 'var(--mantine-radius-md)',
-                  }}
-                />
-              ))}
+              {item.children.map((child) =>
+                renderChildLink(child, { borderRadius: 'var(--mantine-radius-md)' })
+              )}
             </Stack>
           </HoverCard.Dropdown>
         </HoverCard>

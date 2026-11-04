@@ -4,4 +4,5 @@ export interface NavItem {
   icon: React.ReactNode;
   adminOnly?: boolean;
   children?: NavItem[];
+  onClick?: () => void;
 }
