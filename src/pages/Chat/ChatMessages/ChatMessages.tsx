@@ -1,9 +1,10 @@
 import { useRef, useEffect, type ElementRef } from 'react';
-import { Box, Text, Stack, Paper, Loader, Alert, Center, Button, Group } from '@mantine/core';
+import { Box, Text, Stack, Loader, Alert, Center, Button, Group } from '@mantine/core';
 import { Virtuoso } from 'react-virtuoso';
 import { IconAlertCircle, IconGhost, IconRefresh, IconListDetails } from '@tabler/icons-react';
 import type { ChatMessagesProps } from '../types';
 import { MessageBubble } from './MessageBubble';
+import { RunStatus } from '../../../components/AgentStream';
 
 export function ChatMessages({
   currentRunId,
@@ -161,57 +162,7 @@ export function ChatMessages({
             ) : null,
           Footer: () => (
               <>
-                {sending && (
-                  <Box
-                    style={{ display: 'flex', justifyContent: 'flex-start' }}
-                    ms="xs"
-                    px="sm"
-                    pb="xs"
-                  >
-                    <Paper
-                      py="xs"
-                      px="md"
-                      radius="lg"
-                      className="chat-status-bubble"
-                      style={{ 
-                          minWidth: '140px', 
-                          backgroundColor: 'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))', 
-                        }}
-                    >
-                      <style>{`
-                        .chat-status-bubble .run-details-btn { display: none; }
-                        .chat-status-bubble .status-content { display: flex; }
-                        .chat-status-bubble:hover .run-details-btn { display: flex; }
-                        .chat-status-bubble:hover .status-content { display: none; }
-                      `}</style>
-                      <Group 
-                        gap="sm" 
-                        align='center'
-                        style={{ 
-                          height: '2rem'
-                        }}
-                        wrap="nowrap"
-                        >
-                        <Loader type="dots" size="xs" className="status-content" />
-                        {statusText && (
-                          <Text size="xs" c="dimmed" className="status-content">
-                            {statusText}
-                          </Text>
-                        )}
-                        {currentRunId && (
-                            <Button
-                              size="xs"
-                              className="run-details-btn"
-                              leftSection={<IconListDetails size={12} />}
-                              style={{ width: '100%'}}
-                              onClick={() => onViewRun(currentRunId)}
-                              >Run Details
-                            </Button>
-                        )}
-                      </Group>
-                    </Paper>
-                  </Box>
-                )}
+                {sending && <RunStatus variant="bubble" statusText={statusText} runId={currentRunId} />}
                 <Box style={{ height: inputHeight + 32 }} />
               </>
             ),

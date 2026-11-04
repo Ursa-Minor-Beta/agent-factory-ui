@@ -1,12 +1,13 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Box, Button, TextInput, Textarea, Stack, Text, Alert, ScrollArea, Loader, Group, ActionIcon, Card, Switch, Slider, Collapse } from '@mantine/core';
+import { Box, Button, TextInput, Textarea, Stack, Text, Alert, ScrollArea, Group, ActionIcon, Card, Switch, Slider, Collapse } from '@mantine/core';
 import { IconPlayerPlay, IconPlayerStop, IconAlertCircle, IconListDetails, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
-import { sessionsApi, type ChatStatusEvent } from '../../../api/sessions';
+import type { ChatStatusEvent } from '../../../api/sessions';
 import type { Agent, InputSchema, NodeStatus } from '../../../types';
 import { getInputSchema } from '../../../pages/Chat/types';
 import { useRunDetailsModal } from '../../RunDetailsModal';
 import { MessageContent } from '../../../pages/Chat/ChatMessages';
 import { useChatFavicon } from '../../../pages/Chat/useChatFavicon';
+import { useAgentStream, RunStatus, RunSteps } from '../../AgentStream';
 
 interface RunTabProps {
   agent: Partial<Agent> | null;
@@ -30,14 +31,6 @@ const INPUTS_OPEN_STORAGE_KEY = 'agent-editor-run-inputs-open';
 const MIN_RUNNING_MS = 50;
 const MAX_RUNNING_MS = 2000;
 const DEFAULT_RUNNING_MS = 400;
-
-interface RunOutput {
-  response?: unknown; // Raw response - MessageContent will parse it
-  error?: string;
-  runId?: string;
-  // depth 0 = node of this agent, 1+ = node inside a (nested) sub-agent
-  nodeStatuses: Array<{ nodeId: string; label: string; depth: number; status: string; statusText?: string }>;
-}
 
 export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, runRequest, onInputsRequired, onRunningChange, onAgentStatusesChange }: RunTabProps) {
   // Last used inputs are remembered per agent
@@ -90,10 +83,11 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
     runningMsRef.current = value;
     localStorage.setItem(SPEED_STORAGE_KEY, String(value));
   }, []);
-  const [running, setRunning] = useState(false);
+  const stream = useAgentStream();
+  const { running, start: startStream, cancel: handleStop } = stream;
   useChatFavicon(running);
-  const [output, setOutput] = useState<RunOutput | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  // Raw response - MessageContent will parse it
+  const [response, setResponse] = useState<string>();
   // Sub-agent id -> its nodes that started and haven't finished yet, and whether any node failed
   const subagentsRef = useRef(new Map<string, { nodes: Set<string>; failed: boolean }>());
   const [agentStatuses, setAgentStatuses] = useState<Record<string, NodeStatus>>({});
@@ -115,14 +109,10 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
   const handleRun = useCallback(async () => {
     if (!agent?.id || running) return;
 
-    setRunning(true);
-    setOutput({ nodeStatuses: [] });
+    setResponse(undefined);
     subagentsRef.current.clear();
     setAgentStatuses({ [agent.id]: 'running' });
     if (animateRef.current) onRunStart?.();
-
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
 
     // Build input object from form values (skip empty values)
     const input: Record<string, unknown> = {};
@@ -139,83 +129,34 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
       }
     }
 
-    // Final response/error applied once the stream ends
-    const result: Pick<RunOutput, 'response' | 'error'> = {};
-
-    try {
-      await sessionsApi.chatStream(
-        agent.id,
-        { input, incognito: true },
-        {
-          onInit: (data) => {
-            setOutput((prev) => ({
-              ...prev!,
-              runId: data.runId,
-            }));
-          },
-          onStatus: (data: ChatStatusEvent) => {
-            setOutput((prev) => ({
-              ...prev!,
-              nodeStatuses: [
-                ...(prev?.nodeStatuses || []),
-                { nodeId: data.nodeId, label: data.nodeId, depth: 0, status: data.status, statusText: data.statusText },
-              ],
-            }));
-            if (animateRef.current) onNodeStatus?.(data.nodeId, data.status, runningMsRef.current);
-          },
-          onSubagentStatus: (data) => {
-            // Sub-agent runs while any of its nodes runs
-            const sub = subagentsRef.current.get(data.agentId) ?? { nodes: new Set<string>(), failed: false };
-            if (data.status === 'started') sub.nodes.add(data.nodeId);
-            else sub.nodes.delete(data.nodeId);
-            if (data.status === 'failed') sub.failed = true;
-            subagentsRef.current.set(data.agentId, sub);
-            const subStatus: NodeStatus = sub.nodes.size > 0 ? 'running' : sub.failed ? 'failed' : 'completed';
-            setAgentStatuses((prev) => (prev[data.agentId] === subStatus ? prev : { ...prev, [data.agentId]: subStatus }));
-            // Path "parentNode / SUB: node / SUBSUB: node" - last segment is the node, segment count gives nesting
-            const segments = data.path.split(' / ');
-            setOutput((prev) => ({
-              ...prev!,
-              nodeStatuses: [
-                ...(prev?.nodeStatuses || []),
-                {
-                  nodeId: data.nodeId,
-                  label: segments[segments.length - 1] || `${data.agentName}: ${data.nodeId}`,
-                  depth: Math.max(1, segments.length - 1),
-                  status: data.status,
-                  statusText: data.statusText,
-                },
-              ],
-            }));
-          },
-          onDone: (data) => {
-            // Store raw response - MessageContent will handle parsing
-            result.response = data.response;
-          },
-          onError: (data) => {
-            result.error = data.message;
-          },
+    const result = await startStream(
+      agent.id,
+      { input, incognito: true },
+      {
+        onStatus: (data: ChatStatusEvent) => {
+          if (animateRef.current) onNodeStatus?.(data.nodeId, data.status, runningMsRef.current);
         },
-        abortController.signal
-      );
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') {
-        // Cancelled by user
-      } else {
-        result.error = err instanceof Error ? err.message : 'Run failed';
+        onSubagentStatus: (data) => {
+          // Sub-agent runs while any of its nodes runs
+          const sub = subagentsRef.current.get(data.agentId) ?? { nodes: new Set<string>(), failed: false };
+          if (data.status === 'started') sub.nodes.add(data.nodeId);
+          else sub.nodes.delete(data.nodeId);
+          if (data.status === 'failed') sub.failed = true;
+          subagentsRef.current.set(data.agentId, sub);
+          const subStatus: NodeStatus = sub.nodes.size > 0 ? 'running' : sub.failed ? 'failed' : 'completed';
+          setAgentStatuses((prev) => (prev[data.agentId] === subStatus ? prev : { ...prev, [data.agentId]: subStatus }));
+        },
       }
-    } finally {
-      abortControllerRef.current = null;
-      if (animateRef.current) onRunEnd?.();
-      setOutput((prev) => ({ ...prev!, ...result }));
-      // Settle everything still running (stopped / failed run)
-      const endStatus: NodeStatus = result.error ? 'failed' : 'completed';
-      setAgentStatuses((prev) => Object.fromEntries(
-        Object.entries(prev).map(([id, status]) => [id, status === 'running' || id === agent.id ? endStatus : status])
-      ));
-      setRunning(false);
-    }
-  }, [agent, running, inputs, inputSchema, onRunStart, onNodeStatus, onRunEnd]);
+    );
+
+    if (animateRef.current) onRunEnd?.();
+    setResponse(result.response);
+    // Settle everything still running (stopped / failed run)
+    const endStatus: NodeStatus = result.error ? 'failed' : 'completed';
+    setAgentStatuses((prev) => Object.fromEntries(
+      Object.entries(prev).map(([id, status]) => [id, status === 'running' || id === agent.id ? endStatus : status])
+    ));
+  }, [agent, running, inputs, inputSchema, startStream, onRunStart, onNodeStatus, onRunEnd]);
 
   useEffect(() => {
     onRunningChange?.(running);
@@ -248,10 +189,6 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
     handleRunRef.current();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- react to new run requests only
   }, [runRequest]);
-
-  const handleStop = useCallback(() => {
-    abortControllerRef.current?.abort();
-  }, []);
 
   if (!agent) {
     return (
@@ -377,16 +314,16 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
       </Card>
 
       {/* Output area */}
-      {output && (
+      {(running || stream.runId || stream.error || response) && (
         <Card style={{ flex: 1, minHeight: 0 }} withBorder>
           <Group mb="xs">
             <Text size="xs" fw={500}>Output</Text>
-            {output.runId && (
+            {stream.runId && (
               <ActionIcon
                 size="xs"
                 variant="subtle"
                 title="View run details"
-                onClick={() => openRunDetails(output.runId!)}
+                onClick={() => openRunDetails(stream.runId!)}
               >
                 <IconListDetails size={14} />
               </ActionIcon>
@@ -395,36 +332,22 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
           <ScrollArea style={{ flex: 1 }} offsetScrollbars scrollbars="y" styles={{ content: { display: 'block' } }}>
             <>
               {/* Node statuses */}
-              {!animate && output.nodeStatuses.length > 0 && (
-                <ScrollArea.Autosize mah={80} offsetScrollbars scrollbars="y" styles={{ content: { display: 'block', minWidth: 0 } }} mb="xs" ps='xs' style={{ border: '1px solid var(--mantine-color-default-border)', borderRadius: 'var(--mantine-radius-sm)' }}>
-                  <Stack gap={2}>
-                    {output.nodeStatuses.map((ns, i) => (
-                      <Text key={i} size="xs" c="dimmed" pl={ns.depth * 12} truncate>
-                        {ns.depth > 0 && '↳ '}{ns.label}: {ns.statusText || ns.status}
-                      </Text>
-                    ))}
-                  </Stack>
-                </ScrollArea.Autosize>
-              )}
+              {!animate && <RunSteps steps={stream.steps} />}
 
               {/* Loading indicator */}
-              {running && (
-                <Box mb="xs">
-                  <Loader size="xs" />
-                </Box>
-              )}
+              {running && <RunStatus statusText={stream.statusText} />}
 
               {/* Error */}
-              {output.error && (
+              {stream.error && (
                 <Alert icon={<IconAlertCircle size={14} />} color="red" fz="xs" mb="xs">
-                  {output.error}
+                  {stream.error}
                 </Alert>
               )}
 
               {/* Response - MessageContent handles parsing and display */}
-              {output.response && (
+              {response && (
                 <Card withBorder>
-                    <MessageContent content={output.response} />
+                    <MessageContent content={response} />
                 </Card>
               )}
             </>

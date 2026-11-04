@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { sessionsApi, runsApi, ApiError } from '../../../../api';
+import { useAgentStream } from '../../../AgentStream';
 import { mapApiMessageToChatMessage, parseMessageContent } from '../../../../pages/Chat/models/messageParser';
 import type { ChatMessage } from '../../../../pages/Chat/types';
 import { ASSISTANT_CLIENT_TOOLS, executeAssistantTool, nodesForAssistant, type AssistantEditor } from './assistantTools';
@@ -60,12 +61,9 @@ export function useAssistantChat(assistantAgentId: string | undefined, agentKey:
   const sessionIdRef = useRef(sessionId);
   sessionIdRef.current = sessionId;
   const [loadingHistory, setLoadingHistory] = useState(false);
-  const [sending, setSending] = useState(false);
-  const [statusText, setStatusText] = useState<string>();
-  const [error, setError] = useState('');
+  const stream = useAgentStream();
+  const { running: sending, start, abort: stopStream, cancel, clearError } = stream;
 
-  const abortRef = useRef<AbortController | null>(null);
-  const runIdRef = useRef<string | null>(null);
   const editorRef = useRef(editor);
   editorRef.current = editor;
   // Session is per builder agent + edited agent
@@ -73,11 +71,6 @@ export function useAssistantChat(assistantAgentId: string | undefined, agentKey:
   const sessionKeyRef = useRef(sessionKey);
   const agentKeyRef = useRef(agentKey);
   const assistantAgentIdRef = useRef(assistantAgentId);
-
-  const stopStream = useCallback(() => {
-    abortRef.current?.abort();
-    abortRef.current = null;
-  }, []);
 
   // Switching edited agent or builder: stop the run (its tool calls would hit the other agent) and load the matching session.
   // First save of a new agent changes the key 'new' -> id: keep the conversation and running stream.
@@ -94,7 +87,7 @@ export function useAssistantChat(assistantAgentId: string | undefined, agentKey:
     }
 
     stopStream();
-    setError('');
+    clearError();
     if (!assistantAgentId) {
       setSessionId(null);
       setMessages([]);
@@ -136,10 +129,7 @@ export function useAssistantChat(assistantAgentId: string | undefined, agentKey:
     return () => {
       cancelled = true;
     };
-  }, [agentKey, assistantAgentId, sessionKey, stopStream]);
-
-  // Abort on unmount - server cancels the run when the stream drops
-  useEffect(() => stopStream, [stopStream]);
+  }, [agentKey, assistantAgentId, sessionKey, stopStream, clearError]);
 
   const addMessage = useCallback((message: AssistantMessage) => {
     setMessages((prev) => [...prev, message]);
@@ -150,116 +140,82 @@ export function useAssistantChat(assistantAgentId: string | undefined, agentKey:
       const message = text.trim();
       if (!assistantAgentId || !message || sending) return;
 
-      setSending(true);
-      setError('');
-      setStatusText('Sending...');
       addMessage({ id: nextId('user'), role: 'user', content: message, createdAt: new Date().toISOString() });
 
-      const abortController = new AbortController();
-      abortRef.current = abortController;
-      runIdRef.current = null;
-
-      try {
-        await sessionsApi.chatStream(
-          assistantAgentId,
-          {
-            input: { message, nodes: nodesForAssistant(editorRef.current.getNodes()) },
-            sessionId: sessionId || undefined,
-            clientTools: ASSISTANT_CLIENT_TOOLS,
+      // Stream drop cancels the run (client tools attached) - useAgentStream aborts it on unmount
+      await start(
+        assistantAgentId,
+        {
+          input: { message, nodes: nodesForAssistant(editorRef.current.getNodes()) },
+          sessionId: sessionId || undefined,
+          clientTools: ASSISTANT_CLIENT_TOOLS,
+        },
+        {
+          onInit: (data) => {
+            setSessionId(data.sessionId);
+            writeSession(sessionKeyRef.current, data.sessionId);
           },
-          {
-            onInit: (data) => {
-              runIdRef.current = data.runId;
-              setSessionId(data.sessionId);
-              writeSession(sessionKeyRef.current, data.sessionId);
-            },
-            onStatus: (data) => {
-              if (data.statusText) setStatusText(data.statusText);
-            },
-            onClientToolCall: async (data) => {
-              let execution;
-              try {
-                execution = executeAssistantTool(editorRef.current, data.name, data.args ?? {});
-              } catch (err) {
-                execution = { summary: data.name, result: { ok: false as const, errors: [String(err)] } };
+          onClientToolCall: async (data) => {
+            let execution;
+            try {
+              execution = executeAssistantTool(editorRef.current, data.name, data.args ?? {});
+            } catch (err) {
+              execution = { summary: data.name, result: { ok: false as const, errors: [String(err)] } };
+            }
+            const { summary, result } = execution;
+            addMessage({
+              id: nextId('tool'),
+              role: 'tool',
+              content: summary,
+              createdAt: new Date().toISOString(),
+              ok: result.ok,
+              errors: result.errors,
+            });
+            try {
+              await runsApi.submitToolResult(data.runId, data.toolCallId, result);
+            } catch (err) {
+              // 409 = already answered or timed out, nothing to do
+              if (!(err instanceof ApiError && err.status === 409)) {
+                console.error('Failed to submit tool result:', err);
               }
-              const { summary, result } = execution;
-              addMessage({
-                id: nextId('tool'),
-                role: 'tool',
-                content: summary,
-                createdAt: new Date().toISOString(),
-                ok: result.ok,
-                errors: result.errors,
-              });
-              try {
-                await runsApi.submitToolResult(data.runId, data.toolCallId, result);
-              } catch (err) {
-                // 409 = already answered or timed out, nothing to do
-                if (!(err instanceof ApiError && err.status === 409)) {
-                  console.error('Failed to submit tool result:', err);
-                }
-              }
-            },
-            onDone: (data) => {
-              if (data.cancelled) return;
-              const { text: content, fileRefs } = parseMessageContent(data.response);
-              if (!content) return;
-              addMessage({
-                id: nextId('assistant'),
-                role: 'assistant',
-                content,
-                fileRefs: fileRefs.length ? fileRefs : undefined,
-                createdAt: new Date().toISOString(),
-                runId: data.runId,
-              });
-            },
-            onError: (data) => setError(data.message),
+            }
           },
-          abortController.signal
-        );
-      } catch (err) {
-        if (!(err instanceof DOMException && err.name === 'AbortError')) {
-          setError(err instanceof Error ? err.message : 'Failed to send message');
+          onDone: (data) => {
+            if (data.cancelled) return;
+            const { text: content, fileRefs } = parseMessageContent(data.response);
+            if (!content) return;
+            addMessage({
+              id: nextId('assistant'),
+              role: 'assistant',
+              content,
+              fileRefs: fileRefs.length ? fileRefs : undefined,
+              createdAt: new Date().toISOString(),
+              runId: data.runId,
+            });
+          },
         }
-      } finally {
-        // A newer send/abort may have replaced the controller
-        if (abortRef.current === abortController) abortRef.current = null;
-        runIdRef.current = null;
-        setSending(false);
-        setStatusText(undefined);
-      }
+      );
     },
-    [assistantAgentId, sending, sessionId, addMessage]
+    [assistantAgentId, sending, sessionId, addMessage, start]
   );
-
-  const cancel = useCallback(async () => {
-    const runId = runIdRef.current;
-    if (assistantAgentId && runId) {
-      try {
-        await sessionsApi.cancelChat(assistantAgentId, runId);
-      } catch {
-        // Ignore cancel errors - aborting the stream cancels the run anyway
-      }
-    }
-    stopStream();
-  }, [assistantAgentId, stopStream]);
 
   const newChat = useCallback(() => {
     if (sending) cancel();
     writeSession(sessionKeyRef.current, null);
     setSessionId(null);
     setMessages([]);
-    setError('');
-  }, [sending, cancel]);
+    clearError();
+  }, [sending, cancel, clearError]);
 
   return {
     messages,
     loadingHistory,
     sending,
-    statusText,
-    error,
-    clearError: () => setError(''),
+    statusText: stream.statusText,
+    runId: stream.runId,
+    steps: stream.steps,
+    error: stream.error,
+    clearError,
     send,
     cancel,
     newChat,

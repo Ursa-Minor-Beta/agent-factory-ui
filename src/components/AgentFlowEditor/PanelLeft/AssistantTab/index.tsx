@@ -7,6 +7,7 @@ import { useAgentModal } from '../../../AgentCreateModal';
 import { useRunDetailsModal } from '../../../RunDetailsModal';
 import { useAssistantChat, type AssistantMessage } from './useAssistantChat';
 import { AssistantAgentSelect } from './AssistantAgentSelect';
+import { RunStatus } from '../../../AgentStream';
 import type { AssistantEditor } from './assistantTools';
 
 export type { AssistantEditor } from './assistantTools';
@@ -82,7 +83,7 @@ export function AssistantTab({ agentKey, editor, onSendingChange }: AssistantTab
   const openRunDetailsRef = useRef(openRunDetails);
   openRunDetailsRef.current = openRunDetails;
   const handleViewRun = useCallback((runId: string) => openRunDetailsRef.current(runId), []);
-  const { messages, loadingHistory, sending, statusText, error, clearError, send, cancel, newChat } =
+  const { messages, loadingHistory, sending, statusText, runId, steps, error, clearError, send, cancel, newChat } =
     useAssistantChat(assistantAgentId ?? undefined, agentKey, editor);
 
   const handleAssistantAgentChange = (agentId: string | null) => {
@@ -142,14 +143,7 @@ export function AssistantTab({ agentKey, editor, onSendingChange }: AssistantTab
           </Stack>
         )}
 
-        {sending && (
-          <Group gap={6} pb="xs">
-            <Loader size={12} />
-            <Text size="xs" c="dimmed">
-              {statusText || 'Thinking...'}
-            </Text>
-          </Group>
-        )}
+        {sending && <RunStatus statusText={statusText} runId={runId} steps={steps} />}
 
         {error && (
           <Alert color="red" variant="light" p="xs" mb="xs" withCloseButton onClose={clearError}>
