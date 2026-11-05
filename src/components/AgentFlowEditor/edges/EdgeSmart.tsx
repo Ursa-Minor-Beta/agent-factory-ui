@@ -4,6 +4,7 @@ import { EdgePhoton } from './EdgePhoton';
 const radius = 20;
 const baseOffset = 40; // % 2 = 0
 const handleOffsetStep = 12; // extra start offset per source handle slot
+const alignThreshold = 1; // px, handles closer than this on the cross axis get a straight edge
 
 // Slot of the source handle: plain output = 0, branch-N = N + 1
 function getHandleSlot(sourceHandleId?: string | null): number {
@@ -115,6 +116,11 @@ function getPoints({
   const pointFinishOffset: Point = { key: 'L', x: targetX - (baseOffset / 2), y: targetY };
   const pointFinish: Point = { key: 'L', x: targetX, y: targetY }; // finish
 
+  // Handles (almost) aligned - straight line, avoids degenerate corners
+  if (pointStartOffset.x < pointFinishOffset.x && Math.abs(targetY - sourceY) < alignThreshold) {
+    return [pointStart, pointFinish];
+  }
+
   const points: Point[] = [pointStart, pointStartOffset];
 
   if (pointStartOffset.x > pointFinishOffset.x) {
@@ -165,6 +171,11 @@ function getPointsVertical({
   const pointStartOffset: Point = { key: 'L', x: sourceX, y: sourceY + startOffset, length: startOffset * 2 };
   const pointFinishOffset: Point = { key: 'L', x: targetX, y: targetY - (baseOffset / 2) };
   const pointFinish: Point = { key: 'L', x: targetX, y: targetY };
+
+  // Handles (almost) aligned - straight line, avoids degenerate corners
+  if (pointStartOffset.y < pointFinishOffset.y && Math.abs(targetX - sourceX) < alignThreshold) {
+    return [pointStart, pointFinish];
+  }
 
   const points: Point[] = [pointStart, pointStartOffset];
 
@@ -235,7 +246,8 @@ function getPath(params: GetPointsParams): string {
           path += `${key} ${x} ${yDirection > 0 ? y + r : y - r} `;
           path += `Q ${x} ${y} ${xDiff > 0 ? x - r : x + r} ${y} `;
         } else {
-          path += `${key} ${x + radius} ${y} `;
+          // zero-length segment - no corner to round
+          path += `${key} ${x} ${y} `;
         }
       } else {
         path += `${key} ${x} ${y} `;
