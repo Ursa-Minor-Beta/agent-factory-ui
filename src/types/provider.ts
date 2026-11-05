@@ -1,16 +1,17 @@
-export type ProviderType = 'openai' | 'anthropic' | 'ollama' | 'github';
+// Known provider types; presets come from the backend, so any string is accepted
+export type ProviderType = 'openai' | 'anthropic' | 'ollama' | 'github' | (string & {});
 
-export interface ProviderOption {
-  value: ProviderType;
+export type ProviderKind = 'llm' | 'integration' | (string & {});
+
+export interface ProviderPreset {
+  provider: ProviderType;
+  kind: ProviderKind;
   label: string;
+  protocol: string;
+  defaultBaseUrl: string | null;
+  requiresApiKey: boolean;
+  requiresBaseUrl: boolean;
 }
-
-export const PROVIDER_OPTIONS: ProviderOption[] = [
-  { value: 'openai', label: 'OpenAI' },
-  { value: 'anthropic', label: 'Anthropic' },
-  { value: 'ollama', label: 'Ollama' },
-  { value: 'github', label: 'GitHub' },
-];
 
 export interface ProviderConfig {
   id: string;

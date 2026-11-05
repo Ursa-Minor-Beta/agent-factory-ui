@@ -2,7 +2,7 @@ import { Accordion, Alert, Badge, Card, Group, Stack, Text, Title, Tooltip } fro
 import { IconAlertCircle } from '@tabler/icons-react';
 import { NodeTypeIcon } from '../../nodes';
 import type { NodeState, Run } from '../../types';
-import { formatDuration, formatTokens, getNodeUsage, PROVIDER_OPTIONS } from '../../types';
+import { formatDuration, formatTokens, getNodeUsage } from '../../types';
 import type { RunTrailItem } from './useRunDetailsModal';
 import { RunStatusBadge } from './RunStatusBadge';
 import { CopyIconButton } from './CopyIconButton';
@@ -20,8 +20,7 @@ const byStart = ([, a]: [string, NodeState], [, b]: [string, NodeState]) => {
 
 function providerLabel(config: NonNullable<NodeState['providerConfig']>) {
   if (!config.provider) return config.name;
-  const provider = PROVIDER_OPTIONS.find((p) => p.value === config.provider)?.label ?? config.provider;
-  return `${provider} · ${config.name}`;
+  return `${config.provider} · ${config.name}`;
 }
 
 interface NodeStateItemProps {

@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { ProviderConfig, ProviderType } from '../types';
+import type { ProviderPreset, ProviderConfig, ProviderType } from '../types';
 
 export interface ListProvidersOptions {
   provider?: ProviderType; // Filter by provider type (e.g., 'github', 'openai')
@@ -38,6 +38,9 @@ export const providersApi = {
     const query = params.toString();
     return api.get<ProviderConfig[]>(`/api/providers${query ? `?${query}` : ''}`);
   },
+
+  getPresets: () =>
+    api.get<ProviderPreset[]>('/api/providers/presets'),
 
   getById: (id: string) =>
     api.get<ProviderConfig>(`/api/providers/${id}`),
