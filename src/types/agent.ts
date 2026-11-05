@@ -192,11 +192,13 @@ export interface ImportCollectionSchema {
 
 export interface AgentImportWarnings {
   missingSecrets?: string[];
+  missingVariables?: string[];
   missingProviders?: string[];
   collectionsWithoutSchema?: string[];
   missingCollections?: ImportCollectionSchema[];
   // Items that exist globally (optional - backend may not provide these)
   globalSecrets?: string[];
+  globalVariables?: string[];
   globalProviders?: string[];
   globalCollections?: string[];
 }

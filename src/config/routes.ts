@@ -21,6 +21,7 @@ export const routes = {
   configurations: () => '/configurations',
   providers: () => '/configurations/providers',
   secrets: () => '/configurations/secrets',
+  variables: () => '/configurations/variables',
   collections: () => '/configurations/collections',
   collectionRecords: (collectionId: string) => `/configurations/collections/${collectionId}/records`,
 

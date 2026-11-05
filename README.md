@@ -17,6 +17,7 @@ Visual platform for building and managing AI agents through a no-code/low-code i
 - **Export/Import** - Export agents to JSON packages with dependencies
 - **Execution Monitoring** - Run tracking with node-level timing and logss
 - **Encrypted Secrets** - Secure credential storage (AES-256-GCM)
+- **Variables** - Plain-text global/workspace variables referenced via `{{var:NAME}}`
 - **File Storage** - Built-in file management for agent artifacts
 - **Workspaces** - Organize agents and resources into isolated workspaces
 - **Multi-User** - JWT auth, API keys, and role-based access (Admin/User)

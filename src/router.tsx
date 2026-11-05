@@ -12,6 +12,7 @@ const AgentsPage = lazy(() => import('./pages/Agents').then(m => ({ default: m.A
 const ChatPage = lazy(() => import('./pages/Chat/Chat').then(m => ({ default: m.ChatPage })));
 const ProvidersPage = lazy(() => import('./pages/Providers').then(m => ({ default: m.ProvidersPage })));
 const SecretsPage = lazy(() => import('./pages/Secrets').then(m => ({ default: m.SecretsPage })));
+const VariablesPage = lazy(() => import('./pages/Variables').then(m => ({ default: m.VariablesPage })));
 const FilesPage = lazy(() => import('./pages/Files').then(m => ({ default: m.FilesPage })));
 const RunsPage = lazy(() => import('./pages/Runs/index').then(m => ({ default: m.RunsPage })));
 const SessionsPage = lazy(() => import('./pages/Sessions/index').then(m => ({ default: m.SessionsPage })));
@@ -100,6 +101,10 @@ export const router = createBrowserRouter([
           {
             path: 'secrets',
             element: <SecretsPage />,
+          },
+          {
+            path: 'variables',
+            element: <VariablesPage />,
           },
           {
             path: 'collections',

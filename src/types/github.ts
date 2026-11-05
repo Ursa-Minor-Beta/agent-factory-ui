@@ -63,6 +63,7 @@ export interface GitHubImportResponse {
   agentIdMap: Record<string, string>;
   warnings: {
     missingSecrets?: string[];
+    missingVariables?: string[];
     missingProviders?: string[];
     missingCollections?: ImportCollectionSchema[];
   };

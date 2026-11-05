@@ -20,6 +20,7 @@ import {
   IconCloud,
   IconKey,
   IconDatabase,
+  IconVariable,
 } from '@tabler/icons-react';
 import { workspacesApi } from '../../api/workspaces';
 import type { Workspace } from '../../types/workspace';
@@ -28,10 +29,11 @@ import { DeleteConfirmModal } from '../../components/DeleteConfirmModal';
 import { AgentsList } from '../../components/AgentsList';
 import { ProvidersList } from '../../components/Providers';
 import { SecretsList } from '../../components/Secrets';
+import { VariablesList } from '../../components/Variables';
 import { CollectionsList } from '../../components/Collections';
 import { routes } from '../../config/routes';
 
-const VALID_TABS = ['agents', 'providers', 'secrets', 'collections'] as const;
+const VALID_TABS = ['agents', 'providers', 'secrets', 'variables', 'collections'] as const;
 
 export function WorkspaceDetailPage() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
@@ -195,6 +197,9 @@ export function WorkspaceDetailPage() {
           <Tabs.Tab value="secrets" leftSection={<IconKey size={16} />}>
             Secrets{workspace.secretCount !== undefined && ` (${workspace.secretCount})`}
           </Tabs.Tab>
+          <Tabs.Tab value="variables" leftSection={<IconVariable size={16} />}>
+            Variables{workspace.variableCount !== undefined && ` (${workspace.variableCount})`}
+          </Tabs.Tab>
           <Tabs.Tab value="collections" leftSection={<IconDatabase size={16} />}>
             Collections{workspace.collectionCount !== undefined && ` (${workspace.collectionCount})`}
           </Tabs.Tab>
@@ -226,6 +231,17 @@ export function WorkspaceDetailPage() {
           <SecretsList
             workspaceId={workspaceId}
             description="Workspace-scoped secrets for {{secret:NAME}} syntax. Falls back to global if not found."
+            showSearch={false}
+            columns={['name', 'value', 'description', 'created', 'actions']}
+            onCreate={loadWorkspace}
+            onDelete={loadWorkspace}
+          />
+        </Tabs.Panel>
+
+        <Tabs.Panel value="variables">
+          <VariablesList
+            workspaceId={workspaceId}
+            description="Workspace-scoped variables for {{var:NAME}} syntax. Falls back to global if not found."
             showSearch={false}
             columns={['name', 'value', 'description', 'created', 'actions']}
             onCreate={loadWorkspace}
