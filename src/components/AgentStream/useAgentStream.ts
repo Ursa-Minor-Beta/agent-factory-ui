@@ -1,15 +1,41 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { sessionsApi, ApiError } from '../../api';
-import type { ChatInput, ChatStreamCallbacks } from '../../api/sessions';
+import type { ChatClientToolCallEvent, ChatInput, ChatStreamCallbacks } from '../../api/sessions';
+import type { MessageToolCall } from '../../types';
+import { toolLabel } from './ToolCalls';
 
-// One node status of the run; depth 0 = node of the running agent, 1+ = node inside a (nested) sub-agent
+// One node status or tool call of the run; depth 0 = running agent, 1+ = inside a (nested) sub-agent
 export interface RunStep {
   nodeId: string;
   label: string;
   depth: number;
   status: string;
   statusText?: string;
+  // Tool call steps only - one step per call, updated in place when it finishes
+  tool?: {
+    toolCallId: string;
+    name: string;
+    toolType: 'builtin' | 'agent' | 'client';
+    label?: string; // UI tools: summary of what was done
+    error?: string | string[];
+    durationMs?: number;
+  };
 }
+
+// Outcome of a UI tool executed by the page
+export interface ClientToolOutcome {
+  ok: boolean;
+  label?: string;
+  errors?: string[];
+}
+
+export interface AgentStreamHandlers extends Omit<ChatStreamCallbacks, 'onClientToolCall'> {
+  // Executes the UI tool (and posts its result); the outcome is shown as a tool step
+  onClientToolCall?: (event: ChatClientToolCallEvent) => Promise<ClientToolOutcome>;
+}
+
+// Path "parentNode / SUB: node / SUBSUB: node" - segment count gives nesting
+const pathDepth = (path: string) => path.split(' / ').length - 1;
 
 export interface AgentStreamResult {
   runId?: string;
@@ -17,6 +43,7 @@ export interface AgentStreamResult {
   cancelled?: boolean; // Run cancelled on the server
   aborted?: boolean; // Stream aborted on the client
   error?: string;
+  toolCalls?: MessageToolCall[]; // Finished top-level tool calls (server + UI), in call order
 }
 
 /**
@@ -39,7 +66,7 @@ export function useAgentStream() {
   const runRef = useRef<{ agentId: string; runId: string | null } | null>(null);
 
   const start = useCallback(
-    async (agentId: string, data: ChatInput, handlers: ChatStreamCallbacks = {}): Promise<AgentStreamResult> => {
+    async (agentId: string, data: ChatInput, handlers: AgentStreamHandlers = {}): Promise<AgentStreamResult> => {
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
@@ -57,6 +84,8 @@ export function useAgentStream() {
       setErrorRunId(undefined);
 
       const result: AgentStreamResult = {};
+      // Top-level tool calls by toolCallId, insertion order = call order
+      const toolCalls = new Map<string, Omit<MessageToolCall, 'id' | 'status'> & { status?: MessageToolCall['status'] }>();
       const fail = (message: string, failedRunId?: string) => {
         result.error = message;
         if (!isCurrent()) return;
@@ -67,6 +96,26 @@ export function useAgentStream() {
         if (!isCurrent()) return;
         setSteps((prev) => [...prev, step]);
         if (step.statusText) setStatusText(step.statusText);
+      };
+      const startTool = (toolCallId: string, name: string, toolType: NonNullable<RunStep['tool']>['toolType'], nodeId: string, depth: number) => {
+        if (depth === 0) toolCalls.set(toolCallId, { name });
+        // No statusText: the tool list shows its progress, the status line stays on the node status
+        addStep({
+          nodeId,
+          label: toolLabel(name),
+          depth,
+          status: 'running',
+          tool: { toolCallId, name, toolType },
+        });
+      };
+      // Parallel calls finish in any order - match by toolCallId
+      const finishTool = (toolCallId: string, status: MessageToolCall['status'], patch: Partial<NonNullable<RunStep['tool']>>) => {
+        const call = toolCalls.get(toolCallId);
+        if (call) Object.assign(call, { status, label: patch.label, error: patch.error });
+        if (!isCurrent()) return;
+        setSteps((prev) => prev.map((step) =>
+          step.tool?.toolCallId === toolCallId ? { ...step, status, tool: { ...step.tool, ...patch } } : step
+        ));
       };
 
       try {
@@ -97,6 +146,22 @@ export function useAgentStream() {
               });
               handlers.onSubagentStatus?.(event);
             },
+            onToolCall: (event) => {
+              if (event.status === 'started') startTool(event.toolCallId, event.name, event.toolType, event.nodeId, pathDepth(event.path));
+              else finishTool(event.toolCallId, event.status, { error: event.error, durationMs: event.durationMs });
+              handlers.onToolCall?.(event);
+            },
+            onClientToolCall: async (event) => {
+              if (!handlers.onClientToolCall) return;
+              startTool(event.toolCallId, event.name, 'client', '', 0);
+              const startedAt = Date.now();
+              const outcome = await handlers.onClientToolCall(event);
+              finishTool(event.toolCallId, outcome.ok ? 'completed' : 'failed', {
+                label: outcome.label,
+                error: outcome.errors,
+                durationMs: Date.now() - startedAt,
+              });
+            },
             onDone: (event) => {
               result.response = event.response;
               result.cancelled = event.cancelled;
@@ -116,6 +181,8 @@ export function useAgentStream() {
           fail(err instanceof Error ? err.message : 'Failed to send message', err instanceof ApiError ? err.runId : undefined);
         }
       } finally {
+        const finished = [...toolCalls].flatMap(([id, { status, ...call }]) => (status ? [{ id, status, ...call }] : []));
+        if (finished.length) result.toolCalls = finished;
         if (isCurrent()) {
           abortRef.current = null;
           runRef.current = null;

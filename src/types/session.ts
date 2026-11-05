@@ -11,11 +11,14 @@ export interface Session {
   updatedAt: string;
 }
 
-export interface ToolCall {
-  id: string;
+// Top-level server / client tool call of an assistant turn
+export interface MessageToolCall {
+  id: string; // Same as toolCallId of the tool-call stream event
   name: string;
-  arguments: unknown;
-  result?: unknown;
+  status: 'completed' | 'failed';
+  // Set by the UI for UI tool calls of the current session, not stored
+  label?: string;
+  error?: string | string[];
 }
 
 export interface Message {
@@ -24,7 +27,7 @@ export interface Message {
   role: 'user' | 'assistant' | 'system' | 'tool';
   content: string;
   files?: string[]; // Array of file references: "inner:<fileId>:<fieldName>"
-  toolCalls?: ToolCall[] | null;
+  toolCalls?: MessageToolCall[] | null;
   createdAt: string;
 }
 

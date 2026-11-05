@@ -1,36 +1,19 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { ActionIcon, Alert, Box, Center, Group, Loader, ScrollArea, Stack, Text, Tooltip } from '@mantine/core';
-import { IconAlertTriangle, IconCheck, IconCode, IconMessagePlus } from '@tabler/icons-react';
+import { memo, useCallback, useEffect, useRef } from 'react';
+import { ActionIcon, Center, Group, Loader, ScrollArea, Stack, Text, Tooltip } from '@mantine/core';
+import { useLocalStorage } from '@mantine/hooks';
+import { IconCode, IconMessagePlus } from '@tabler/icons-react';
 import { AssistantInput } from './AssistantInput';
 import { MessageBubble } from '../../../../pages/Chat/ChatMessages/MessageBubble';
 import { useAgentModal } from '../../../AgentCreateModal';
 import { useRunDetailsModal } from '../../../RunDetailsModal';
 import { useAssistantChat, type AssistantMessage } from './useAssistantChat';
 import { AssistantAgentSelect } from './AssistantAgentSelect';
-import { RunStatus } from '../../../AgentStream';
+import { RunStatus, RunErrorAlert } from '../../../AgentStream';
 import type { AssistantEditor } from './assistantTools';
 
 export type { AssistantEditor } from './assistantTools';
 
 const ASSISTANT_AGENT_STORAGE_KEY = 'agent-editor-assistant-agent';
-
-// Last picked builder agent
-function readAssistantAgentId(): string | null {
-  try {
-    return localStorage.getItem(ASSISTANT_AGENT_STORAGE_KEY);
-  } catch {
-    return null;
-  }
-}
-
-function writeAssistantAgentId(agentId: string | null) {
-  try {
-    if (agentId) localStorage.setItem(ASSISTANT_AGENT_STORAGE_KEY, agentId);
-    else localStorage.removeItem(ASSISTANT_AGENT_STORAGE_KEY);
-  } catch {
-    // Storage unavailable - choice just won't survive reload
-  }
-}
 
 interface AssistantTabProps {
   // Edited agent id, 'new' for an unsaved agent
@@ -42,31 +25,11 @@ interface AssistantTabProps {
 const noop = () => {};
 
 // Memoized: messages are immutable, a new message must not re-render (re-parse markdown of) older ones
+// Same bubble as the Chat page (copy, timestamp, run details, file previews, tool calls)
 const MessageItem = memo(function MessageItem({ message, onViewRun }: { message: AssistantMessage; onViewRun: (runId: string) => void }) {
-  if (message.role === 'tool') {
-    return (
-      <Box px="md" py={4}>
-        <Group gap={6} wrap="nowrap">
-          {message.ok
-            ? <IconCheck size={14} color="var(--mantine-color-green-5)" />
-            : <IconAlertTriangle size={14} color="var(--mantine-color-orange-5)" />}
-          <Text size="xs" c="dimmed" truncate>
-            {message.content}
-          </Text>
-        </Group>
-        {message.errors?.map((err) => (
-          <Text key={err} size="xs" c="orange" pl={20}>
-            {err}
-          </Text>
-        ))}
-      </Box>
-    );
-  }
-
-  // Same bubble as the Chat page (copy, timestamp, run details, file previews)
   return (
     <MessageBubble
-      message={{ ...message, role: message.role }}
+      message={message}
       isFirst={false}
       showRetry={false}
       onRetry={noop}
@@ -76,20 +39,23 @@ const MessageItem = memo(function MessageItem({ message, onViewRun }: { message:
 });
 
 export function AssistantTab({ agentKey, editor, onSendingChange }: AssistantTabProps) {
-  const [assistantAgentId, setAssistantAgentId] = useState(readAssistantAgentId);
+  // Last picked builder agent, stored as a plain id
+  const [assistantAgentId, setAssistantAgentId] = useLocalStorage<string | null>({
+    key: ASSISTANT_AGENT_STORAGE_KEY,
+    defaultValue: null,
+    getInitialValueInEffect: false,
+    serialize: (value) => value ?? '',
+    deserialize: (value) => value || null,
+  });
   const { openEditAgent } = useAgentModal();
   const { openRunDetails } = useRunDetailsModal();
   // useRunDetailsModal returns a new function on every URL change - keep a stable one for memoized messages
   const openRunDetailsRef = useRef(openRunDetails);
   openRunDetailsRef.current = openRunDetails;
   const handleViewRun = useCallback((runId: string) => openRunDetailsRef.current(runId), []);
-  const { messages, loadingHistory, sending, statusText, runId, steps, error, clearError, send, cancel, newChat } =
+  const { messages, loadingHistory, sending, statusText, runId, steps, error, errorRunId, clearError, send, cancel, newChat } =
     useAssistantChat(assistantAgentId ?? undefined, agentKey, editor);
 
-  const handleAssistantAgentChange = (agentId: string | null) => {
-    setAssistantAgentId(agentId);
-    writeAssistantAgentId(agentId);
-  };
   const viewportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -99,12 +65,12 @@ export function AssistantTab({ agentKey, editor, onSendingChange }: AssistantTab
   // Keep the latest message in view
   useEffect(() => {
     viewportRef.current?.scrollTo({ top: viewportRef.current.scrollHeight, behavior: 'smooth' });
-  }, [messages, statusText]);
+  }, [messages, statusText, steps]);
 
   return (
     <Stack gap={0} style={{ flex: 1, minHeight: 0 }}>
       <Group gap={6} px="xs" py={6} wrap="nowrap">
-        <AssistantAgentSelect value={assistantAgentId} onChange={handleAssistantAgentChange} disabled={sending} />
+        <AssistantAgentSelect value={assistantAgentId} onChange={setAssistantAgentId} disabled={sending} />
         <Tooltip label="JSON editor">
           <ActionIcon
             size="sm"
@@ -143,13 +109,9 @@ export function AssistantTab({ agentKey, editor, onSendingChange }: AssistantTab
           </Stack>
         )}
 
-        {sending && <RunStatus statusText={statusText} runId={runId} steps={steps} />}
+        {sending && <RunStatus statusText={statusText} runId={runId} steps={steps} mx="md" mb="xs" />}
 
-        {error && (
-          <Alert color="red" variant="light" p="xs" mb="xs" withCloseButton onClose={clearError}>
-            <Text size="xs">{error}</Text>
-          </Alert>
-        )}
+        {error && <RunErrorAlert error={error} runId={errorRunId} onClose={clearError} variant="light" size="xs" mb="xs" />}
       </ScrollArea>
 
       <AssistantInput disabled={!assistantAgentId} sending={sending} onSend={send} onCancel={cancel} />

@@ -1,10 +1,10 @@
 import { useRef, useEffect, type ElementRef } from 'react';
-import { Box, Text, Stack, Loader, Alert, Center, Button, Group } from '@mantine/core';
+import { Box, Text, Stack, Loader, Center } from '@mantine/core';
 import { Virtuoso } from 'react-virtuoso';
-import { IconAlertCircle, IconGhost, IconRefresh, IconListDetails } from '@tabler/icons-react';
+import { IconGhost } from '@tabler/icons-react';
 import type { ChatMessagesProps } from '../types';
 import { MessageBubble } from './MessageBubble';
-import { RunStatus } from '../../../components/AgentStream';
+import { RunStatus, RunErrorAlert } from '../../../components/AgentStream';
 
 export function ChatMessages({
   currentRunId,
@@ -24,6 +24,7 @@ export function ChatMessages({
   onViewRun,
   onRepeat,
   statusText,
+  steps,
   inputHeight = 100,
 }: ChatMessagesProps) {
   const virtuosoRef = useRef<ElementRef<typeof Virtuoso>>(null);
@@ -83,46 +84,14 @@ export function ChatMessages({
   return (
     <Box style={{ height: '100%', position: 'relative' }}>
       {error && (
-        <Alert
-          icon={<IconAlertCircle size={16} />}
-          color="red"
-          mb="md"
-          withCloseButton
+        <RunErrorAlert
+          error={error}
+          runId={errorRunId}
+          onRetry={onRetry}
           onClose={onClearError}
-          style={{
-            position: 'absolute',
-            top: 80,
-            left: 16,
-            right: 16,
-            zIndex: 5,
-          }}
-        >
-          <Group justify="space-between" align="center">
-            <Text size="sm">{error}</Text>
-            <Group gap="xs">
-              {errorRunId && (
-                <Button
-                  size="xs"
-                  variant="light"
-                  color="red"
-                  leftSection={<IconListDetails size={14} />}
-                  onClick={() => onViewRun(errorRunId)}
-                >
-                  Run Details
-                </Button>
-              )}
-              <Button
-                size="xs"
-                variant="light"
-                color="red"
-                leftSection={<IconRefresh size={14} />}
-                onClick={onRetry}
-              >
-                Retry
-              </Button>
-            </Group>
-          </Group>
-        </Alert>
+          mb="md"
+          style={{ position: 'absolute', top: 80, left: 16, right: 16, zIndex: 5 }}
+        />
       )}
 
       <Virtuoso
@@ -162,7 +131,7 @@ export function ChatMessages({
             ) : null,
           Footer: () => (
               <>
-                {sending && <RunStatus variant="bubble" statusText={statusText} runId={currentRunId} />}
+                {sending && <RunStatus statusText={statusText} runId={currentRunId} steps={steps} ms="xs" mx="sm" mb="xs" />}
                 <Box style={{ height: inputHeight + 32 }} />
               </>
             ),

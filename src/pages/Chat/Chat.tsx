@@ -117,6 +117,7 @@ export function ChatPage() {
           hasMore={vm.hasMoreMessages}
           loadingMore={vm.loadingMoreMessages}
           statusText={vm.statusText}
+          steps={vm.steps}
           inputHeight={vm.inputHeight}
           onClearError={vm.clearError}
           onRetry={vm.retry}

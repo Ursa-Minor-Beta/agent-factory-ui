@@ -2,6 +2,7 @@ import { Box, Paper, ActionIcon, Tooltip, Group, CopyButton, Text } from '@manti
 import { IconCopy, IconCheck, IconListDetails, IconRepeat } from '@tabler/icons-react';
 import type { ChatMessage } from '../types';
 import { MessageContent } from './MessageContent';
+import { MessageToolCalls } from '../../../components/AgentStream';
 
 function formatMessageDate(dateString: string): string {
   const date = new Date(dateString);
@@ -56,6 +57,7 @@ export function MessageBubble({ message, isFirst, showRetry, onViewRun, onRepeat
               : 'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5))',
         }}
       >
+        {message.toolCalls && <MessageToolCalls toolCalls={message.toolCalls} />}
         <MessageContent
           content={message.content}
           attachments={message.attachments}

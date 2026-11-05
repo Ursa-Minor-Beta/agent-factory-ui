@@ -63,7 +63,7 @@ export function useStreamViewModel(
       if (!agentId || sending) return;
       lastInputRef.current = input;
 
-      await start(
+      const result = await start(
         agentId,
         {
           input,
@@ -72,23 +72,23 @@ export function useStreamViewModel(
         },
         {
           onInit: (data) => callbacks.onInit?.(data),
-          onDone: (data) => {
-            if (data.cancelled) return;
-
-            const { text, fileRefs } = parseMessageContent(data.response);
-            const assistantMessage: ChatMessage = {
-              id: `response-${Date.now()}`,
-              role: 'assistant',
-              content: text,
-              fileRefs: fileRefs.length > 0 ? fileRefs : undefined,
-              createdAt: new Date().toISOString(),
-              runId: data.runId,
-            };
-
-            callbacks.onMessage?.(assistantMessage);
-          },
         }
       );
+      // Built once the stream ends - tool calls of the answer are known by then
+      if (result.response === undefined || result.cancelled) return;
+
+      const { text, fileRefs } = parseMessageContent(result.response);
+      const assistantMessage: ChatMessage = {
+        id: `response-${Date.now()}`,
+        role: 'assistant',
+        content: text,
+        fileRefs: fileRefs.length > 0 ? fileRefs : undefined,
+        toolCalls: result.toolCalls,
+        createdAt: new Date().toISOString(),
+        runId: result.runId,
+      };
+
+      callbacks.onMessage?.(assistantMessage);
     },
     [agentId, sessionId, incognito, sending, start, callbacks]
   );

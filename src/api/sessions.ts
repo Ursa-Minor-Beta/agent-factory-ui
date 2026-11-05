@@ -22,6 +22,19 @@ export interface ChatSubagentStatusEvent extends ChatStatusEvent {
   nodeType?: string;
 }
 
+// Server-side tool called by an LLM node (builtin or agent tool) - 'started', then 'completed' / 'failed' with the same toolCallId.
+// 'failed' = the tool returned an error to the LLM, the run usually goes on
+export interface ChatToolCallEvent {
+  toolCallId: string;
+  name: string;
+  toolType: 'builtin' | 'agent';
+  nodeId: string;
+  path: string; // Same format as ChatSubagentStatusEvent.path
+  status: 'started' | 'completed' | 'failed';
+  error?: string; // 'failed' only
+  durationMs?: number; // 'completed' / 'failed' only
+}
+
 export interface ChatDoneEvent {
   response: string;
   files?: string[];
@@ -58,6 +71,7 @@ export interface ChatStreamCallbacks {
   onStatus?: (data: ChatStatusEvent) => void;
   onSubagentStatus?: (data: ChatSubagentStatusEvent) => void;
   onClientToolCall?: (data: ChatClientToolCallEvent) => void;
+  onToolCall?: (data: ChatToolCallEvent) => void;
   onDone?: (data: ChatDoneEvent) => void;
   onError?: (data: ChatErrorEvent) => void;
 }
@@ -194,6 +208,9 @@ export const sessionsApi = {
                   break;
                 case 'subagent-status':
                   callbacks.onSubagentStatus?.(eventData as ChatSubagentStatusEvent);
+                  break;
+                case 'tool-call':
+                  callbacks.onToolCall?.(eventData as ChatToolCallEvent);
                   break;
                 case 'client-tool-call':
                   callbacks.onClientToolCall?.(eventData as ChatClientToolCallEvent);

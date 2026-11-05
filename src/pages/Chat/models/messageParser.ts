@@ -1,4 +1,5 @@
 import type { ChatMessage, FileRef } from '../types';
+import type { MessageToolCall } from '../../../types';
 import { extractFileRefsFromString, parseFileReferences } from './fileRefs';
 import { extractNodeOutput, formatContentWithFileRefs } from './formatting';
 
@@ -53,6 +54,7 @@ export interface ApiMessage {
   content: string;
   files?: string[];
   runId?: string;
+  toolCalls?: MessageToolCall[] | null;
   createdAt: string;
 }
 
@@ -86,6 +88,7 @@ export function mapApiMessageToChatMessage(m: ApiMessage): ChatMessage {
     content: text,
     rawInput,
     fileRefs: allFileRefs.length > 0 ? allFileRefs : undefined,
+    toolCalls: m.toolCalls?.length ? m.toolCalls : undefined,
     createdAt: m.createdAt,
   };
 }

@@ -1,13 +1,16 @@
 import { useState, useCallback, useRef, useEffect, type RefObject } from 'react';
-import { Box, Button, TextInput, Textarea, Stack, Text, Alert, ScrollArea, Group, ActionIcon, Card, Switch, Slider, Collapse } from '@mantine/core';
-import { IconPlayerPlay, IconPlayerStop, IconAlertCircle, IconListDetails, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
+import { Box, Button, Stack, Text, ScrollArea, Group, ActionIcon, Card, Switch, Slider, Collapse } from '@mantine/core';
+import { useLocalStorage } from '@mantine/hooks';
+import { IconPlayerPlay, IconPlayerStop, IconListDetails, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 import type { ChatStatusEvent } from '../../../api/sessions';
 import type { Agent, InputSchema, NodeStatus } from '../../../types';
 import { getInputSchema } from '../../../pages/Chat/types';
+import { AgentInputField } from '../../../pages/Chat/AgentInputField';
+import { buildAgentInput, hasMissingRequired } from '../../../pages/Chat/models/agentInput';
 import { useRunDetailsModal } from '../../RunDetailsModal';
 import { MessageContent } from '../../../pages/Chat/ChatMessages';
 import { useChatFavicon } from '../../../pages/Chat/useChatFavicon';
-import { useAgentStream, RunStatus, RunSteps } from '../../AgentStream';
+import { useAgentStream, RunStatus, RunSteps, RunErrorAlert } from '../../AgentStream';
 import type { AgentStreamResult } from '../../AgentStream/useAgentStream';
 
 interface RunTabProps {
@@ -56,38 +59,24 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
       setInputs({});
     }
   }, [inputsStorageKey]);
-  const [inputsOpen, setInputsOpen] = useState(() => localStorage.getItem(INPUTS_OPEN_STORAGE_KEY) !== 'false');
+  const [inputsOpen, setInputsOpen] = useLocalStorage({ key: INPUTS_OPEN_STORAGE_KEY, defaultValue: true, getInitialValueInEffect: false });
+  const toggleInputsOpen = () => setInputsOpen((prev) => !prev);
 
-  const toggleInputsOpen = useCallback(() => {
-    setInputsOpen((prev) => {
-      localStorage.setItem(INPUTS_OPEN_STORAGE_KEY, String(!prev));
-      return !prev;
-    });
-  }, []);
-
-  const [animate, setAnimate] = useState(() => localStorage.getItem(ANIMATE_STORAGE_KEY) === 'true');
+  const [animate, setAnimate] = useLocalStorage({ key: ANIMATE_STORAGE_KEY, defaultValue: false, getInitialValueInEffect: false });
   // Ref so stream callbacks of an ongoing run see toggle changes
   const animateRef = useRef(animate);
+  animateRef.current = animate;
 
-  const handleAnimateChange = useCallback((value: boolean) => {
+  const handleAnimateChange = (value: boolean) => {
     setAnimate(value);
-    animateRef.current = value;
-    localStorage.setItem(ANIMATE_STORAGE_KEY, String(value));
     if (!value) onRunClear?.();
-  }, [onRunClear]);
+  };
 
-  const [runningMs, setRunningMs] = useState(() => {
-    const saved = Number(localStorage.getItem(SPEED_STORAGE_KEY));
-    return saved >= MIN_RUNNING_MS && saved <= MAX_RUNNING_MS ? saved : DEFAULT_RUNNING_MS;
-  });
+  const [storedRunningMs, setRunningMs] = useLocalStorage({ key: SPEED_STORAGE_KEY, defaultValue: DEFAULT_RUNNING_MS, getInitialValueInEffect: false });
+  const runningMs = storedRunningMs >= MIN_RUNNING_MS && storedRunningMs <= MAX_RUNNING_MS ? storedRunningMs : DEFAULT_RUNNING_MS;
   // Ref so speed changes apply to an ongoing run
   const runningMsRef = useRef(runningMs);
-
-  const handleRunningMsChange = useCallback((value: number) => {
-    setRunningMs(value);
-    runningMsRef.current = value;
-    localStorage.setItem(SPEED_STORAGE_KEY, String(value));
-  }, []);
+  runningMsRef.current = runningMs;
   const stream = useAgentStream();
   const { running, start: startStream, cancel: handleStop } = stream;
   useChatFavicon(running);
@@ -128,20 +117,7 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
       if (inputsStorageKey) localStorage.setItem(inputsStorageKey, JSON.stringify(formValues));
     }
 
-    // Build input object from form values (skip empty values)
-    const input: Record<string, unknown> = inputOverride ?? {};
-    if (!inputOverride) for (const [key, schema] of Object.entries(inputSchema)) {
-      const value = inputs[key];
-      if (!value) continue; // Skip empty values
-
-      if (schema.type === 'number') {
-        input[key] = Number(value);
-      } else if (schema.type === 'boolean') {
-        input[key] = value === 'true';
-      } else {
-        input[key] = value;
-      }
-    }
+    const input = inputOverride ?? buildAgentInput(inputSchema, inputs);
 
     const result = await startStream(
       agent.id,
@@ -191,9 +167,7 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
   // Toolbar Run: run if every required input has a value (or default), otherwise ask to show this tab
   const handleRunRef = useRef(handleRun);
   handleRunRef.current = handleRun;
-  const missingRequired = inputFields.some(
-    ([key, schema]) => schema.required && !inputs[key] && schema.default === undefined
-  );
+  const missingRequired = hasMissingRequired(inputSchema, inputs);
   const missingRequiredRef = useRef(missingRequired);
   missingRequiredRef.current = missingRequired;
   useEffect(() => {
@@ -235,40 +209,19 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
               {!inputsOpen && <Text size="xs" c="dimmed">({inputFields.length})</Text>}
             </Group>
             <Collapse expanded={inputsOpen}>
-            {inputFields.map(([key, schema]) => {
-              const label = key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim();
-              const placeholder = schema.default ? `Default: ${schema.default}` : '';
-
-              // Use Textarea for string types, TextInput for others
-              if (schema.type === 'string') {
-                return (
-                  <Textarea
-                    key={key}
-                    label={label}
-                    placeholder={placeholder}
-                    value={inputs[key] || ''}
-                    onChange={(e) => handleInputChange(key, e.target.value)}
-                    minRows={2}
-                    maxRows={12}
-                    autosize
-                    size="xs"
-                    mb="xs"
-                  />
-                );
-              }
-
-              return (
-                <TextInput
-                  key={key}
-                  label={label}
-                  placeholder={placeholder}
-                  value={inputs[key] || ''}
-                  onChange={(e) => handleInputChange(key, e.target.value)}
-                  size="xs"
-                  mb="xs"
-                />
-              );
-            })}
+            {inputFields.map(([key, schema]) => (
+              <AgentInputField
+                key={key}
+                fieldKey={key}
+                schema={schema}
+                value={inputs[key] || ''}
+                onChange={handleInputChange}
+                minRows={schema.type === 'string' ? 2 : 1}
+                maxRows={12}
+                size="xs"
+                mb="xs"
+              />
+            ))}
             </Collapse>
           </>
         ) : (
@@ -298,7 +251,7 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
               max={MAX_RUNNING_MS}
               step={50}
               value={MIN_RUNNING_MS + MAX_RUNNING_MS - runningMs}
-              onChange={(value) => handleRunningMsChange(MIN_RUNNING_MS + MAX_RUNNING_MS - value)}
+              onChange={(value) => setRunningMs(MIN_RUNNING_MS + MAX_RUNNING_MS - value)}
               label={(value) => `${MIN_RUNNING_MS + MAX_RUNNING_MS - value} ms / node`}
             />
             <Text size="xs" c="dimmed">Fast</Text>
@@ -352,14 +305,10 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
               {!animate && <RunSteps steps={stream.steps} />}
 
               {/* Loading indicator */}
-              {running && <RunStatus statusText={stream.statusText} />}
+              {running && <RunStatus statusText={stream.statusText} mb="xs" />}
 
               {/* Error */}
-              {stream.error && (
-                <Alert icon={<IconAlertCircle size={14} />} color="red" fz="xs" mb="xs">
-                  {stream.error}
-                </Alert>
-              )}
+              {stream.error && <RunErrorAlert error={stream.error} size="xs" mb="xs" />}
 
               {/* Response - MessageContent handles parsing and display */}
               {response && (

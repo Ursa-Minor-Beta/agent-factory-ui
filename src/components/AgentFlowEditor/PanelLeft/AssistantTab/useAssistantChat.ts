@@ -8,12 +8,9 @@ import { ASSISTANT_CLIENT_TOOLS, executeAssistantTool, nodesForAssistant, type A
 const SESSION_STORAGE_PREFIX = 'agent-editor-assistant-session:';
 const HISTORY_LIMIT = 50;
 
-// User / assistant messages are rendered by the Chat page's MessageBubble
+// Rendered by the Chat page's MessageBubble; UI tool calls are part of the answer's toolCalls
 export interface AssistantMessage extends Omit<ChatMessage, 'role'> {
-  role: 'user' | 'assistant' | 'tool';
-  // Tool messages: validation outcome reported back to the assistant
-  ok?: boolean;
-  errors?: string[];
+  role: 'user' | 'assistant';
 }
 
 // Unsaved agent ('new') keeps its session in memory only - a stored one would leak into the next new agent
@@ -143,7 +140,7 @@ export function useAssistantChat(assistantAgentId: string | undefined, agentKey:
       addMessage({ id: nextId('user'), role: 'user', content: message, createdAt: new Date().toISOString() });
 
       // Stream drop cancels the run (client tools attached) - useAgentStream aborts it on unmount
-      await start(
+      const result = await start(
         assistantAgentId,
         {
           input: { message, nodes: nodesForAssistant(editorRef.current.getNodes()) },
@@ -164,14 +161,6 @@ export function useAssistantChat(assistantAgentId: string | undefined, agentKey:
               execution = { summary: data.name, result: { ok: false, errors: [String(err)] } };
             }
             const { summary, result } = execution;
-            addMessage({
-              id: nextId('tool'),
-              role: 'tool',
-              content: summary,
-              createdAt: new Date().toISOString(),
-              ok: result.ok,
-              errors: result.errors,
-            });
             try {
               await runsApi.submitToolResult(data.runId, data.toolCallId, result);
             } catch (err) {
@@ -180,22 +169,24 @@ export function useAssistantChat(assistantAgentId: string | undefined, agentKey:
                 console.error('Failed to submit tool result:', err);
               }
             }
-          },
-          onDone: (data) => {
-            if (data.cancelled) return;
-            const { text: content, fileRefs } = parseMessageContent(data.response);
-            if (!content) return;
-            addMessage({
-              id: nextId('assistant'),
-              role: 'assistant',
-              content,
-              fileRefs: fileRefs.length ? fileRefs : undefined,
-              createdAt: new Date().toISOString(),
-              runId: data.runId,
-            });
+            // Shown as a tool step, then in the answer's tool calls
+            return { ok: result.ok, label: summary, errors: result.errors };
           },
         }
       );
+      // Built once the stream ends - tool calls of the answer are known by then
+      if (result.response === undefined || result.cancelled) return;
+      const { text: content, fileRefs } = parseMessageContent(result.response);
+      if (!content) return;
+      addMessage({
+        id: nextId('assistant'),
+        role: 'assistant',
+        content,
+        fileRefs: fileRefs.length ? fileRefs : undefined,
+        toolCalls: result.toolCalls,
+        createdAt: new Date().toISOString(),
+        runId: result.runId,
+      });
     },
     [assistantAgentId, sending, sessionId, addMessage, start]
   );
@@ -216,6 +207,7 @@ export function useAssistantChat(assistantAgentId: string | undefined, agentKey:
     runId: stream.runId,
     steps: stream.steps,
     error: stream.error,
+    errorRunId: stream.errorRunId,
     clearError,
     send,
     cancel,

@@ -1,4 +1,5 @@
-import type { Agent, Session, InputSchema } from '../../types';
+import type { Agent, Session, InputSchema, MessageToolCall } from '../../types';
+import type { RunStep } from '../../components/AgentStream';
 
 export interface MessageAttachment {
   name: string;
@@ -24,6 +25,7 @@ export interface ChatMessage {
   createdAt: string;
   runId?: string;
   rawInput?: Record<string, unknown>; // Original input for user messages (for repeat)
+  toolCalls?: MessageToolCall[]; // Assistant messages: top-level tools used for the answer
 }
 
 export interface QueuedMessage {
@@ -79,6 +81,7 @@ export interface ChatMessagesProps {
   onViewRun: (runId: string) => void;
   onRepeat: (input: Record<string, unknown>) => void;
   statusText?: string;
+  steps?: RunStep[];
   inputHeight?: number;
 }
 

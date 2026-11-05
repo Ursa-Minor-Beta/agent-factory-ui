@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Box, Card, Stack, Group, Textarea, ActionIcon, Button, useMantineColorScheme, Tooltip } from '@mantine/core';
-import { useDebouncedCallback } from '@mantine/hooks';
+import { Box, Card, Stack, Group, ActionIcon, Button, useMantineColorScheme, Tooltip } from '@mantine/core';
+import { useDebouncedCallback, useLocalStorage } from '@mantine/hooks';
 import { IconSend, IconChevronDown, IconPlayerPlay, IconPlayerStop, IconChevronUp } from '@tabler/icons-react';
 import type { ChatInputProps } from './types';
+import { AgentInputField } from './AgentInputField';
+import { buildAgentInput, hasMissingRequired, isRequiredField } from './models/agentInput';
 
 const LS_OPTIONAL_FIELDS_KEY = 'chat-optional-fields-open';
 const DRAFT_DEBOUNCE_MS = 3000;
@@ -29,8 +31,8 @@ export function ChatInput({ onSend, sending, inputSchema, draftKey, isMobile, on
   const fields = useMemo(() => Object.entries(inputSchema), [inputSchema]);
   const fieldKeys = useMemo(() => new Set(fields.map(([k]) => k)), [fields]);
   // Field is truly required only if required=true AND no default value
-  const requiredFields = useMemo(() => fields.filter(([, schema]) => schema.required && schema.default === undefined), [fields]);
-  const optionalFields = useMemo(() => fields.filter(([, schema]) => !schema.required || schema.default !== undefined), [fields]);
+  const requiredFields = useMemo(() => fields.filter(([, schema]) => isRequiredField(schema)), [fields]);
+  const optionalFields = useMemo(() => fields.filter(([, schema]) => !isRequiredField(schema)), [fields]);
   const hasNoInputs = fields.length === 0;
 
   const isSingleField = fields.length === 1;
@@ -38,23 +40,12 @@ export function ChatInput({ onSend, sending, inputSchema, draftKey, isMobile, on
 
   // Track values for each field
   const [values, setValues] = useState<Record<string, string>>({});
-  const [optionalOpen, setOptionalOpen] = useState(() => {
-    try {
-      return localStorage.getItem(LS_OPTIONAL_FIELDS_KEY) === 'true';
-    } catch {
-      return false;
-    }
+  const [optionalOpen, setOptionalOpen] = useLocalStorage({
+    key: LS_OPTIONAL_FIELDS_KEY,
+    defaultValue: false,
+    getInitialValueInEffect: false,
   });
-
-  const toggleOptionalOpen = () => {
-    setOptionalOpen((prev) => {
-      const next = !prev;
-      localStorage.setItem(LS_OPTIONAL_FIELDS_KEY, String(next));
-      return next;
-    });
-  };
-
-  const inputRefs = useRef<Record<string, HTMLInputElement | HTMLTextAreaElement | null>>({});
+  const toggleOptionalOpen = () => setOptionalOpen((prev) => !prev);
 
   // Debounced save to localStorage
   const saveDraft = useDebouncedCallback((draft: Record<string, string>) => {
@@ -116,73 +107,29 @@ export function ChatInput({ onSend, sending, inputSchema, draftKey, isMobile, on
   };
 
   const handleSend = () => {
-    const input: Record<string, unknown> = {};
-    let hasAllRequired = true;
-
-    for (const [key, schema] of fields) {
-      // const value = values[key]?.trim() || '';
-      const value = values[key] || '';
-      // Field is truly required only if required=true AND no default
-      const isTrulyRequired = schema.required && schema.default === undefined;
-      if (isTrulyRequired && !value) {
-        hasAllRequired = false;
-        break;
-      }
-      if (value) {
-        if (schema.type === 'number') {
-          input[key] = Number(value);
-        } else if (schema.type === 'boolean') {
-          input[key] = value.toLowerCase() === 'true';
-        } else {
-          input[key] = value;
-        }
-      }
-    }
-
-    if (!hasAllRequired) {
-      console.warn('Cannot send:', { hasAllRequired });
-      return;
-    }
-
-    onSend(input);
+    if (hasMissingRequired(inputSchema, values)) return;
+    onSend(buildAgentInput(inputSchema, values));
     setValues({});
     clearDraft();
-    Object.values(inputRefs.current).forEach((ref) => {
-      if (ref) ref.value = '';
-    });
   };
 
-  const hasRequiredContent = requiredFields.every(([key]) => !!values[key]?.trim());
+  const hasRequiredContent = !hasMissingRequired(inputSchema, values);
   const hasAnyContent = Object.values(values).some((v) => !!v.trim());
 
-  const formatLabel = (key: string) => {
-    return key
-      .replace(/_/g, ' ')
-      .replace(/([A-Z])/g, ' $1')
-      .replace(/^./, (str) => str.toUpperCase())
-      .trim();
-  };
-
-  const renderField = (key: string, schema: { type: string; required?: boolean; default?: unknown }) => {
-    const hasDefault = schema.default !== undefined;
-    const defaultStr = hasDefault ? String(schema.default) : '';
-    const truncatedDefault = defaultStr.length > 50 ? `${defaultStr.slice(0, 50)}...` : defaultStr;
-    const defaultPlaceholder = hasDefault ? `Default: ${truncatedDefault}` : undefined;
-
-    return <Textarea
-              key={key}
-              ref={(el) => { inputRefs.current[key] = el; }}
-              label={!isSingleField ? formatLabel(key) : undefined}
-              placeholder={defaultPlaceholder}
-              value={values[key] || ''}
-              onChange={(e) => handleChange(key, e.currentTarget.value)}
-              onKeyDown={handleKeyDown}
-              onBlur={flushDraft}
-              autosize
-              minRows={isSingleField ? 2 : 1}
-              maxRows={6}
-            />
-  };
+  const renderField = (key: string, schema: (typeof fields)[number][1]) => (
+    <AgentInputField
+      key={key}
+      fieldKey={key}
+      schema={schema}
+      value={values[key] || ''}
+      onChange={handleChange}
+      withLabel={!isSingleField}
+      onKeyDown={handleKeyDown}
+      onBlur={flushDraft}
+      minRows={isSingleField ? 2 : 1}
+      maxRows={6}
+    />
+  );
 
   return (
     <Box
