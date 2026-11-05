@@ -7,6 +7,7 @@ export interface Workspace {
   updatedAt: string;
   agentCount?: number;
   secretCount?: number;
+  variableCount?: number;
   providerCount?: number;
   collectionCount?: number;
 }

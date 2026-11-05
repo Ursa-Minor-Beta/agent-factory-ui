@@ -17,12 +17,14 @@ import { githubApi } from '../../api/github';
 import { workspacesApi } from '../../api/workspaces';
 import { providersApi } from '../../api/providers';
 import { secretsApi } from '../../api/secrets';
+import { variablesApi } from '../../api/variables';
 import { memoryApi } from '../../api/memory';
 import type { Workspace } from '../../types/workspace';
 import type { ProviderConfig } from '../../types/provider';
 import type { GitHubImportResponse, ImportCollectionSchema } from '../../types';
 import { ImportSuccessView } from './ModalAgentImport/ImportSuccessView';
 import { SecretModal } from '../Secrets/SecretModal';
+import { VariableModal } from '../Variables/VariableModal';
 import { ProviderModal } from '../Providers/ProviderModal';
 import { CollectionModal } from '../Collections/CollectionModal';
 import { routes } from '../../config/routes';
@@ -89,6 +91,8 @@ export function ModalGitHubImport({
   // Create modals state
   const [secretModalOpen, setSecretModalOpen] = useState(false);
   const [secretDefaultName, setSecretDefaultName] = useState('');
+  const [variableModalOpen, setVariableModalOpen] = useState(false);
+  const [variableDefaultName, setVariableDefaultName] = useState('');
   const [providerModalOpen, setProviderModalOpen] = useState(false);
   const [providerDefaultName, setProviderDefaultName] = useState('');
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
@@ -97,11 +101,13 @@ export function ModalGitHubImport({
 
   // Track created items
   const [createdSecrets, setCreatedSecrets] = useState<Set<string>>(new Set());
+  const [createdVariables, setCreatedVariables] = useState<Set<string>>(new Set());
   const [createdProviders, setCreatedProviders] = useState<Set<string>>(new Set());
   const [createdCollections, setCreatedCollections] = useState<Set<string>>(new Set());
 
   // Track global items (fetched after import)
   const [globalSecrets, setGlobalSecrets] = useState<Set<string>>(new Set());
+  const [globalVariables, setGlobalVariables] = useState<Set<string>>(new Set());
   const [globalProviders, setGlobalProviders] = useState<Set<string>>(new Set());
   const [globalCollections, setGlobalCollections] = useState<Set<string>>(new Set());
 
@@ -134,9 +140,11 @@ export function ModalGitHubImport({
     setResult(null);
     setSelectedWorkspace(workspaceId || NEW_WORKSPACE_VALUE);
     setCreatedSecrets(new Set());
+    setCreatedVariables(new Set());
     setCreatedProviders(new Set());
     setCreatedCollections(new Set());
     setGlobalSecrets(new Set());
+    setGlobalVariables(new Set());
     setGlobalProviders(new Set());
     setGlobalCollections(new Set());
   };
@@ -185,12 +193,14 @@ export function ModalGitHubImport({
       setResult(response);
 
       // Fetch global items to check if missing items exist globally
-      const [globals, globalProvs, globalColls] = await Promise.all([
+      const [globals, globalVars, globalProvs, globalColls] = await Promise.all([
         secretsApi.list({ workspaceId: null }),
+        variablesApi.list({ workspaceId: null }),
         providersApi.list({ workspaceId: null }),
         memoryApi.listSchemas({ workspaceId: null }),
       ]);
       setGlobalSecrets(new Set(globals.map((s) => s.name)));
+      setGlobalVariables(new Set(globalVars.map((v) => v.name)));
       setGlobalProviders(new Set(globalProvs.map((p) => p.provider)));
       setGlobalCollections(new Set(globalColls.map((c) => c.name)));
     } catch (err) {
@@ -211,6 +221,11 @@ export function ModalGitHubImport({
   const handleCreateSecret = (name: string) => {
     setSecretDefaultName(name);
     setSecretModalOpen(true);
+  };
+
+  const handleCreateVariable = (name: string) => {
+    setVariableDefaultName(name);
+    setVariableModalOpen(true);
   };
 
   const handleCreateProvider = (name: string) => {
@@ -249,12 +264,15 @@ export function ModalGitHubImport({
             onClose={handleClose}
             onNavigateToWorkspace={handleNavigateToWorkspace}
             onCreateSecret={handleCreateSecret}
+            onCreateVariable={handleCreateVariable}
             onCreateProvider={handleCreateProvider}
             onCreateCollection={handleCreateCollection}
             createdSecrets={createdSecrets}
+            createdVariables={createdVariables}
             createdProviders={createdProviders}
             createdCollections={createdCollections}
             globalSecrets={globalSecrets}
+            globalVariables={globalVariables}
             globalProviders={globalProviders}
             globalCollections={globalCollections}
           />
@@ -269,6 +287,18 @@ export function ModalGitHubImport({
           onSuccess={() => {
             setCreatedSecrets((prev) => new Set(prev).add(secretDefaultName));
             setSecretModalOpen(false);
+          }}
+        />
+
+        <VariableModal
+          opened={variableModalOpen}
+          onClose={() => setVariableModalOpen(false)}
+          variable={null}
+          workspaceId={result.workspaceId}
+          defaultName={variableDefaultName}
+          onSuccess={() => {
+            setCreatedVariables((prev) => new Set(prev).add(variableDefaultName));
+            setVariableModalOpen(false);
           }}
         />
 

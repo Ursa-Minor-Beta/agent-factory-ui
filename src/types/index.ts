@@ -19,6 +19,9 @@ export * from './run';
 // Secret types
 export * from './secret';
 
+// Variable types
+export * from './variable';
+
 // API Response types
 export * from './api';
 

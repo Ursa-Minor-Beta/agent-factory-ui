@@ -1,5 +1,5 @@
 import { Text, Group, Button, Stack, Card, Badge } from '@mantine/core';
-import { IconCircleCheck, IconCircleDashed, IconKey, IconCloud, IconDatabase, IconPlus, IconCircleHalf2, IconRobot } from '@tabler/icons-react';
+import { IconCircleCheck, IconCircleDashed, IconKey, IconVariable, IconCloud, IconDatabase, IconPlus, IconCircleHalf2, IconRobot } from '@tabler/icons-react';
 import type { AgentImportResponse } from '../../../types';
 import type { GitHubImportResponse } from '../../../types/github';
 
@@ -85,12 +85,15 @@ interface ImportSuccessViewProps {
   onClose: () => void;
   onNavigateToWorkspace: () => void;
   onCreateSecret?: (name: string) => void;
+  onCreateVariable?: (name: string) => void;
   onCreateProvider?: (name: string) => void;
   onCreateCollection?: (name: string) => void;
   createdSecrets: Set<string>;
+  createdVariables: Set<string>;
   createdProviders: Set<string>;
   createdCollections: Set<string>;
   globalSecrets: Set<string>;
+  globalVariables: Set<string>;
   globalProviders: Set<string>;
   globalCollections: Set<string>;
 }
@@ -100,12 +103,15 @@ export function ImportSuccessView({
   onClose,
   onNavigateToWorkspace,
   onCreateSecret,
+  onCreateVariable,
   onCreateProvider,
   onCreateCollection,
   createdSecrets,
+  createdVariables,
   createdProviders,
   createdCollections,
   globalSecrets,
+  globalVariables,
   globalProviders,
   globalCollections,
 }: ImportSuccessViewProps) {
@@ -114,6 +120,7 @@ export function ImportSuccessView({
 
   const hasWarnings =
     (result.warnings.missingSecrets?.length ?? 0) > 0 ||
+    (result.warnings.missingVariables?.length ?? 0) > 0 ||
     (result.warnings.missingProviders?.length ?? 0) > 0 ||
     collectionsToCreate.length > 0;
 
@@ -148,6 +155,14 @@ export function ImportSuccessView({
             createdItems={createdSecrets}
             globalItems={globalSecrets}
             onCreate={onCreateSecret}
+          />
+          <ConfigSection
+            title="Variables"
+            icon={<IconVariable size={16} color="var(--mantine-color-dimmed)" />}
+            items={result.warnings.missingVariables ?? []}
+            createdItems={createdVariables}
+            globalItems={globalVariables}
+            onCreate={onCreateVariable}
           />
           <ConfigSection
             title="Providers"
