@@ -55,6 +55,7 @@ export function CollectionsList({
 }: CollectionsListProps) {
   const showColumn = (col: CollectionColumn) => columns.includes(col);
   const clipboard = useClipboard({ timeout: 1500 });
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [collections, setCollections] = useState<MemorySchema[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -207,16 +208,24 @@ export function CollectionsList({
                           <Text size="sm">{collection.name}</Text>
                         </NavLink>
                       </Tooltip>
-                      <Tooltip label={clipboard.copied ? 'Copied!' : 'Copy name'}>
-                        <ActionIcon
-                          variant="subtle"
-                          size="xs"
-                          color={clipboard.copied ? 'green' : 'gray'}
-                          onClick={() => clipboard.copy(collection.name)}
-                        >
-                          {clipboard.copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
-                        </ActionIcon>
-                      </Tooltip>
+                      {(() => {
+                        const copied = clipboard.copied && copiedId === collection.id;
+                        return (
+                          <Tooltip label={copied ? 'Copied!' : 'Copy name'}>
+                            <ActionIcon
+                              variant="subtle"
+                              size="xs"
+                              color={copied ? 'green' : 'gray'}
+                              onClick={() => {
+                                setCopiedId(collection.id);
+                                clipboard.copy(collection.name);
+                              }}
+                            >
+                              {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
+                            </ActionIcon>
+                          </Tooltip>
+                        );
+                      })()}
                     </Group>
                   </Table.Td>
                 )}
