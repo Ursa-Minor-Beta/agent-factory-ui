@@ -12,6 +12,7 @@ import { workspacesApi } from '../api/workspaces';
 import { routes } from '../config/routes';
 import type { NavItem } from './types';
 import { config } from '../config';
+import { getPageTitle } from './pageTitle';
 
 // Lazy load global modals
 const RunDetailsModal = lazy(() =>
@@ -72,7 +73,7 @@ export function Layout() {
     };
 
     const pageLabel = findLabel(navItems, location.pathname);
-    document.title = pageLabel ? `${config.appName} | ${pageLabel}` : config.appName;
+    document.title = getPageTitle() ?? (pageLabel ? `${config.appName} | ${pageLabel}` : config.appName);
   }, [location.pathname, navItems]);
 
   const filterNavItems = (items: NavItem[]): NavItem[] => {

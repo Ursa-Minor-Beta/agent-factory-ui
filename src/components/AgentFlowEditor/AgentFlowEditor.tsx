@@ -12,7 +12,7 @@ import { edgeTypes } from './edges';
 import type { AgentFlowEditorProps } from './types';
 import type { NodeType } from '../../api';
 import { agentsApi } from '../../api';
-import { config } from '../../config';
+import { usePageTitle } from '../../layout/pageTitle';
 import type { ChatStatusEvent } from '../../api/sessions';
 import type { NodeStatus } from '../../types';
 import { PanelLeft } from './PanelLeft';
@@ -205,16 +205,8 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     removeNode,
   } = useAgentEditor({ agentId, workspaceId });
 
-  // Show agent name in browser tab title, restore Layout's title on leave
-  const agentName = agent?.name;
-  useEffect(() => {
-    if (!agentName) return;
-    const prevTitle = document.title;
-    document.title = `${agentName} | ${config.appName}`;
-    return () => {
-      document.title = prevTitle;
-    };
-  }, [agentName]);
+  // Show agent name in browser tab title
+  usePageTitle(agent?.name);
 
   // Apply run status classes for rendering only - stored nodes stay untouched.
   // Copies are reused while node and status are unchanged, so a status update re-renders only that node
