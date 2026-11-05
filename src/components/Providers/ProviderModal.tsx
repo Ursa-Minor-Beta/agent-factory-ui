@@ -13,8 +13,16 @@ import {
 import { IconAlertCircle } from '@tabler/icons-react';
 import { providersApi, workspacesApi } from '../../api';
 import type { Workspace } from '../../types/workspace';
-import type { ProviderType, ProviderConfig } from '../../types/provider';
-import { PROVIDER_OPTIONS } from '../../types/provider';
+import type { ProviderType, ProviderConfig, ProviderPreset, ProviderKind } from '../../types/provider';
+
+// Display names for known kinds; unknown kinds fall back to the raw value
+const KIND_LABELS: Partial<Record<ProviderKind, string>> = {
+  llm: 'LLM',
+  integration: 'Integrations',
+};
+
+// Unique kinds in the order the backend returns them
+const getKinds = (presets: ProviderPreset[]) => [...new Set(presets.map((p) => p.kind))];
 
 interface ProviderFormData {
   provider: ProviderType;
@@ -38,14 +46,17 @@ export function ProviderModal({ opened, onClose, workspaceId, onSuccess, default
   const [error, setError] = useState('');
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loadingWorkspaces, setLoadingWorkspaces] = useState(false);
+  const [presets, setPresets] = useState<ProviderPreset[]>([]);
+  const [loadingPresets, setLoadingPresets] = useState(false);
 
   const isEditMode = !!provider;
 
-  const { register, handleSubmit, control, watch, reset, formState: { errors } } = useForm<ProviderFormData>({
-    defaultValues: { provider: 'openai', name: '', apiKey: '', baseUrl: '', selectedWorkspaceId: '' },
+  const { register, handleSubmit, control, watch, reset, setValue, formState: { errors } } = useForm<ProviderFormData>({
+    defaultValues: { provider: '', name: '', apiKey: '', baseUrl: '', selectedWorkspaceId: '' },
   });
 
   const watchProvider = watch('provider');
+  const selectedPreset = presets.find((p) => p.provider === watchProvider);
 
   useEffect(() => {
     if (opened) {
@@ -59,7 +70,7 @@ export function ProviderModal({ opened, onClose, workspaceId, onSuccess, default
         });
       } else {
         reset({
-          provider: 'openai',
+          provider: '',
           name: defaultName || '',
           apiKey: '',
           baseUrl: '',
@@ -74,11 +85,27 @@ export function ProviderModal({ opened, onClose, workspaceId, onSuccess, default
         .then((response) => setWorkspaces(response.workspaces))
         .catch(() => setWorkspaces([]))
         .finally(() => setLoadingWorkspaces(false));
+
+      // Load provider presets
+      setLoadingPresets(true);
+      providersApi.getPresets()
+        .then((data) => {
+          // Sort by kind (backend order), then by label, so the list matches the grouped dropdown
+          const kinds = getKinds(data);
+          const sorted = [...data].sort((a, b) =>
+            kinds.indexOf(a.kind) - kinds.indexOf(b.kind) || a.label.localeCompare(b.label)
+          );
+          setPresets(sorted);
+          // Preselect the first option shown in the dropdown
+          if (!isEditMode && sorted[0]) setValue('provider', sorted[0].provider);
+        })
+        .catch(() => setPresets([]))
+        .finally(() => setLoadingPresets(false));
     }
-  }, [opened, workspaceId, defaultName, reset, isEditMode, provider]);
+  }, [opened, workspaceId, defaultName, reset, setValue, isEditMode, provider]);
 
   const handleClose = () => {
-    reset({ provider: 'openai', name: '', apiKey: '', baseUrl: '', selectedWorkspaceId: '' });
+    reset({ provider: '', name: '', apiKey: '', baseUrl: '', selectedWorkspaceId: '' });
     setError('');
     onClose();
   };
@@ -134,8 +161,14 @@ export function ProviderModal({ opened, onClose, workspaceId, onSuccess, default
             render={({ field }) => (
               <Select
                 label="Provider"
-                data={PROVIDER_OPTIONS}
-                disabled={isEditMode}
+                data={getKinds(presets)
+                  .map((kind) => ({
+                    group: KIND_LABELS[kind] ?? kind,
+                    items: presets
+                      .filter((p) => p.kind === kind)
+                      .map((p) => ({ value: p.provider, label: p.label })),
+                  }))}
+                disabled={isEditMode || loadingPresets}
                 {...field}
               />
             )}
@@ -149,7 +182,7 @@ export function ProviderModal({ opened, onClose, workspaceId, onSuccess, default
             error={errors.name?.message}
             {...register('name', { required: 'Name is required' })}
           />
-          {watchProvider !== 'ollama' && (
+          {selectedPreset?.requiresApiKey !== false && (
             <PasswordInput
               label="API Key"
               placeholder={isEditMode ? 'Leave empty to keep current key' : ''}
@@ -161,9 +194,14 @@ export function ProviderModal({ opened, onClose, workspaceId, onSuccess, default
           )}
           <TextInput
             label="Base URL"
-            placeholder={watchProvider === 'ollama' ? 'http://localhost:11434' : 'Optional custom endpoint'}
+            placeholder={selectedPreset?.defaultBaseUrl ?? (selectedPreset?.requiresBaseUrl ? '' : 'Optional custom endpoint')}
             autoComplete="off"
-            {...register('baseUrl')}
+            withAsterisk={selectedPreset?.requiresBaseUrl}
+            error={errors.baseUrl?.message}
+            {...register('baseUrl', {
+              validate: (value) =>
+                !selectedPreset?.requiresBaseUrl || !!value.trim() || 'Base URL is required',
+            })}
           />
           <Controller
             name="selectedWorkspaceId"

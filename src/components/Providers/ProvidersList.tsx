@@ -162,29 +162,40 @@ export function ProvidersList({
         <Table striped highlightOnHover>
           <Table.Thead>
             <Table.Tr>
-              {showColumn('workspace') && <Table.Th>Workspace</Table.Th>}
-              {showColumn('name') && <Table.Th>Name</Table.Th>}
               {showColumn('provider') && <Table.Th>Provider</Table.Th>}
+              {showColumn('workspace') && <Table.Th>Workspace</Table.Th>}
+              {showColumn('default') && <Table.Th>Default</Table.Th>}
+              {showColumn('name') && <Table.Th>Name</Table.Th>}
               {showColumn('apiKey') && <Table.Th>API Key</Table.Th>}
               {showColumn('baseUrl') && <Table.Th>Base URL</Table.Th>}
-              {showColumn('default') && <Table.Th>Default</Table.Th>}
               {showColumn('actions') && <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>}
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
             {providers.map((provider) => (
               <Table.Tr key={provider.id}>
-                {showColumn('workspace') && (
-                  <Table.Td>
-                    <WorkspaceBadge workspaceName={provider.workspaceName} />
-                  </Table.Td>
-                )}
-                {showColumn('name') && <Table.Td>{provider.name}</Table.Td>}
                 {showColumn('provider') && (
                   <Table.Td>
                     <Badge variant="light">{provider.provider}</Badge>
                   </Table.Td>
                 )}
+                {showColumn('workspace') && (
+                  <Table.Td>
+                    <WorkspaceBadge workspaceName={provider.workspaceName} />
+                  </Table.Td>
+                )}
+                {showColumn('default') && (
+                  <Table.Td>
+                    <ActionIcon
+                      variant="subtle"
+                      color={provider.isDefault ? 'yellow' : 'gray'}
+                      onClick={() => handleSetDefault(provider.id)}
+                    >
+                      {provider.isDefault ? <IconStarFilled size={18} /> : <IconStar size={18} />}
+                    </ActionIcon>
+                  </Table.Td>
+                )}
+                {showColumn('name') && <Table.Td>{provider.name}</Table.Td>}
                 {showColumn('apiKey') && (
                   <Table.Td>
                     <Text size="sm" c="dimmed">
@@ -197,17 +208,6 @@ export function ProvidersList({
                     <Text size="sm" c="dimmed">
                       {provider.config.baseUrl || '-'}
                     </Text>
-                  </Table.Td>
-                )}
-                {showColumn('default') && (
-                  <Table.Td>
-                    <ActionIcon
-                      variant="subtle"
-                      color={provider.isDefault ? 'yellow' : 'gray'}
-                      onClick={() => handleSetDefault(provider.id)}
-                    >
-                      {provider.isDefault ? <IconStarFilled size={18} /> : <IconStar size={18} />}
-                    </ActionIcon>
                   </Table.Td>
                 )}
                 {showColumn('actions') && (
