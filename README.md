@@ -8,7 +8,8 @@ Visual platform for building and managing AI agents through a no-code/low-code i
 
 ## Features
 
-- **Node Graph Workflows** - Visual drag-and-drop editor with 11 node types
+- **Node Graph Workflows** - Visual drag-and-drop editor with 11 node types, undo/redo
+- **Editor Assistant** - Chat with a builder agent that adds, edits and removes nodes on the canvas
 - **Composable Agents** - Agents can call other agents as sub-workflows or llm-tools
 - **Multi-Provider LLM** - OpenAI, Anthropic, Ollama support
 - **Memory & Collections** - Structured storage with semantic search

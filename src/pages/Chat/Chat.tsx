@@ -1,6 +1,4 @@
-import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import { config } from '../../config';
+import { usePageTitle } from '../../layout/pageTitle';
 import { Box, Loader, Alert, Center, Modal, Text, Group, Button } from '@mantine/core';
 import { IconAlertCircle } from '@tabler/icons-react';
 import { ChatHeader } from './ChatHeader';
@@ -16,17 +14,7 @@ export function ChatPage() {
   const vm = useChatViewModel();
   useChatFavicon(vm.sending);
 
-  // Layout sets the title on every path change (e.g. switching sessions), so re-apply after it
-  const { pathname } = useLocation();
-  const agentName = vm.agent?.name;
-  useEffect(() => {
-    if (!agentName) return;
-    const prevTitle = document.title;
-    document.title = `${agentName} | ${config.appName}`;
-    return () => {
-      document.title = prevTitle;
-    };
-  }, [agentName, pathname]);
+  usePageTitle(vm.agent?.name);
   const { openEditAgent } = useAgentModal();
   const { openRunDetails } = useRunDetailsModal();
 
@@ -117,6 +105,7 @@ export function ChatPage() {
           hasMore={vm.hasMoreMessages}
           loadingMore={vm.loadingMoreMessages}
           statusText={vm.statusText}
+          steps={vm.steps}
           inputHeight={vm.inputHeight}
           onClearError={vm.clearError}
           onRetry={vm.retry}

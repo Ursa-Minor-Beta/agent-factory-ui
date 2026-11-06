@@ -1,12 +1,17 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { Box, Button, TextInput, Textarea, Stack, Text, Alert, ScrollArea, Loader, Group, ActionIcon, Card, Switch, Slider, Collapse } from '@mantine/core';
-import { IconPlayerPlay, IconPlayerStop, IconAlertCircle, IconListDetails, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
-import { sessionsApi, type ChatStatusEvent } from '../../../api/sessions';
+import { useState, useCallback, useRef, useEffect, type RefObject, memo } from 'react';
+import { Box, Button, Stack, Text, ScrollArea, Group, ActionIcon, Card, Switch, Slider, Collapse } from '@mantine/core';
+import { useLocalStorage } from '@mantine/hooks';
+import { IconPlayerPlay, IconPlayerStop, IconListDetails, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
+import type { ChatStatusEvent } from '../../../api/sessions';
 import type { Agent, InputSchema, NodeStatus } from '../../../types';
 import { getInputSchema } from '../../../pages/Chat/types';
+import { AgentInputField } from '../../../pages/Chat/AgentInputField';
+import { buildAgentInput, hasMissingRequired } from '../../../pages/Chat/models/agentInput';
 import { useRunDetailsModal } from '../../RunDetailsModal';
 import { MessageContent } from '../../../pages/Chat/ChatMessages';
 import { useChatFavicon } from '../../../pages/Chat/useChatFavicon';
+import { useAgentStream, RunStatus, RunSteps, RunErrorAlert } from '../../AgentStream';
+import type { AgentStreamResult } from '../../AgentStream/useAgentStream';
 
 interface RunTabProps {
   agent: Partial<Agent> | null;
@@ -18,7 +23,11 @@ interface RunTabProps {
   onInputsRequired?: () => void; // Required inputs are empty - editor shows this tab
   onRunningChange?: (running: boolean) => void;
   onAgentStatusesChange?: (statuses: Record<string, NodeStatus>) => void; // Run status per agent: this one + called sub-agents
+  runnerRef?: RefObject<AgentRunner | null>; // Set to this tab's run function - lets the assistant run the agent here
 }
+
+// Runs the agent with the given input (form values when omitted); null when it can't start
+export type AgentRunner = (input?: Record<string, unknown>) => Promise<AgentStreamResult | null>;
 
 const INPUTS_STORAGE_KEY = 'agent-editor-run-inputs';
 
@@ -31,15 +40,7 @@ const MIN_RUNNING_MS = 50;
 const MAX_RUNNING_MS = 2000;
 const DEFAULT_RUNNING_MS = 400;
 
-interface RunOutput {
-  response?: unknown; // Raw response - MessageContent will parse it
-  error?: string;
-  runId?: string;
-  // depth 0 = node of this agent, 1+ = node inside a (nested) sub-agent
-  nodeStatuses: Array<{ nodeId: string; label: string; depth: number; status: string; statusText?: string }>;
-}
-
-export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, runRequest, onInputsRequired, onRunningChange, onAgentStatusesChange }: RunTabProps) {
+export const RunTab = memo(function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, runRequest, onInputsRequired, onRunningChange, onAgentStatusesChange, runnerRef }: RunTabProps) {
   // Last used inputs are remembered per agent
   const inputsStorageKey = agent?.id ? `${INPUTS_STORAGE_KEY}-${agent.id}` : null;
   const [inputs, setInputs] = useState<Record<string, string>>(() => {
@@ -58,42 +59,29 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
       setInputs({});
     }
   }, [inputsStorageKey]);
-  const [inputsOpen, setInputsOpen] = useState(() => localStorage.getItem(INPUTS_OPEN_STORAGE_KEY) !== 'false');
+  const [inputsOpen, setInputsOpen] = useLocalStorage({ key: INPUTS_OPEN_STORAGE_KEY, defaultValue: true, getInitialValueInEffect: false });
+  const toggleInputsOpen = () => setInputsOpen((prev) => !prev);
 
-  const toggleInputsOpen = useCallback(() => {
-    setInputsOpen((prev) => {
-      localStorage.setItem(INPUTS_OPEN_STORAGE_KEY, String(!prev));
-      return !prev;
-    });
-  }, []);
-
-  const [animate, setAnimate] = useState(() => localStorage.getItem(ANIMATE_STORAGE_KEY) === 'true');
+  const [animate, setAnimate] = useLocalStorage({ key: ANIMATE_STORAGE_KEY, defaultValue: false, getInitialValueInEffect: false });
   // Ref so stream callbacks of an ongoing run see toggle changes
   const animateRef = useRef(animate);
+  animateRef.current = animate;
 
-  const handleAnimateChange = useCallback((value: boolean) => {
+  const handleAnimateChange = (value: boolean) => {
     setAnimate(value);
-    animateRef.current = value;
-    localStorage.setItem(ANIMATE_STORAGE_KEY, String(value));
     if (!value) onRunClear?.();
-  }, [onRunClear]);
+  };
 
-  const [runningMs, setRunningMs] = useState(() => {
-    const saved = Number(localStorage.getItem(SPEED_STORAGE_KEY));
-    return saved >= MIN_RUNNING_MS && saved <= MAX_RUNNING_MS ? saved : DEFAULT_RUNNING_MS;
-  });
+  const [storedRunningMs, setRunningMs] = useLocalStorage({ key: SPEED_STORAGE_KEY, defaultValue: DEFAULT_RUNNING_MS, getInitialValueInEffect: false });
+  const runningMs = storedRunningMs >= MIN_RUNNING_MS && storedRunningMs <= MAX_RUNNING_MS ? storedRunningMs : DEFAULT_RUNNING_MS;
   // Ref so speed changes apply to an ongoing run
   const runningMsRef = useRef(runningMs);
-
-  const handleRunningMsChange = useCallback((value: number) => {
-    setRunningMs(value);
-    runningMsRef.current = value;
-    localStorage.setItem(SPEED_STORAGE_KEY, String(value));
-  }, []);
-  const [running, setRunning] = useState(false);
+  runningMsRef.current = runningMs;
+  const stream = useAgentStream();
+  const { running, start: startStream, cancel: handleStop } = stream;
   useChatFavicon(running);
-  const [output, setOutput] = useState<RunOutput | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  // Raw response - MessageContent will parse it
+  const [response, setResponse] = useState<string>();
   // Sub-agent id -> its nodes that started and haven't finished yet, and whether any node failed
   const subagentsRef = useRef(new Map<string, { nodes: Set<string>; failed: boolean }>());
   const [agentStatuses, setAgentStatuses] = useState<Record<string, NodeStatus>>({});
@@ -112,110 +100,56 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
     });
   }, [inputsStorageKey]);
 
-  const handleRun = useCallback(async () => {
-    if (!agent?.id || running) return;
+  const handleRun = useCallback(async (inputOverride?: Record<string, unknown>): Promise<AgentStreamResult | null> => {
+    if (!agent?.id || running) return null;
 
-    setRunning(true);
-    setOutput({ nodeStatuses: [] });
+    setResponse(undefined);
     subagentsRef.current.clear();
     setAgentStatuses({ [agent.id]: 'running' });
     if (animateRef.current) onRunStart?.();
 
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
-
-    // Build input object from form values (skip empty values)
-    const input: Record<string, unknown> = {};
-    for (const [key, schema] of Object.entries(inputSchema)) {
-      const value = inputs[key];
-      if (!value) continue; // Skip empty values
-
-      if (schema.type === 'number') {
-        input[key] = Number(value);
-      } else if (schema.type === 'boolean') {
-        input[key] = value === 'true';
-      } else {
-        input[key] = value;
-      }
-    }
-
-    // Final response/error applied once the stream ends
-    const result: Pick<RunOutput, 'response' | 'error'> = {};
-
-    try {
-      await sessionsApi.chatStream(
-        agent.id,
-        { input, incognito: true },
-        {
-          onInit: (data) => {
-            setOutput((prev) => ({
-              ...prev!,
-              runId: data.runId,
-            }));
-          },
-          onStatus: (data: ChatStatusEvent) => {
-            setOutput((prev) => ({
-              ...prev!,
-              nodeStatuses: [
-                ...(prev?.nodeStatuses || []),
-                { nodeId: data.nodeId, label: data.nodeId, depth: 0, status: data.status, statusText: data.statusText },
-              ],
-            }));
-            if (animateRef.current) onNodeStatus?.(data.nodeId, data.status, runningMsRef.current);
-          },
-          onSubagentStatus: (data) => {
-            // Sub-agent runs while any of its nodes runs
-            const sub = subagentsRef.current.get(data.agentId) ?? { nodes: new Set<string>(), failed: false };
-            if (data.status === 'started') sub.nodes.add(data.nodeId);
-            else sub.nodes.delete(data.nodeId);
-            if (data.status === 'failed') sub.failed = true;
-            subagentsRef.current.set(data.agentId, sub);
-            const subStatus: NodeStatus = sub.nodes.size > 0 ? 'running' : sub.failed ? 'failed' : 'completed';
-            setAgentStatuses((prev) => (prev[data.agentId] === subStatus ? prev : { ...prev, [data.agentId]: subStatus }));
-            // Path "parentNode / SUB: node / SUBSUB: node" - last segment is the node, segment count gives nesting
-            const segments = data.path.split(' / ');
-            setOutput((prev) => ({
-              ...prev!,
-              nodeStatuses: [
-                ...(prev?.nodeStatuses || []),
-                {
-                  nodeId: data.nodeId,
-                  label: segments[segments.length - 1] || `${data.agentName}: ${data.nodeId}`,
-                  depth: Math.max(1, segments.length - 1),
-                  status: data.status,
-                  statusText: data.statusText,
-                },
-              ],
-            }));
-          },
-          onDone: (data) => {
-            // Store raw response - MessageContent will handle parsing
-            result.response = data.response;
-          },
-          onError: (data) => {
-            result.error = data.message;
-          },
-        },
-        abortController.signal
+    // Explicit input (assistant run) - show it in the form too, so the user sees what ran
+    if (inputOverride) {
+      const formValues = Object.fromEntries(
+        Object.entries(inputOverride).map(([key, value]) => [key, typeof value === 'string' ? value : JSON.stringify(value)])
       );
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') {
-        // Cancelled by user
-      } else {
-        result.error = err instanceof Error ? err.message : 'Run failed';
-      }
-    } finally {
-      abortControllerRef.current = null;
-      if (animateRef.current) onRunEnd?.();
-      setOutput((prev) => ({ ...prev!, ...result }));
-      // Settle everything still running (stopped / failed run)
-      const endStatus: NodeStatus = result.error ? 'failed' : 'completed';
-      setAgentStatuses((prev) => Object.fromEntries(
-        Object.entries(prev).map(([id, status]) => [id, status === 'running' || id === agent.id ? endStatus : status])
-      ));
-      setRunning(false);
+      setInputs(formValues);
+      if (inputsStorageKey) localStorage.setItem(inputsStorageKey, JSON.stringify(formValues));
     }
-  }, [agent, running, inputs, inputSchema, onRunStart, onNodeStatus, onRunEnd]);
+
+    const input = inputOverride ?? buildAgentInput(inputSchema, inputs);
+
+    const result = await startStream(
+      agent.id,
+      { input, incognito: true },
+      {
+        onStatus: (data: ChatStatusEvent) => {
+          if (animateRef.current) onNodeStatus?.(data.nodeId, data.status, runningMsRef.current);
+        },
+        onSubagentStatus: (data) => {
+          // Sub-agent runs while any of its nodes runs
+          const sub = subagentsRef.current.get(data.agentId) ?? { nodes: new Set<string>(), failed: false };
+          if (data.status === 'started') sub.nodes.add(data.nodeId);
+          else sub.nodes.delete(data.nodeId);
+          if (data.status === 'failed') sub.failed = true;
+          subagentsRef.current.set(data.agentId, sub);
+          const subStatus: NodeStatus = sub.nodes.size > 0 ? 'running' : sub.failed ? 'failed' : 'completed';
+          setAgentStatuses((prev) => (prev[data.agentId] === subStatus ? prev : { ...prev, [data.agentId]: subStatus }));
+        },
+      }
+    );
+
+    if (animateRef.current) onRunEnd?.();
+    setResponse(result.response);
+    // Settle everything still running (stopped / failed run)
+    const endStatus: NodeStatus = result.error ? 'failed' : 'completed';
+    setAgentStatuses((prev) => Object.fromEntries(
+      Object.entries(prev).map(([id, status]) => [id, status === 'running' || id === agent.id ? endStatus : status])
+    ));
+    return result;
+  }, [agent, running, inputs, inputSchema, inputsStorageKey, startStream, onRunStart, onNodeStatus, onRunEnd]);
+
+  if (runnerRef) runnerRef.current = handleRun;
 
   useEffect(() => {
     onRunningChange?.(running);
@@ -233,9 +167,7 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
   // Toolbar Run: run if every required input has a value (or default), otherwise ask to show this tab
   const handleRunRef = useRef(handleRun);
   handleRunRef.current = handleRun;
-  const missingRequired = inputFields.some(
-    ([key, schema]) => schema.required && !inputs[key] && schema.default === undefined
-  );
+  const missingRequired = hasMissingRequired(inputSchema, inputs);
   const missingRequiredRef = useRef(missingRequired);
   missingRequiredRef.current = missingRequired;
   useEffect(() => {
@@ -248,10 +180,6 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
     handleRunRef.current();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- react to new run requests only
   }, [runRequest]);
-
-  const handleStop = useCallback(() => {
-    abortControllerRef.current?.abort();
-  }, []);
 
   if (!agent) {
     return (
@@ -281,40 +209,19 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
               {!inputsOpen && <Text size="xs" c="dimmed">({inputFields.length})</Text>}
             </Group>
             <Collapse expanded={inputsOpen}>
-            {inputFields.map(([key, schema]) => {
-              const label = key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim();
-              const placeholder = schema.default ? `Default: ${schema.default}` : '';
-
-              // Use Textarea for string types, TextInput for others
-              if (schema.type === 'string') {
-                return (
-                  <Textarea
-                    key={key}
-                    label={label}
-                    placeholder={placeholder}
-                    value={inputs[key] || ''}
-                    onChange={(e) => handleInputChange(key, e.target.value)}
-                    minRows={2}
-                    maxRows={12}
-                    autosize
-                    size="xs"
-                    mb="xs"
-                  />
-                );
-              }
-
-              return (
-                <TextInput
-                  key={key}
-                  label={label}
-                  placeholder={placeholder}
-                  value={inputs[key] || ''}
-                  onChange={(e) => handleInputChange(key, e.target.value)}
-                  size="xs"
-                  mb="xs"
-                />
-              );
-            })}
+            {inputFields.map(([key, schema]) => (
+              <AgentInputField
+                key={key}
+                fieldKey={key}
+                schema={schema}
+                value={inputs[key] || ''}
+                onChange={handleInputChange}
+                minRows={schema.type === 'string' ? 2 : 1}
+                maxRows={12}
+                size="xs"
+                mb="xs"
+              />
+            ))}
             </Collapse>
           </>
         ) : (
@@ -344,7 +251,7 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
               max={MAX_RUNNING_MS}
               step={50}
               value={MIN_RUNNING_MS + MAX_RUNNING_MS - runningMs}
-              onChange={(value) => handleRunningMsChange(MIN_RUNNING_MS + MAX_RUNNING_MS - value)}
+              onChange={(value) => setRunningMs(MIN_RUNNING_MS + MAX_RUNNING_MS - value)}
               label={(value) => `${MIN_RUNNING_MS + MAX_RUNNING_MS - value} ms / node`}
             />
             <Text size="xs" c="dimmed">Fast</Text>
@@ -369,7 +276,7 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
             size="xs"
             miw={200}
             style={{ alignSelf: 'center' }}
-            onClick={handleRun}
+            onClick={() => handleRun()}
           >
             Run
           </Button>
@@ -377,16 +284,16 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
       </Card>
 
       {/* Output area */}
-      {output && (
+      {(running || stream.runId || stream.error || response) && (
         <Card style={{ flex: 1, minHeight: 0 }} withBorder>
           <Group mb="xs">
             <Text size="xs" fw={500}>Output</Text>
-            {output.runId && (
+            {stream.runId && (
               <ActionIcon
                 size="xs"
                 variant="subtle"
                 title="View run details"
-                onClick={() => openRunDetails(output.runId!)}
+                onClick={() => openRunDetails(stream.runId!)}
               >
                 <IconListDetails size={14} />
               </ActionIcon>
@@ -395,36 +302,18 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
           <ScrollArea style={{ flex: 1 }} offsetScrollbars scrollbars="y" styles={{ content: { display: 'block' } }}>
             <>
               {/* Node statuses */}
-              {!animate && output.nodeStatuses.length > 0 && (
-                <ScrollArea.Autosize mah={80} offsetScrollbars scrollbars="y" styles={{ content: { display: 'block', minWidth: 0 } }} mb="xs" ps='xs' style={{ border: '1px solid var(--mantine-color-default-border)', borderRadius: 'var(--mantine-radius-sm)' }}>
-                  <Stack gap={2}>
-                    {output.nodeStatuses.map((ns, i) => (
-                      <Text key={i} size="xs" c="dimmed" pl={ns.depth * 12} truncate>
-                        {ns.depth > 0 && '↳ '}{ns.label}: {ns.statusText || ns.status}
-                      </Text>
-                    ))}
-                  </Stack>
-                </ScrollArea.Autosize>
-              )}
+              {!animate && <RunSteps steps={stream.steps} />}
 
               {/* Loading indicator */}
-              {running && (
-                <Box mb="xs">
-                  <Loader size="xs" />
-                </Box>
-              )}
+              {running && <RunStatus statusText={stream.statusText} mb="xs" />}
 
               {/* Error */}
-              {output.error && (
-                <Alert icon={<IconAlertCircle size={14} />} color="red" fz="xs" mb="xs">
-                  {output.error}
-                </Alert>
-              )}
+              {stream.error && <RunErrorAlert error={stream.error} size="xs" mb="xs" />}
 
               {/* Response - MessageContent handles parsing and display */}
-              {output.response && (
+              {response && (
                 <Card withBorder>
-                    <MessageContent content={output.response} />
+                    <MessageContent content={response} />
                 </Card>
               )}
             </>
@@ -433,4 +322,4 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
       )}
     </Stack>
   );
-}
+});

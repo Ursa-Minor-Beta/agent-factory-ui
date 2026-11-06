@@ -11,11 +11,12 @@ import {
   type Connection,
 } from '@xyflow/react';
 import { agentsApi, nodesApi, type NodeType, type AgentExample } from '../../../api';
-import type { Agent, CanvasSettings, EditorViewport } from '../../../types/agent';
+import type { Agent, AgentNode, CanvasSettings, EditorViewport } from '../../../types/agent';
 import {
   toFlowNode,
   toAgentNode,
   extractEdges,
+  extractReferencedNodeIds,
   generateNodeId,
   autoLayoutNodes,
   syncNodeEdges,
@@ -51,6 +52,12 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+
+  // Latest nodes, also updated synchronously by assistant edits so consecutive tool calls see each other's changes
+  const nodesRef = useRef(nodes);
+  nodesRef.current = nodes;
+  const edgesRef = useRef(edges);
+  edgesRef.current = edges;
 
   // Derive selectedNode from nodes array
   const selectedNode = useMemo(
@@ -191,17 +198,19 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     [edges, onEdgesChange, setNodeRunAfter]
   );
 
-  // Save agent - returns true on success
-  const saveAgent = useCallback(async (): Promise<boolean> => {
-    if (!agent) return false;
+  // Save agent - returns the saved agent id, null on failure
+  const saveAgent = useCallback(async (): Promise<string | null> => {
+    if (!agent) return null;
 
     setSaving(true);
     try {
-      const agentNodes = nodes.map(toAgentNode);
+      // Ref, not state: assistant edits right before a save may not be rendered yet
+      const currentNodes = nodesRef.current;
+      const agentNodes = currentNodes.map(toAgentNode);
 
       // Build nodePositions from current node positions
       const nodePositions: Record<string, { x: number; y: number }> = {};
-      for (const node of nodes) {
+      for (const node of currentNodes) {
         nodePositions[node.id] = { x: node.position.x, y: node.position.y };
       }
 
@@ -220,26 +229,30 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
         await agentsApi.update(agent.id, { nodes: agentNodes, editorData });
         // Sync local agent so derived data (e.g. Run tab input schema) updates
         setAgent((prev) => (prev ? { ...prev, nodes: agentNodes, editorData } : prev));
-      } else {
-        // Create new agent
-        const newAgent = await agentsApi.create({
-          name: agent.name || 'Untitled Agent',
-          description: agent.description || undefined,
-          nodes: agentNodes,
-          editorData,
-          workspaceId,
-        });
-        // Navigate to the new agent's editor
-        navigate(routes.agentEditor(newAgent.id), { replace: true });
+        return agent.id;
       }
-      return true;
+
+      // Create new agent
+      const newAgent = await agentsApi.create({
+        name: agent.name || 'Untitled Agent',
+        description: agent.description || undefined,
+        nodes: agentNodes,
+        editorData,
+        // Workspace may have been changed before the first save
+        workspaceId: agent.workspaceId ?? workspaceId,
+      });
+      // Set it before navigating: with an id the reload shows only the canvas overlay
+      // instead of the full-screen loader, so panels (Assistant stream, Run tab) stay mounted
+      setAgent(newAgent);
+      navigate(routes.agentEditor(newAgent.id), { replace: true });
+      return newAgent.id;
     } catch (err) {
       console.error('Failed to save agent:', err);
-      return false;
+      return null;
     } finally {
       setSaving(false);
     }
-  }, [agent, nodes, navigate, workspaceId]);
+  }, [agent, navigate, workspaceId]);
 
   // Update agent info (name, description)
   const updateAgentInfo = useCallback(
@@ -291,6 +304,32 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     [agent]
   );
 
+  // Update name / description / workspace in one call (assistant tool) - false on failure
+  const updateAgentMeta = useCallback(
+    async (data: { name?: string; description?: string; workspaceId?: string | null }) => {
+      if (!agent) return false;
+
+      // For new agents (no id), just update local state - applied on first save
+      if (!agent.id) {
+        setAgent((prev) => (prev ? { ...prev, ...data, workspaceId: data.workspaceId === null ? undefined : data.workspaceId ?? prev.workspaceId } : prev));
+        return true;
+      }
+
+      setSaving(true);
+      try {
+        const updatedAgent = await agentsApi.update(agent.id, data);
+        setAgent(updatedAgent);
+        return true;
+      } catch (err) {
+        console.error('Failed to update agent info:', err);
+        return false;
+      } finally {
+        setSaving(false);
+      }
+    },
+    [agent]
+  );
+
   // Update canvas settings (layout direction, edge type)
   const updateCanvasSettings = useCallback(
     async (settings: CanvasSettings) => {
@@ -308,10 +347,13 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
 
       // Persist to backend only for existing agents
       if (agent.id) {
+        setSaving(true);
         try {
           await agentsApi.update(agent.id, { editorData: updatedEditorData });
         } catch (err) {
           console.error('Failed to save canvas settings:', err);
+        } finally {
+          setSaving(false);
         }
       }
     },
@@ -435,6 +477,62 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     [setNodes, setEdges, nodes]
   );
 
+  const getAgentNodes = useCallback(() => nodesRef.current.map(toAgentNode), []);
+
+  // Replace the graph; edges are fully derived from node data (references, branches, runAfter)
+  const commitNodes = useCallback(
+    (next: Node[]) => {
+      nodesRef.current = next;
+      setNodes(next);
+      setEdges(extractEdges(next));
+    },
+    [setNodes, setEdges]
+  );
+
+  // Add a node, or replace data of the node with the same id (position is kept)
+  const upsertNode = useCallback(
+    (agentNode: AgentNode) => {
+      const current = nodesRef.current;
+      const existing = current.find((n) => n.id === agentNode.id);
+      const flowNode = toFlowNode(agentNode, current.length);
+
+      if (existing) {
+        commitNodes(current.map((n) => (n.id === agentNode.id ? { ...n, type: flowNode.type, data: flowNode.data } : n)));
+        return;
+      }
+
+      // Place right of / below the rightmost node it reads from (or of the whole graph)
+      const refs = extractReferencedNodeIds(agentNode.data);
+      const anchors = current.filter((n) => refs.has(n.id) || agentNode.runAfter?.includes(n.id));
+      const pool = anchors.length ? anchors : current;
+      const isTB = layoutDirectionRef.current === 'TB';
+      const position = pool.length
+        ? isTB
+          ? { x: Math.max(...pool.map((n) => n.position.x)), y: Math.max(...pool.map((n) => n.position.y)) + 150 }
+          : { x: Math.max(...pool.map((n) => n.position.x)) + 300, y: Math.max(...pool.map((n) => n.position.y)) }
+        : { x: 200, y: 200 };
+
+      commitNodes([
+        ...current,
+        {
+          ...flowNode,
+          position,
+          sourcePosition: isTB ? Position.Bottom : Position.Right,
+          targetPosition: isTB ? Position.Top : Position.Left,
+        },
+      ]);
+    },
+    [commitNodes]
+  );
+
+  const removeNode = useCallback(
+    (nodeId: string) => {
+      commitNodes(nodesRef.current.filter((n) => n.id !== nodeId));
+      setSelectedNodeId((prev) => (prev === nodeId ? null : prev));
+    },
+    [commitNodes]
+  );
+
   // Clear selection when clicking canvas
   const onPaneClick = useCallback(() => {
     setSelectedNodeId(null);
@@ -452,14 +550,17 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
       ?? localStorage.getItem(DEFAULT_LAYOUT_DIRECTION_KEY);
     return (saved === 'LR' || saved === 'TB') ? saved : 'LR';
   }, [agent?.editorData?.canvasSettings?.layoutDirection]);
+  const layoutDirectionRef = useRef(layoutDirection);
+  layoutDirectionRef.current = layoutDirection;
 
   // Change layout direction and re-layout nodes
+  // Reads nodes/edges via refs so the callback stays stable (it's a PanelLeft prop)
   const changeLayoutDirection = useCallback((direction: LayoutDirection) => {
-    const layoutedNodes = autoLayoutNodes(nodes, edges, direction);
+    const layoutedNodes = autoLayoutNodes(nodesRef.current, edgesRef.current, direction);
     setNodes(layoutedNodes);
     updateCanvasSettings({ layoutDirection: direction });
     localStorage.setItem(DEFAULT_LAYOUT_DIRECTION_KEY, direction);
-  }, [nodes, edges, setNodes, updateCanvasSettings]);
+  }, [setNodes, updateCanvasSettings]);
 
   // Change edge type
   const changeEdgeType = useCallback((value: string) => {
@@ -522,10 +623,14 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     replaceNodeData,
     updateAgentInfo,
     updateWorkspace,
+    updateAgentMeta,
     changeLayoutDirection,
     changeEdgeType,
     loadTemplate,
     setViewportGetter,
     reloadAgent: fetchAgent,
+    getAgentNodes,
+    upsertNode,
+    removeNode,
   };
 }

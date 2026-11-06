@@ -7,6 +7,7 @@ import { useAgentViewModel } from './useAgentViewModel';
 import { useSessionsViewModel } from './useSessionsViewModel';
 import { useMessagesViewModel } from './useMessagesViewModel';
 import { useStreamViewModel } from './useStreamViewModel';
+import type { RunStep } from '../../../components/AgentStream';
 
 export interface UseChatViewModelReturn {
   // Agent
@@ -41,6 +42,7 @@ export interface UseChatViewModelReturn {
   errorRunId?: string;
   currentRunId: string | null;
   statusText?: string;
+  steps: RunStep[];
   send: (input: Record<string, unknown>) => void;
   cancel: () => Promise<void>;
   retry: () => void;
@@ -253,6 +255,7 @@ export function useChatViewModel(): UseChatViewModelReturn {
     errorRunId: streamVM.errorRunId,
     currentRunId: streamVM.currentRunId,
     statusText: streamVM.statusText,
+    steps: streamVM.steps,
     send,
     cancel,
     retry,

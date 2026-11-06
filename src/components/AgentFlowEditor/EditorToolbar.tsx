@@ -1,5 +1,7 @@
 import { Group, Text, ActionIcon, Badge, Tooltip } from '@mantine/core';
-import { IconDeviceFloppy, IconLayoutSidebar, IconBrandGithub, IconPlayerPlay, IconArrowBackUp, IconArrowForwardUp } from '@tabler/icons-react';
+import { IconDeviceFloppy, IconLayoutSidebar, IconBrandGithub, IconPlayerPlay, IconArrowBackUp, IconArrowForwardUp, IconMessageCircle } from '@tabler/icons-react';
+import { Link } from 'react-router-dom';
+import { routes } from '../../config/routes';
 import { WorkspaceBadge } from '../Workspace';
 import type { AgentGitHubInfo } from '../../types/agent';
 
@@ -54,12 +56,13 @@ export function EditorToolbar({
   return (
     <Group
       gap="sm"
-      wrap="nowrap"
+      wrap="wrap"
       style={isPaletteOpen
-        ? { padding: '12px 12px 8px', minWidth: 0 }
-        : { position: 'absolute', top: 8, left: 8, zIndex: 10, padding: '4px 12px 4px 4px', ...glassStyle }
+        ? { padding: '12px 12px 8px', minWidth: 0, rowGap: 4 }
+        : { position: 'absolute', top: 8, left: 8, zIndex: 10, padding: '4px 12px 4px 4px', rowGap: 4, ...glassStyle }
       }
     >
+      <Group gap="sm" wrap="nowrap" style={{ minWidth: 0, maxWidth: '100%' }}>
       <ActionIcon
         size="md"
         variant="subtle"
@@ -73,7 +76,7 @@ export function EditorToolbar({
         <IconLayoutSidebar size={16} />
       </ActionIcon>
 
-      <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
+      <Group gap="xs" wrap="nowrap" style={{ minWidth: 0, maxWidth: '100%' }}>
         <Text fw={600} size="sm" truncate style={{ minWidth: 0, flexShrink: 1 }}>
           {agentName || 'Untitled Agent'}
         </Text>
@@ -94,8 +97,20 @@ export function EditorToolbar({
           </Tooltip>
         )}
       </Group>
+      </Group>
 
       <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
+        {!!agentId && (
+          <ActionIcon
+            component={Link}
+            to={routes.agentChat(agentId)}
+            size="xs"
+            variant="subtle"
+            title="Open Chat"
+          >
+            <IconMessageCircle size={16} />
+          </ActionIcon>
+        )}
         {onUndo && (
           <ActionIcon
             size="xs"
@@ -121,9 +136,10 @@ export function EditorToolbar({
         <ActionIcon
           size="xs"
           variant="subtle"
-          title={canSave ? 'Save' : 'No changes'}
+          title={saving ? 'Saving...' : canSave ? 'Save' : 'No changes'}
           loading={saving}
-          disabled={!canSave}
+          // Settings save instantly without graph changes - keep it enabled so the spinner shows
+          disabled={!canSave && !saving}
           onClick={onSave}
         >
           <IconDeviceFloppy size={16} />

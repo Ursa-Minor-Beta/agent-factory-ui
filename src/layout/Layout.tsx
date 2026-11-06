@@ -1,5 +1,5 @@
-import { Suspense, useEffect, lazy } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Suspense, useEffect, useState, lazy } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { AppShell, Divider, Center, Loader } from '@mantine/core';
 import { useDisclosure, useLocalStorage } from '@mantine/hooks';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,8 +7,12 @@ import { useWorkspaceNav } from './useWorkspaceNav';
 import { NavbarHeader } from './NavbarHeader';
 import { NavbarLinks } from './NavbarLinks';
 import { UserMenu } from './UserMenu';
+import { WorkspaceModal } from '../components/Workspace';
+import { workspacesApi } from '../api/workspaces';
+import { routes } from '../config/routes';
 import type { NavItem } from './types';
 import { config } from '../config';
+import { getPageTitle } from './pageTitle';
 
 // Lazy load global modals
 const RunDetailsModal = lazy(() =>
@@ -32,7 +36,26 @@ export function Layout() {
     defaultValue: true,
   });
 
-  const navItems = useWorkspaceNav();
+  const [createWorkspaceOpened, { open: openCreateWorkspace, close: closeCreateWorkspace }] = useDisclosure();
+  const [creatingWorkspace, setCreatingWorkspace] = useState(false);
+  const navigate = useNavigate();
+  const navItems = useWorkspaceNav(openCreateWorkspace);
+
+  const handleCreateWorkspace = async (data: { name: string; description: string }) => {
+    try {
+      setCreatingWorkspace(true);
+      const created = await workspacesApi.create(data);
+
+      // Dispatch event to update sidebar
+      window.dispatchEvent(new CustomEvent('workspace-created', { detail: { workspace: created } }));
+      closeCreateWorkspace();
+      navigate(routes.workspace(created.id));
+    } catch (err) {
+      console.error('Failed to create workspace:', err);
+    } finally {
+      setCreatingWorkspace(false);
+    }
+  };
 
   // Update browser tab title based on current page
   useEffect(() => {
@@ -50,7 +73,7 @@ export function Layout() {
     };
 
     const pageLabel = findLabel(navItems, location.pathname);
-    document.title = pageLabel ? `${config.appName} | ${pageLabel}` : config.appName;
+    document.title = getPageTitle() ?? (pageLabel ? `${config.appName} | ${pageLabel}` : config.appName);
   }, [location.pathname, navItems]);
 
   const filterNavItems = (items: NavItem[]): NavItem[] => {
@@ -122,6 +145,14 @@ export function Layout() {
         <RunDetailsModal />
         <AgentModalWrapper />
       </Suspense>
+
+      <WorkspaceModal
+        opened={createWorkspaceOpened}
+        onClose={closeCreateWorkspace}
+        workspace={null}
+        onSave={handleCreateWorkspace}
+        saving={creatingWorkspace}
+      />
     </AppShell>
   );
 }

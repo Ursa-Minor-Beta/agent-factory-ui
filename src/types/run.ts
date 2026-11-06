@@ -1,4 +1,5 @@
 import type { NodeTypeName } from '../nodes';
+import type { ProviderType } from './provider';
 
 export type NodeStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
 export type RunStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelling' | 'cancelled';
@@ -9,7 +10,7 @@ export interface NodeState {
   input?: unknown;
   output?: unknown;
   state?: unknown;
-  providerConfig?: { id: string; name: string } | null;
+  providerConfig?: { id: string; name: string; provider?: ProviderType } | null;
   error?: string | null;
   startedAt?: string | null;
   completedAt?: string | null;
