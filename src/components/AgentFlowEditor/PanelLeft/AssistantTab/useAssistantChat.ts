@@ -143,7 +143,12 @@ export function useAssistantChat(assistantAgentId: string | undefined, agentKey:
       const result = await start(
         assistantAgentId,
         {
-          input: { message, nodes: nodesForAssistant(editorRef.current.getNodes()) },
+          input: {
+            message,
+            nodes: nodesForAssistant(editorRef.current.getNodes()),
+            // Edited agent id - empty for an unsaved agent
+            agentId: agentKeyRef.current === 'new' ? '' : agentKeyRef.current,
+          },
           sessionId: sessionId || undefined,
           clientTools: ASSISTANT_CLIENT_TOOLS,
         },

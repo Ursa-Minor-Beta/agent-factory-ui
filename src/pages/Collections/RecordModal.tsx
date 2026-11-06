@@ -49,9 +49,13 @@ export function RecordModal({
       opened={opened}
       onClose={onClose}
       title={record ? 'Edit Record' : 'Add Record'}
-      size="lg"
+      size="xl"
+      styles={{
+        content: { height: '90vh', display: 'flex', flexDirection: 'column' },
+        body: { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' },
+      }}
     >
-      <Stack>
+      <Stack style={{ flex: 1, minHeight: 0 }}>
         <Box>
           <Text size="sm" fw={500} mb="xs">Schema Fields</Text>
           <Group gap={4} mb="sm">
@@ -64,13 +68,13 @@ export function RecordModal({
           </Group>
         </Box>
 
-        <Box>
+        <Box style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
           <JsonEditor
             label="Fields"
             value={{}}
             text={formData.data}
             onTextChange={handleTextChange}
-            height={300}
+            height="100%"
           />
           {dataError && (
             <Text size="sm" c="red" mt="xs">{dataError}</Text>
