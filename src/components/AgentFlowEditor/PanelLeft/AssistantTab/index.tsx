@@ -38,7 +38,8 @@ const MessageItem = memo(function MessageItem({ message, onViewRun }: { message:
   );
 });
 
-export function AssistantTab({ agentKey, editor, onSendingChange }: AssistantTabProps) {
+// Memoized: PanelLeft re-renders on every editor change, the chat only depends on stable props
+export const AssistantTab = memo(function AssistantTab({ agentKey, editor, onSendingChange }: AssistantTabProps) {
   // Last picked builder agent, stored as a plain id
   const [assistantAgentId, setAssistantAgentId] = useLocalStorage<string | null>({
     key: ASSISTANT_AGENT_STORAGE_KEY,
@@ -117,4 +118,4 @@ export function AssistantTab({ agentKey, editor, onSendingChange }: AssistantTab
       <AssistantInput disabled={!assistantAgentId} sending={sending} onSend={send} onCancel={cancel} />
     </Stack>
   );
-}
+});

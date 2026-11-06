@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Group, Text, ActionIcon, Tooltip, Menu, Divider } from '@mantine/core';
 import { IconPlus, IconChevronDown, IconArrowLeft } from '@tabler/icons-react';
 import type { NodeType } from '../../../api';
@@ -13,7 +14,7 @@ interface NodesTabProps {
   onBack: () => void;
 }
 
-export function NodesTab({ nodeTypes, existingNodeTypes, viewingNodeType, onAddNode, onNodeClick, onBack }: NodesTabProps) {
+export const NodesTab = memo(function NodesTab({ nodeTypes, existingNodeTypes, viewingNodeType, onAddNode, onNodeClick, onBack }: NodesTabProps) {
   if (viewingNodeType) {
     const isDisabled = SINGLETON_NODE_TYPES.has(viewingNodeType.type) && existingNodeTypes.has(viewingNodeType.type);
 
@@ -92,4 +93,4 @@ export function NodesTab({ nodeTypes, existingNodeTypes, viewingNodeType, onAddN
   }
 
   return <NodesList nodeTypes={nodeTypes} existingNodeTypes={existingNodeTypes} onAddNode={onAddNode} onNodeClick={onNodeClick} />;
-}
+});

@@ -243,9 +243,12 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
   }, [edges, runStatuses]);
 
   // Compute set of node types already on the canvas
-  const existingNodeTypes = useMemo(() => {
-    return new Set(nodes.map((node) => node.type).filter((type): type is string => !!type));
-  }, [nodes]);
+  // Keyed by the sorted type list so node edits/moves keep the same Set (it's a PanelLeft prop)
+  const existingNodeTypesKey = [...new Set(nodes.map((node) => node.type).filter(Boolean))].sort().join('\n');
+  const existingNodeTypes = useMemo(
+    () => new Set(existingNodeTypesKey ? existingNodeTypesKey.split('\n') : []),
+    [existingNodeTypesKey]
+  );
 
   const handleAddNode = useCallback(
     (nodeType: NodeType, exampleIndex?: number) => {

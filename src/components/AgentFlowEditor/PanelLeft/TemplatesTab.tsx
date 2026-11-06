@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo } from 'react';
 import { Box, Text, Stack, ScrollArea, Center, Loader, Group, ActionIcon, Tooltip, Modal, Button } from '@mantine/core';
 import { IconArrowRight } from '@tabler/icons-react';
 import { agentsApi, type AgentExample } from '../../../api';
@@ -8,7 +8,7 @@ interface TemplatesTabProps {
   onLoadTemplate: (template: AgentExample) => void;
 }
 
-export function TemplatesTab({ hasNodes, onLoadTemplate }: TemplatesTabProps) {
+export const TemplatesTab = memo(function TemplatesTab({ hasNodes, onLoadTemplate }: TemplatesTabProps) {
   const [templates, setTemplates] = useState<AgentExample[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirmTemplate, setConfirmTemplate] = useState<AgentExample | null>(null);
@@ -116,4 +116,4 @@ export function TemplatesTab({ hasNodes, onLoadTemplate }: TemplatesTabProps) {
       </ScrollArea>
     </>
   );
-}
+});

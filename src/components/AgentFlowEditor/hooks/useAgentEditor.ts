@@ -56,6 +56,8 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
   // Latest nodes, also updated synchronously by assistant edits so consecutive tool calls see each other's changes
   const nodesRef = useRef(nodes);
   nodesRef.current = nodes;
+  const edgesRef = useRef(edges);
+  edgesRef.current = edges;
 
   // Derive selectedNode from nodes array
   const selectedNode = useMemo(
@@ -552,12 +554,13 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
   layoutDirectionRef.current = layoutDirection;
 
   // Change layout direction and re-layout nodes
+  // Reads nodes/edges via refs so the callback stays stable (it's a PanelLeft prop)
   const changeLayoutDirection = useCallback((direction: LayoutDirection) => {
-    const layoutedNodes = autoLayoutNodes(nodes, edges, direction);
+    const layoutedNodes = autoLayoutNodes(nodesRef.current, edgesRef.current, direction);
     setNodes(layoutedNodes);
     updateCanvasSettings({ layoutDirection: direction });
     localStorage.setItem(DEFAULT_LAYOUT_DIRECTION_KEY, direction);
-  }, [nodes, edges, setNodes, updateCanvasSettings]);
+  }, [setNodes, updateCanvasSettings]);
 
   // Change edge type
   const changeEdgeType = useCallback((value: string) => {

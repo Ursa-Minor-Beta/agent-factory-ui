@@ -80,6 +80,7 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
   const [agentRunStatuses, setAgentRunStatuses] = useState<Record<string, NodeStatus>>({});
   const [assistantSending, setAssistantSending] = useState(false);
   const [viewingNodeType, setViewingNodeType] = useState<NodeType | null>(null);
+  const handleNodeTypeBack = useCallback(() => setViewingNodeType(null), []);
   const [internalActiveTab, setInternalActiveTab] = useState<string | null>(() => {
     const saved = localStorage.getItem(TAB_STORAGE_KEY);
     return saved || 'nodes';
@@ -218,7 +219,7 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
                 viewingNodeType={viewingNodeType}
                 onAddNode={onAddNode}
                 onNodeClick={setViewingNodeType}
-                onBack={() => setViewingNodeType(null)}
+                onBack={handleNodeTypeBack}
               />
             </Tabs.Panel>
 

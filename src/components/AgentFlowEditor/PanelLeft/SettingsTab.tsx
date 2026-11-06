@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo } from 'react';
 import { Stack, TextInput, Textarea, Group, Code, ActionIcon, Tooltip, CopyButton, Text, Select, Divider, Button } from '@mantine/core';
 import { IconCheck, IconCopy, IconTrash, IconUpload } from '@tabler/icons-react';
 import { AgentDeleteModal } from '../../AgentsList/AgentDeleteModal';
@@ -39,7 +39,7 @@ interface SettingsForm {
   description: string;
 }
 
-export function SettingsTab({ agent, edgeType, layoutDirection, onAgentInfoChange, onEdgeTypeChange, onLayoutDirectionChange, onWorkspaceChange, onExport, onDeleted, exporting }: SettingsTabProps) {
+export const SettingsTab = memo(function SettingsTab({ agent, edgeType, layoutDirection, onAgentInfoChange, onEdgeTypeChange, onLayoutDirectionChange, onWorkspaceChange, onExport, onDeleted, exporting }: SettingsTabProps) {
   const [deleteOpened, setDeleteOpened] = useState(false);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [workspacesLoading, setWorkspacesLoading] = useState(false);
@@ -183,4 +183,4 @@ export function SettingsTab({ agent, edgeType, layoutDirection, onAgentInfoChang
       )}
     </Stack>
   );
-}
+});

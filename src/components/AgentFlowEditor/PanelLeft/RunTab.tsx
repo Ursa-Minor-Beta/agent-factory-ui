@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect, type RefObject } from 'react';
+import { useState, useCallback, useRef, useEffect, type RefObject, memo } from 'react';
 import { Box, Button, Stack, Text, ScrollArea, Group, ActionIcon, Card, Switch, Slider, Collapse } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
 import { IconPlayerPlay, IconPlayerStop, IconListDetails, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
@@ -40,7 +40,7 @@ const MIN_RUNNING_MS = 50;
 const MAX_RUNNING_MS = 2000;
 const DEFAULT_RUNNING_MS = 400;
 
-export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, runRequest, onInputsRequired, onRunningChange, onAgentStatusesChange, runnerRef }: RunTabProps) {
+export const RunTab = memo(function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, runRequest, onInputsRequired, onRunningChange, onAgentStatusesChange, runnerRef }: RunTabProps) {
   // Last used inputs are remembered per agent
   const inputsStorageKey = agent?.id ? `${INPUTS_STORAGE_KEY}-${agent.id}` : null;
   const [inputs, setInputs] = useState<Record<string, string>>(() => {
@@ -322,4 +322,4 @@ export function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, 
       )}
     </Stack>
   );
-}
+});

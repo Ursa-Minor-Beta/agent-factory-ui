@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { Stack, Alert, Accordion, Anchor } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
@@ -20,7 +20,7 @@ interface GitTabProps {
   onReloadAgent?: () => void;
 }
 
-export function GitTab({ agent, savedAt, onReloadAgent }: GitTabProps) {
+export const GitTab = memo(function GitTab({ agent, savedAt, onReloadAgent }: GitTabProps) {
   const { syncStatus, commits, loading, loadingCommits, error, commitsError, refresh } = useGitHubData(agent);
   const [pushing, setPushing] = useState(false);
   const [pulling, setPulling] = useState(false);
@@ -191,4 +191,4 @@ export function GitTab({ agent, savedAt, onReloadAgent }: GitTabProps) {
       )}
     </Stack>
   );
-}
+});
