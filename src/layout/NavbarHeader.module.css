@@ -1,0 +1,7 @@
+.header {
+  cursor: pointer;
+}
+
+.header:hover .toggle {
+  background-color: var(--ai-hover);
+}
