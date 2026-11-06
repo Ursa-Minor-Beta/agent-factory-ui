@@ -316,6 +316,8 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
   agentRef.current = agent;
   const updateAgentMetaRef = useRef(updateAgentMeta);
   updateAgentMetaRef.current = updateAgentMeta;
+  const selectedNodeIdRef = useRef(selectedNode?.id);
+  selectedNodeIdRef.current = selectedNode?.id;
 
   const assistantEditor = useMemo(
     () => ({
@@ -324,6 +326,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
       removeNode,
       nodeTypes: availableNodeTypes,
       save: () => handleSaveRef.current(),
+      getSelection: () => (selectedNodeIdRef.current ? [selectedNodeIdRef.current] : []),
       getAgentInfo: () => ({
         name: agentRef.current?.name ?? '',
         description: agentRef.current?.description ?? '',
