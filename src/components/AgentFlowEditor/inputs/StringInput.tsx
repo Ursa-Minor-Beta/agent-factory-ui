@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useRef } from 'react';
 import { TextInput, Box, Text, Tooltip, Group, ThemeIcon } from '@mantine/core';
 import { IconQuestionMark } from '@tabler/icons-react';
 import { TemplateInputWrapper } from './TemplateInputWrapper';
@@ -9,13 +9,13 @@ interface StringInputProps {
   description?: string;
   nodeLabel?: string;
   value: string;
-  /** @deprecated Use nodes instead */
-  nodeIds?: string[];
   nodes?: NodeMetadata[];
   onChange: (value: string) => void;
 }
 
 export const StringInput = memo(function StringInput({ name, description, value, nodes, onChange }: StringInputProps) {
+  const highlightRef = useRef<HTMLDivElement>(null);
+
   return (
     <Box>
       <Group gap="md" mb="xs" justify="space-between">
@@ -32,6 +32,7 @@ export const StringInput = memo(function StringInput({ name, description, value,
         value={value}
         nodes={nodes}
         onChange={onChange}
+        highlightRef={highlightRef}
         highlightStyle={{
           padding: '0 10px',
           display: 'flex',
@@ -48,6 +49,9 @@ export const StringInput = memo(function StringInput({ name, description, value,
             onBlur={handleBlur}
             onClick={handleClick}
             onKeyDown={handleKeyDown}
+            onScroll={(e) => {
+              if (highlightRef.current) highlightRef.current.scrollLeft = e.currentTarget.scrollLeft;
+            }}
             styles={{
               input: {
                 backgroundColor: 'transparent',
