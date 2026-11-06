@@ -27,6 +27,11 @@ export function RunStatus({ statusText, runId, steps, ...props }: RunStatusProps
       bg="light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))"
       {...props}
     >
+      {toolSteps.length > 0 && (
+        <Stack gap={8} py={8}>
+          {toolSteps.map((step) => <ToolCallStep key={step.tool!.toolCallId} step={step} />)}
+        </Stack>
+      )}
       <Group gap="sm" wrap="nowrap" mih="1.5rem">
         <Loader type="dots" size="xs" />
         <Text size="xs" c="dimmed" truncate style={{ flex: 1 }}>
@@ -38,11 +43,6 @@ export function RunStatus({ statusText, runId, steps, ...props }: RunStatusProps
           </ActionIcon>
         )}
       </Group>
-      {toolSteps.length > 0 && (
-        <Stack gap={2} pt={4}>
-          {toolSteps.map((step) => <ToolCallStep key={step.tool!.toolCallId} step={step} />)}
-        </Stack>
-      )}
     </Paper>
   );
 }

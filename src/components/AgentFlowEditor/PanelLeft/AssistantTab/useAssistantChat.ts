@@ -3,7 +3,7 @@ import { sessionsApi, runsApi, ApiError } from '../../../../api';
 import { useAgentStream } from '../../../AgentStream';
 import { mapApiMessageToChatMessage, parseMessageContent } from '../../../../pages/Chat/models/messageParser';
 import type { ChatMessage } from '../../../../pages/Chat/types';
-import { ASSISTANT_CLIENT_TOOLS, executeAssistantTool, nodesForAssistant, type AssistantEditor, type ToolExecution } from './assistantTools';
+import { ASSISTANT_CLIENT_TOOLS, executeAssistantTool, graphOutlineForAssistant, type AssistantEditor, type ToolExecution } from './assistantTools';
 
 const SESSION_STORAGE_PREFIX = 'agent-editor-assistant-session:';
 const HISTORY_LIMIT = 50;
@@ -145,7 +145,8 @@ export function useAssistantChat(assistantAgentId: string | undefined, agentKey:
         {
           input: {
             message,
-            nodes: nodesForAssistant(editorRef.current.getNodes()),
+            // Outline only - the assistant reads full nodes via editor_get_nodes
+            graph: graphOutlineForAssistant(editorRef.current.getNodes(), editorRef.current.nodeTypes),
             // Edited agent id - empty for an unsaved agent
             agentId: agentKeyRef.current === 'new' ? '' : agentKeyRef.current,
           },

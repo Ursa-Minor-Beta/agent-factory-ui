@@ -33,6 +33,19 @@ export interface AgentInfo {
 
 export const ASSISTANT_CLIENT_TOOLS: ChatClientTool[] = [
   {
+    name: 'editor_get_nodes',
+    description:
+      'Get the current nodes from the editor with their full data. Pass ids to get only those nodes, omit to get all. ' +
+      'Use it to read the latest state before changing a node.',
+    parameters: {
+      type: 'object',
+      properties: {
+        ids: { type: 'array', items: { type: 'string' }, description: 'Node ids to get, omit for all nodes' },
+      },
+    },
+    nodeIds: TOOL_NODE_IDS,
+  },
+  {
     name: 'editor_set_node',
     description: 'Add a node to the editor, or replace the node with the same id. Send the full node.',
     parameters: {
@@ -107,6 +120,7 @@ type ToolResult =
       response?: string;
       warnings?: string[];
       agent?: AgentInfo & { workspaceName?: string };
+      nodes?: AgentNode[];
     };
 
 export interface ToolExecution {
@@ -118,6 +132,14 @@ export interface ToolExecution {
 
 const fail = (summary: string, error: string): ToolExecution => ({ summary, result: { ok: false, errors: [error] } });
 
+// Compact graph sent with each message - full node data is fetched via editor_get_nodes
+export function graphOutlineForAssistant(nodes: AgentNode[], nodeTypes: NodeType[]) {
+  return {
+    nodes: nodes.map(({ id, type, runAfter }) => ({ id, type, ...(runAfter?.length ? { runAfter } : {}) })),
+    validation: validateGraph(nodes, nodeTypes),
+  };
+}
+
 // Graph as sent to the assistant - positions are editor-only noise
 export function nodesForAssistant(nodes: AgentNode[]): AgentNode[] {
   return nodes.map(({ position: _position, ...node }) => node);
@@ -127,6 +149,18 @@ export async function executeAssistantTool(editor: AssistantEditor, name: string
   const id = typeof args.id === 'string' ? args.id.trim() : '';
 
   switch (name) {
+    case 'editor_get_nodes': {
+      const nodes = nodesForAssistant(editor.getNodes());
+      const ids = Array.isArray(args.ids) ? args.ids.filter((v): v is string => typeof v === 'string') : [];
+      if (!ids.length) return { summary: 'Read all nodes', result: { ok: true, nodes } };
+      const found = nodes.filter((n) => ids.includes(n.id));
+      const missing = ids.filter((nodeId) => !found.some((n) => n.id === nodeId));
+      return {
+        summary: `Read nodes ${ids.join(', ')}`,
+        result: { ok: true, nodes: found, ...(missing.length ? { errors: missing.map((m) => `node "${m}" does not exist`) } : {}) },
+      };
+    }
+
     case 'editor_set_node': {
       const summary = `Set node ${id || '?'}`;
       const { type, data, runAfter } = args;
