@@ -4,6 +4,7 @@ import { useAgentStream } from '../../../AgentStream';
 import { mapApiMessageToChatMessage, parseMessageContent } from '../../../../pages/Chat/models/messageParser';
 import type { ChatMessage } from '../../../../pages/Chat/types';
 import { ASSISTANT_CLIENT_TOOLS, executeAssistantTool, graphOutlineForAssistant, type AssistantEditor, type ToolExecution } from './assistantTools';
+import { validateGraph } from '../../utils/validateGraph';
 
 const SESSION_STORAGE_PREFIX = 'agent-editor-assistant-session:';
 const HISTORY_LIMIT = 50;
@@ -139,16 +140,22 @@ export function useAssistantChat(assistantAgentId: string | undefined, agentKey:
 
       addMessage({ id: nextId('user'), role: 'user', content: message, createdAt: new Date().toISOString() });
 
+      const editor = editorRef.current;
+      const { name: agentName, description: agentDescription } = editor.getAgentInfo();
       // Stream drop cancels the run (client tools attached) - useAgentStream aborts it on unmount
       const result = await start(
         assistantAgentId,
         {
           input: {
             message,
-            // Outline only - the assistant reads full nodes via editor_get_nodes
-            graph: graphOutlineForAssistant(editorRef.current.getNodes(), editorRef.current.nodeTypes),
             // Edited agent id - empty for an unsaved agent
             agentId: agentKeyRef.current === 'new' ? '' : agentKeyRef.current,
+            agentName,
+            agentDescription,
+            // Outline only - the assistant reads full nodes via editor_get_nodes
+            graph: graphOutlineForAssistant(editor.getNodes(), editor.nodeTypes),
+            selection: editor.getSelection(),
+            validationErrors: validateGraph(editor.getNodes(), editor.nodeTypes).errors,
           },
           sessionId: sessionId || undefined,
           clientTools: ASSISTANT_CLIENT_TOOLS,

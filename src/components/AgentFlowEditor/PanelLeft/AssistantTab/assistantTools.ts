@@ -20,6 +20,8 @@ export interface AssistantEditor {
   save: () => Promise<string | null>;
   // Saves, then runs in the Run tab
   run: (input?: Record<string, unknown>) => Promise<AgentStreamResult>;
+  // Ids of the nodes selected on the canvas
+  getSelection: () => string[];
   getAgentInfo: () => AgentInfo;
   // Persists for a saved agent, local until first save for a new one - false on failure
   updateAgentInfo: (data: Partial<AgentInfo>) => Promise<boolean>;
