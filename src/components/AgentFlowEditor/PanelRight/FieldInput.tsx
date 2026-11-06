@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback, memo } from 'react';
 import type { NodeTypeOption } from '../../../api';
 import type { NodeMetadata } from '../inputs/templateUtils';
-import { StringInput, TextInput, EditorInput, NumberInput, BooleanInput, EnumInput, MultiEnumInput } from '../inputs';
+import { StringInput, TextInput, JSONInput, NumberInput, BooleanInput, EnumInput, MultiEnumInput } from '../inputs';
 
 interface FieldInputProps {
   fieldKey: string;
@@ -128,7 +128,7 @@ export const FieldInput = memo(function FieldInput({
   // Code type (JSON editor with modal)
   if (fieldType === 'code') {
     return (
-      <EditorInput
+      <JSONInput
         mode='javascript'
         nodeId={nodeId}
         name={fieldKey}
@@ -146,7 +146,7 @@ export const FieldInput = memo(function FieldInput({
 
   if (isObject) {
     return (
-      <EditorInput
+      <JSONInput
         mode='json'
         nodeId={nodeId}
         name={fieldKey}
