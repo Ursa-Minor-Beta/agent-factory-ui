@@ -1,6 +1,15 @@
 import { useRef, useEffect, useMemo, useState, type RefObject, type ReactNode } from 'react';
 import { Box, Text, Combobox, useCombobox, ScrollArea, type FloatingPosition } from '@mantine/core';
-import { HighlightedText, findTemplateStart, parseTemplateContext, type NodeMetadata } from './templateUtils';
+import {
+  HighlightedText,
+  findTemplateStart,
+  buildTemplateOptions,
+  buildTemplateValidation,
+  filterTemplateOptions,
+  isTemplateKindOption,
+  type NodeMetadata,
+  type TemplateRefs,
+} from './templateUtils';
 
 const DEBOUNCE_MS = 300;
 
@@ -16,6 +25,7 @@ interface InputRenderProps {
 interface TemplateInputWrapperProps {
   value: string;
   nodes?: NodeMetadata[];
+  refs?: TemplateRefs;
   onChange: (value: string) => void;
   wrapperStyle?: React.CSSProperties;
   highlightStyle?: React.CSSProperties;
@@ -27,6 +37,7 @@ interface TemplateInputWrapperProps {
 export function TemplateInputWrapper({
   value,
   nodes,
+  refs,
   onChange,
   wrapperStyle,
   highlightStyle,
@@ -43,6 +54,8 @@ export function TemplateInputWrapper({
   const lastEmittedRef = useRef<string | null>(null);
   const [highlightValue, setHighlightValue] = useState(value);
   const [filterQuery, setFilterQuery] = useState('');
+  // Select the first option once the list re-renders after picking a kind shortcut
+  const selectFirstRef = useRef(false);
 
   const combobox = useCombobox({
     onDropdownClose: () => combobox.resetSelectedOption(),
@@ -50,68 +63,24 @@ export function TemplateInputWrapper({
 
   onChangeRef.current = onChange;
 
-  const nodeMetadata = nodes ?? [];
+  // All reference options ("node:id.output", "secret:NAME", "var:NAME")
+  const allTemplateOptions = useMemo(() => buildTemplateOptions(nodes, refs), [nodes, refs]);
 
-  // Create lookup map for node outputs
-  const nodeOutputsMap = useMemo(() => {
-    const map = new Map<string, string[]>();
-    nodeMetadata.forEach(node => {
-      if (node.outputs) {
-        map.set(node.id, node.outputs);
-      }
-    });
-    return map;
-  }, [nodeMetadata]);
+  const validation = useMemo(
+    () => buildTemplateValidation(nodes?.map(n => n.id), refs),
+    [nodes, refs]
+  );
 
-  // Extract just node IDs for backward compatibility
-  const nodeIdList = useMemo(() => nodeMetadata.map(n => n.id), [nodeMetadata]);
+  const filteredSuggestions = useMemo(
+    () => filterTemplateOptions(allTemplateOptions, filterQuery),
+    [allTemplateOptions, filterQuery]
+  );
 
-  // Generate all possible template references (only node.outputs, not bare nodes)
-  const allTemplateOptions = useMemo(() => {
-    const options: string[] = [];
-
-    nodeMetadata.forEach(node => {
-      // Only add node.output combinations
-      if (node.outputs && node.outputs.length > 0) {
-        node.outputs.forEach(output => {
-          options.push(`${node.id}.${output}`);
-        });
-      }
-    });
-
-    // Sort alphabetically
-    return options.sort((a, b) => a.localeCompare(b));
-  }, [nodeMetadata]);
-
-  // Filter suggestions based on context
-  const filteredSuggestions = useMemo(() => {
-    if (nodeMetadata.length === 0) return [];
-
-    const context = parseTemplateContext(filterQuery);
-
-    if (!context || context.type === 'node-id') {
-      // Show all template options (node IDs and outputs), filtered by query
-      const query = context?.query?.toLowerCase() || '';
-
-      if (!query) {
-        return allTemplateOptions;
-      }
-
-      return allTemplateOptions.filter(option =>
-        option.toLowerCase().includes(query)
-      );
-    }
-
-    // When user has typed a specific node ID with dot, show only that node's outputs
-    const outputs = nodeOutputsMap.get(context.nodeId);
-    if (!outputs || outputs.length === 0) return [];
-
-    const query = context.query.toLowerCase();
-    const filtered = query ? outputs.filter(output => output.toLowerCase().includes(query)) : outputs;
-
-    // Prepend nodeId to each output to maintain full reference format
-    return filtered.map(output => `${context.nodeId}.${output}`).sort((a, b) => a.localeCompare(b));
-  }, [nodeMetadata, filterQuery, allTemplateOptions, nodeOutputsMap]);
+  useEffect(() => {
+    if (!selectFirstRef.current) return;
+    selectFirstRef.current = false;
+    combobox.selectFirstOption();
+  }, [filteredSuggestions, combobox]);
 
   // Sync on external value changes
   useEffect(() => {
@@ -147,8 +116,10 @@ export function TemplateInputWrapper({
     const templateInfo = findTemplateStart(currentValue, cursorPos);
     if (!templateInfo) return;
 
-    // The suggestion value is either "nodeId" or "nodeId.output"
-    const template = `{{node:${suggestionValue}}}`;
+    // The suggestion value is the full reference, e.g. "node:id.output" or "secret:NAME",
+    // or a kind shortcut ("node:") which only inserts the prefix and keeps suggesting
+    const isKind = isTemplateKindOption(suggestionValue);
+    const template = isKind ? `{{${suggestionValue}` : `{{${suggestionValue}}}`;
 
     const before = currentValue.slice(0, templateInfo.start);
     const after = currentValue.slice(cursorPos);
@@ -163,13 +134,19 @@ export function TemplateInputWrapper({
     onChangeRef.current(newValue);
     setHighlightValue(newValue);
 
+    if (isKind) {
+      setFilterQuery(suggestionValue);
+      selectFirstRef.current = true;
+      return;
+    }
+
     combobox.closeDropdown();
     setFilterQuery('');
   };
 
   // Check autocomplete with given value and cursor position
   const checkAutocomplete = (currentValue: string, cursorPos: number) => {
-    if (nodeMetadata.length === 0) {
+    if (allTemplateOptions.length === 0) {
       combobox.closeDropdown();
       return;
     }
@@ -246,7 +223,7 @@ export function TemplateInputWrapper({
   const options = filteredSuggestions.map((suggestion) => {
     return (
       <Combobox.Option value={suggestion} key={suggestion}>
-        <Text size="xs" ff="monospace">{`node:${suggestion}`}</Text>
+        <Text size="xs" ff="monospace">{suggestion}</Text>
       </Combobox.Option>
     );
   });
@@ -289,7 +266,7 @@ export function TemplateInputWrapper({
         >
           {/* Highlight layer */}
           <Box ref={highlightRef} style={defaultHighlightStyle}>
-            <HighlightedText text={highlightValue} nodeIds={nodeIdList} />
+            <HighlightedText text={highlightValue} validation={validation} />
           </Box>
 
           {children({
@@ -308,7 +285,7 @@ export function TemplateInputWrapper({
       >
         <Combobox.Options>
           <ScrollArea.Autosize mah={200}>
-            {options.length > 0 ? options : <Combobox.Empty>No nodes found</Combobox.Empty>}
+            {options.length > 0 ? options : <Combobox.Empty>No references found</Combobox.Empty>}
           </ScrollArea.Autosize>
         </Combobox.Options>
       </Combobox.Dropdown>

@@ -6,8 +6,17 @@ import { Box, Text, ScrollArea } from '@mantine/core';
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
-import { TEMPLATE_VAR_REGEX, TEMPLATE_NODE_ID_REGEX } from '../../utils/converters';
-import { parseTemplateContext, type NodeMetadata } from '../templateUtils';
+import { TEMPLATE_VAR_REGEX } from '../../utils/converters';
+import {
+  buildTemplateOptions,
+  buildTemplateValidation,
+  checkTemplateRef,
+  filterTemplateOptions,
+  isTemplateKindOption,
+  type NodeMetadata,
+  type TemplateRefs,
+  type TemplateValidation,
+} from '../templateUtils';
 
 interface MentionListRef {
   onKeyDown: (props: SuggestionKeyDownProps) => boolean;
@@ -93,7 +102,7 @@ const MentionList = forwardRef<MentionListRef, MentionListProps>(({ items, comma
               backgroundColor: index === selectedIndex ? 'var(--mantine-color-default-hover)' : 'transparent',
             }}
           >
-            <Text size="xs" ff="monospace">{`node:${item}`}</Text>
+            <Text size="xs" ff="monospace">{item}</Text>
           </Box>
         ))}
       </ScrollArea.Autosize>
@@ -107,8 +116,8 @@ MentionList.displayName = 'MentionList';
 const templateHighlightPluginKey = new PluginKey('templateHighlight');
 
 // Create decoration extension for highlighting existing template references
-export function createTemplateHighlight(nodeIds: string[]) {
-  const nodeIdSet = new Set(nodeIds);
+export function createTemplateHighlight(nodeIds: string[], refs?: TemplateRefs) {
+  const validation = buildTemplateValidation(nodeIds, refs);
 
   return Extension.create({
     name: 'templateHighlight',
@@ -119,11 +128,11 @@ export function createTemplateHighlight(nodeIds: string[]) {
           key: templateHighlightPluginKey,
           state: {
             init(_, { doc }) {
-              return findTemplateDecorations(doc, nodeIdSet);
+              return findTemplateDecorations(doc, validation);
             },
             apply(tr, oldState) {
               if (tr.docChanged) {
-                return findTemplateDecorations(tr.doc, nodeIdSet);
+                return findTemplateDecorations(tr.doc, validation);
               }
               return oldState;
             },
@@ -140,7 +149,7 @@ export function createTemplateHighlight(nodeIds: string[]) {
 }
 
 // Find all template references and create decorations
-function findTemplateDecorations(doc: any, nodeIdSet: Set<string>): DecorationSet {
+function findTemplateDecorations(doc: any, validation: TemplateValidation): DecorationSet {
   const decorations: Decoration[] = [];
 
   doc.descendants((node: any, pos: number) => {
@@ -155,14 +164,13 @@ function findTemplateDecorations(doc: any, nodeIdSet: Set<string>): DecorationSe
       const start = pos + match.index;
       const end = start + match[0].length;
 
-      // Check if referenced node is valid
-      const nodeIdMatch = match[0].match(TEMPLATE_NODE_ID_REGEX);
-      const referencedNodeId = nodeIdMatch?.[1]?.trim();
-      const isValid = referencedNodeId ? nodeIdSet.has(referencedNodeId) : false;
+      // Check if referenced node / secret / variable exists
+      const ref = checkTemplateRef(match[0], validation);
+      if (!ref) continue;
 
       decorations.push(
         Decoration.inline(start, end, {
-          class: isValid ? 'template-ref-valid' : 'template-ref-invalid',
+          class: ref.isValid ? `template-ref-valid template-ref-${ref.kind}` : 'template-ref-invalid',
         })
       );
     }
@@ -175,29 +183,12 @@ function findTemplateDecorations(doc: any, nodeIdSet: Set<string>): DecorationSe
 const typingStateKey = new PluginKey('typingState');
 
 // Create suggestion extension for template autocomplete
-export function createTemplateMention(nodes: NodeMetadata[]) {
+export function createTemplateMention(nodes: NodeMetadata[], refs?: TemplateRefs) {
   // Track if the last action was typing (not click)
   let lastActionWasTyping = false;
 
-  // Build lookup maps
-  const nodeOutputsMap = new Map<string, string[]>();
-  nodes.forEach(node => {
-    if (node.outputs) {
-      nodeOutputsMap.set(node.id, node.outputs);
-    }
-  });
-
-  // Generate all possible template options (only node.outputs, not bare nodes)
-  const allTemplateOptions: string[] = [];
-  nodes.forEach(node => {
-    // Only add node.output combinations
-    if (node.outputs && node.outputs.length > 0) {
-      node.outputs.forEach(output => {
-        allTemplateOptions.push(`${node.id}.${output}`);
-      });
-    }
-  });
-  allTemplateOptions.sort((a, b) => a.localeCompare(b));
+  // All reference options ("node:id.output", "secret:NAME", "var:NAME")
+  const allTemplateOptions = buildTemplateOptions(nodes, refs);
 
   return Extension.create({
     name: 'templateSuggestion',
@@ -265,30 +256,14 @@ export function createTemplateMention(nodes: NodeMetadata[]) {
             // Remove the leading { to get actual query
             const actualQuery = query.slice(1);
 
-            const context = parseTemplateContext(actualQuery);
-
-            if (!context || context.type === 'node-id') {
-              // Show all template options, filtered by query
-              const q = context?.query?.toLowerCase() || '';
-
-              if (!q) {
-                return allTemplateOptions;
-              }
-
-              return allTemplateOptions.filter(option => option.toLowerCase().includes(q));
-            }
-
-            // When user has typed a specific node ID with dot, show only that node's outputs
-            const outputs = nodeOutputsMap.get(context.nodeId);
-            if (!outputs || outputs.length === 0) return [];
-
-            const q = context.query.toLowerCase();
-            const filtered = q ? outputs.filter(output => output.toLowerCase().includes(q)) : outputs;
-            return filtered.sort((a, b) => a.localeCompare(b));
+            return filterTemplateOptions(allTemplateOptions, actualQuery);
           },
           command: ({ editor, range, props }: { editor: any; range: any; props: { id: string } }) => {
-            // The props.id is already in the format "nodeId" or "nodeId.output"
-            const template = `{{node:${props.id}}}`;
+            // The props.id is the full reference, e.g. "node:id.output" or "secret:NAME",
+            // or a kind shortcut ("node:") which only inserts the prefix and keeps suggesting
+            const isKind = isTemplateKindOption(props.id);
+            const template = isKind ? `{{${props.id}` : `{{${props.id}}}`;
+            lastActionWasTyping = isKind;
             editor.chain().focus().deleteRange(range).insertContent(template).run();
           },
           render: () => {

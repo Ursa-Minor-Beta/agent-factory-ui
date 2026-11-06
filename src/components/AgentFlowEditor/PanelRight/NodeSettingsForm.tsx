@@ -4,7 +4,7 @@ import { TextInput as MantineTextInput, Stack, Divider, ScrollArea, Group, Text,
 import { IconPencil, IconQuestionMark } from '@tabler/icons-react';
 import type { Node } from '@xyflow/react';
 import type { NodeType, NodeTypeOption } from '../../../api';
-import type { NodeMetadata } from '../inputs/templateUtils';
+import type { NodeMetadata, TemplateRefs } from '../inputs/templateUtils';
 import { FieldInput } from './FieldInput';
 import { InputNodeEditor } from './InputNodeEditor';
 import { OutputNodeEditor } from './OutputNodeEditor';
@@ -15,6 +15,7 @@ interface NodeSettingsFormProps {
   node: Node;
   nodes: Node[];
   nodeTypes: NodeType[];
+  templateRefs: TemplateRefs;
   onUpdate: (nodeId: string, data: Record<string, unknown>) => void;
   onUpdateId: (oldId: string, newId: string) => void;
   onReplace: (nodeId: string, data: Record<string, unknown>) => void;
@@ -27,7 +28,12 @@ interface NodeFormData {
 
 const DEBOUNCE_MS = 300;
 
-export function NodeSettingsForm({ node, nodes, nodeTypes, onUpdate, onUpdateId, onReplace }: NodeSettingsFormProps) {
+// HTTP node fields interpolated with secrets: url, every header value, body
+const SECRET_FIELDS: Record<string, string[]> = {
+  http: ['url', 'headers', 'body'],
+};
+
+export function NodeSettingsForm({ node, nodes, nodeTypes, templateRefs, onUpdate, onUpdateId, onReplace }: NodeSettingsFormProps) {
   const { register, reset, watch } = useForm<NodeFormData>();
   const updateTimeoutRef = useRef<number | undefined>(undefined);
 
@@ -193,6 +199,11 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, onUpdate, onUpdateId,
     });
   }, [nodes, nodeTypes, node.id]);
 
+  // Variables are allowed everywhere, secrets only in fields listed in SECRET_FIELDS
+  const variableRefs = useMemo((): TemplateRefs => ({ variables: templateRefs.variables }), [templateRefs.variables]);
+  const getFieldRefs = (key: string) =>
+    SECRET_FIELDS[node.type ?? '']?.includes(key) ? templateRefs : variableRefs;
+
   return (
     <ScrollArea flex={1}>
       <Stack gap="lg" p="lg">
@@ -247,6 +258,7 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, onUpdate, onUpdateId,
             nodeLabel={nodeLabel}
             nodeData={nodeData}
             nodes={nodesMetadata}
+            refs={variableRefs}
             onUpdate={onUpdate}
             onReplace={onReplace}
           />
@@ -273,6 +285,7 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, onUpdate, onUpdateId,
               nodeId={node.id}
               nodeLabel={nodeLabel}
               nodes={nodesMetadata}
+              refs={getFieldRefs(key)}
               onUpdate={onUpdate}
             />
           ))}

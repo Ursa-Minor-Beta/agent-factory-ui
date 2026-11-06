@@ -1,43 +1,114 @@
 import { memo, useMemo } from 'react';
-import { TEMPLATE_VAR_REGEX, TEMPLATE_NODE_ID_REGEX } from '../utils/converters';
+import { TEMPLATE_VAR_REGEX, TEMPLATE_REF_REGEX } from '../utils/converters';
 
 export interface NodeMetadata {
   id: string;
   outputs?: string[];
 }
 
-interface HighlightedTextProps {
-  text: string;
-  nodeIds?: string[];
+// Secret / variable names available for {{secret:NAME}} / {{var:NAME}} references
+export interface TemplateRefs {
+  secrets?: string[];
+  variables?: string[];
 }
 
-export const HighlightedText = memo(function HighlightedText({ text, nodeIds }: HighlightedTextProps) {
+export type TemplateKind = 'node' | 'secret' | 'var';
+
+export const TEMPLATE_KIND_COLORS: Record<TemplateKind, string> = {
+  node: 'rgba(34, 184, 207, 0.15)',
+  secret: 'rgba(250, 176, 5, 0.2)',
+  var: 'rgba(151, 117, 250, 0.2)',
+};
+export const TEMPLATE_INVALID_COLOR = 'rgba(246, 22, 22, .5)';
+
+// Template option label without braces: "node:id.output", "secret:NAME", "var:NAME"
+export function buildTemplateOptions(nodes: NodeMetadata[] = [], refs?: TemplateRefs): string[] {
+  const options: string[] = [];
+
+  // Only node.output combinations, not bare nodes
+  nodes.forEach(node => {
+    node.outputs?.forEach(output => options.push(`node:${node.id}.${output}`));
+  });
+  refs?.variables?.forEach(name => options.push(`var:${name}`));
+  refs?.secrets?.forEach(name => options.push(`secret:${name}`));
+
+  return options.sort((a, b) => a.localeCompare(b));
+}
+
+const TEMPLATE_KINDS: TemplateKind[] = ['node', 'secret', 'var'];
+
+// Kind shortcut option ("node:", "secret:", "var:") - selecting it only inserts the prefix
+export const isTemplateKindOption = (option: string) => option.endsWith(':');
+
+// Filter options by what's typed after {{ (e.g. "", "sec", "node:llm.")
+// While no kind is typed yet, kind shortcuts for kinds with options go first
+export function filterTemplateOptions(options: string[], query: string): string[] {
+  const q = query.trim().toLowerCase().replace(/\s+/g, '');
+  const filtered = q ? options.filter(option => option.toLowerCase().includes(q)) : options;
+  if (q.includes(':')) return filtered;
+
+  const kinds = TEMPLATE_KINDS
+    .filter(kind => kind.startsWith(q) && options.some(option => getTemplateKind(option) === kind))
+    .map(kind => `${kind}:`);
+  return [...kinds, ...filtered];
+}
+
+export function getTemplateKind(option: string): TemplateKind {
+  return option.slice(0, option.indexOf(':')) as TemplateKind;
+}
+
+// Lookup sets for validating references
+export interface TemplateValidation {
+  nodeIds: Set<string>;
+  secrets: Set<string>;
+  variables: Set<string>;
+}
+
+export function buildTemplateValidation(nodeIds: string[] = [], refs?: TemplateRefs): TemplateValidation {
+  return {
+    nodeIds: new Set(nodeIds),
+    secrets: new Set(refs?.secrets ?? []),
+    variables: new Set(refs?.variables ?? []),
+  };
+}
+
+// Resolve kind and validity of a full {{...}} reference
+export function checkTemplateRef(ref: string, validation: TemplateValidation): { kind: TemplateKind; isValid: boolean } | null {
+  const match = ref.match(TEMPLATE_REF_REGEX);
+  if (!match) return null;
+
+  const kind = match[1] as TemplateKind;
+  const target = match[2];
+  if (kind === 'node') return { kind, isValid: validation.nodeIds.has(target.split('.')[0].trim()) };
+  if (kind === 'secret') return { kind, isValid: validation.secrets.has(target) };
+  return { kind, isValid: validation.variables.has(target) };
+}
+
+interface HighlightedTextProps {
+  text: string;
+  validation: TemplateValidation;
+}
+
+export const HighlightedText = memo(function HighlightedText({ text, validation }: HighlightedTextProps) {
   const parts = useMemo(() => {
     if (!text) return [];
     return text.split(TEMPLATE_VAR_REGEX);
   }, [text]);
 
-  const nodeIdSet = useMemo(() => new Set(nodeIds || []), [nodeIds]);
-
   return (
     <>
       {parts.map((part, i) => {
-        if (!TEMPLATE_VAR_REGEX.test(part)) {
+        const ref = checkTemplateRef(part, validation);
+        if (!ref) {
           return <span key={i}>{part}</span>;
         }
-
-        const match = part.match(TEMPLATE_NODE_ID_REGEX);
-        const referencedNodeId = match?.[1]?.trim();
-        const isValid = referencedNodeId ? nodeIdSet.has(referencedNodeId) : false;
 
         return (
           <span
             key={i}
             style={{
               color: 'transparent',
-              backgroundColor: isValid
-                ? 'rgba(34, 184, 207, 0.15)'
-                : 'rgba(239, 68, 68, 0.15)',
+              backgroundColor: ref.isValid ? TEMPLATE_KIND_COLORS[ref.kind] : TEMPLATE_INVALID_COLOR,
               borderRadius: 2,
             }}
           >
@@ -48,11 +119,6 @@ export const HighlightedText = memo(function HighlightedText({ text, nodeIds }: 
     </>
   );
 });
-
-// Template context types
-export type TemplateContext =
-  | { type: 'node-id'; query: string }  // Typing {{node:...
-  | { type: 'output'; nodeId: string; query: string }; // Typing {{node:id.output...
 
 // Find the start of the current template being typed (after {{ )
 export function findTemplateStart(text: string, cursorPos: number): { start: number; query: string } | null {
@@ -66,32 +132,4 @@ export function findTemplateStart(text: string, cursorPos: number): { start: num
 
   const query = beforeCursor.slice(lastOpen + 2);
   return { start: lastOpen, query };
-}
-
-// Parse template context to determine what to suggest
-export function parseTemplateContext(query: string): TemplateContext | null {
-  // Remove leading/trailing whitespace
-  const trimmed = query.trim();
-
-  // Check if starts with 'node:'
-  if (!trimmed.startsWith('node:')) {
-    return null;
-  }
-
-  // Remove 'node:' prefix
-  const afterNode = trimmed.slice(5).trim();
-
-  // Check if there's a dot (suggesting outputs)
-  const dotIndex = afterNode.indexOf('.');
-
-  if (dotIndex === -1) {
-    // No dot yet, suggesting node IDs
-    return { type: 'node-id', query: afterNode };
-  }
-
-  // There's a dot, extract node ID and output query
-  const nodeId = afterNode.slice(0, dotIndex).trim();
-  const outputQuery = afterNode.slice(dotIndex + 1);
-
-  return { type: 'output', nodeId, query: outputQuery };
 }

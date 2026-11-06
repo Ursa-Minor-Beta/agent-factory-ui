@@ -4,6 +4,7 @@ import { useDisclosure } from '@mantine/hooks';
 import { IconTrash, IconX } from '@tabler/icons-react';
 import type { Node } from '@xyflow/react';
 import type { NodeType } from '../../../api';
+import type { TemplateRefs } from '../inputs/templateUtils';
 
 const NodeSettingsForm = lazy(() =>
   import('./NodeSettingsForm').then((m) => ({ default: m.NodeSettingsForm }))
@@ -17,6 +18,7 @@ interface PanelRightProps {
   node: Node;
   nodes: Node[];
   nodeTypes: NodeType[];
+  templateRefs: TemplateRefs;
   isNodesDragging: boolean;
   onUpdate: (nodeId: string, data: Record<string, unknown>) => void;
   onUpdateId: (oldId: string, newId: string) => void;
@@ -25,7 +27,7 @@ interface PanelRightProps {
   onClose: () => void;
 }
 
-export const PanelRight = memo( function({ node, nodes, nodeTypes, onUpdate, onUpdateId, onReplace, onRemove, onClose }: PanelRightProps) {
+export const PanelRight = memo( function({ node, nodes, nodeTypes, templateRefs, onUpdate, onUpdateId, onReplace, onRemove, onClose }: PanelRightProps) {
   const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
   const [width, setWidth] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -132,6 +134,7 @@ export const PanelRight = memo( function({ node, nodes, nodeTypes, onUpdate, onU
             node={node}
             nodes={nodes}
             nodeTypes={nodeTypes}
+            templateRefs={templateRefs}
             onUpdate={onUpdate}
             onUpdateId={onUpdateId}
             onReplace={onReplace}

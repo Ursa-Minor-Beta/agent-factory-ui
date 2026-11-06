@@ -3,7 +3,7 @@ import { Box, Text, Group, ActionIcon, Modal, Textarea, Tooltip, ThemeIcon, Load
 import { IconArrowsMaximize, IconList, IconListNumbers, IconQuestionMark } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import { TemplateInputWrapper } from '../TemplateInputWrapper';
-import type { NodeMetadata } from '../templateUtils';
+import type { NodeMetadata, TemplateRefs } from '../templateUtils';
 import { useScrollMemory } from '../scrollMemory';
 
 const TemplateTextEditorFull = lazy(() =>
@@ -18,10 +18,11 @@ interface TextInputProps {
   nodeId?: string;
   value: string;
   nodes?: NodeMetadata[];
+  refs?: TemplateRefs;
   onChange: (value: string) => void;
 }
 
-export const TextInput = memo(function TextInput({ name, description, nodeLabel, nodeId: scrollNodeId, value, nodes, onChange }: TextInputProps) {
+export const TextInput = memo(function TextInput({ name, description, nodeLabel, nodeId: scrollNodeId, value, nodes, refs, onChange }: TextInputProps) {
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
   const highlightRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -57,6 +58,7 @@ export const TextInput = memo(function TextInput({ name, description, nodeLabel,
       <TemplateInputWrapper
         value={value}
         nodes={nodes}
+        refs={refs}
         onChange={onChange}
         highlightRef={highlightRef}
         highlightStyle={{
@@ -119,6 +121,7 @@ export const TextInput = memo(function TextInput({ name, description, nodeLabel,
             getValues={() => value}
             setValue={(_, newValue) => onChange(newValue)}
             nodes={nodes}
+            refs={refs}
             toolbarFormatBtns={[
               {
                 title: 'H1',

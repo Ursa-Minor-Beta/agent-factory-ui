@@ -14,7 +14,7 @@ import { common, createLowlight } from 'lowlight';
 import type { Icon } from '@tabler/icons-react';
 import { createTemplateMention, createTemplateHighlight } from './templateMention';
 import { TemplateInputWrapper } from '../TemplateInputWrapper';
-import type { NodeMetadata } from '../templateUtils';
+import type { NodeMetadata, TemplateRefs } from '../templateUtils';
 import classes from '../../../TextEditorMarkdown/TextEditorMarkdown.module.css';
 
 // Create lowlight instance with error handling
@@ -62,6 +62,7 @@ interface TemplateTextEditorFullProps {
     toolbarFormatBtns?: ToolbarItem[];
     toolbarCommonBtns?: ToolbarItem[];
     nodes?: NodeMetadata[];
+    refs?: TemplateRefs;
 
     getValues: (fieldName: string) => string;
     setValue: (fieldName: string, value: string) => void;
@@ -96,6 +97,7 @@ export function TemplateTextEditorFull({
     toolbarFormatBtns,
     toolbarCommonBtns,
     nodes,
+    refs,
     setValue,
     getValues,
 }: TemplateTextEditorFullProps) {
@@ -115,18 +117,23 @@ export function TemplateTextEditorFull({
     // Template extensions for TipTap - use stable key to prevent unnecessary recreations
     const nodesRef = useRef(nodes);
     nodesRef.current = nodes;
-    const nodeMetadataKey = nodes?.map(n => `${n.id}:${n.outputs?.join(',') || ''}`).join('|') || '';
+    const refsRef = useRef(refs);
+    refsRef.current = refs;
+    const nodeMetadataKey = (nodes?.map(n => `${n.id}:${n.outputs?.join(',') || ''}`).join('|') || '')
+        + `#${refs?.secrets?.join(',') || ''}#${refs?.variables?.join(',') || ''}`;
 
     const templateExtensions = useMemo(() => {
         const nodeMetadata: NodeMetadata[] = nodesRef.current || [];
 
-        if (nodeMetadata.length === 0) return [];
+        const templateRefs = refsRef.current;
+
+        if (nodeMetadata.length === 0 && !templateRefs?.secrets?.length && !templateRefs?.variables?.length) return [];
 
         const nodeIdList = nodeMetadata.map(n => n.id);
 
         return [
-            createTemplateMention(nodeMetadata),
-            createTemplateHighlight(nodeIdList),
+            createTemplateMention(nodeMetadata, templateRefs),
+            createTemplateHighlight(nodeIdList, templateRefs),
         ];
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [nodeMetadataKey]);
@@ -278,6 +285,7 @@ export function TemplateTextEditorFull({
                             key={rawModeKey}
                             value={contentRef.current}
                             nodes={nodes}
+                            refs={refs}
                             onChange={handleRawContentChange}
                             highlightRef={highlightRef}
                             dropdownPosition="top-start"
