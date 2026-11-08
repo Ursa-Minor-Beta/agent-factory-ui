@@ -18,9 +18,9 @@ import { routes } from '../config/routes';
 
 export const getBaseNavItems = (): NavItem[] => [
 
-  { label: 'Agents', path: routes.agents(), icon: <IconRobot size={20} /> },
+  { label: 'All Agents', path: routes.agents(), icon: <IconRobot size={20} /> },
   
-  { label: 'Workspaces', path: routes.workspaces(), icon: <IconFolders size={20} /> },
+  { label: 'Agents Workspaces', path: routes.workspaces(), icon: <IconFolders size={20} /> },
 
   {
     label: 'Configurations',

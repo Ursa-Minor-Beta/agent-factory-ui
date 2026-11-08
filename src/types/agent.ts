@@ -99,7 +99,7 @@ export interface AgentQueryParams {
   id?: string;
   name?: string;
   description?: string;
-  workspaceId?: string;
+  workspaceId?: string | null; // null = agents not assigned to any workspace (sent as 'null')
   createdAfter?: string;
   createdBefore?: string;
   sortBy?: 'name' | 'createdAt' | 'updatedAt';
