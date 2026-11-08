@@ -166,6 +166,11 @@ const { openRunDetails } = useRunDetailsModal();
 - Modals that need different behavior per page
 - Simple confirmation dialogs
 
+### Keep README Features Up to Date
+- **Every user-facing feature change must update the Features section in `README.md`** - new pages, new editor tabs/tools, new node types, new providers, new run/chat capabilities, or a changed scope of an existing feature
+- Edit the existing bullet when a feature grows (e.g. the builder gained new tools); add a bullet only for a genuinely new feature
+- Keep bullets one line, `**Name** - what the user can do`, no implementation details
+
 ### Adding a New Page
 1. Create page component in `src/pages/`
 2. Add route in `src/router.tsx`
