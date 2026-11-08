@@ -13,7 +13,7 @@ const average = (values: number[]) => values.reduce((s, v) => s + v, 0) / values
  *  2. Ordering   - start from DFS order (keeps siblings together), then barycenter sweeps
  *                  down/up to reduce edge crossings
  *  3. Placement  - pull each agent toward the average x of its callers/callees, keeping min spacing
- * Agents without any relations are put in a grid below the tree.
+ * Agents without any relations share the top row with the roots, the whole row sorted by name.
  */
 export function layout(
   agents: LayoutAgent[],
@@ -81,6 +81,11 @@ export function layout(
     }
   }
 
+  // Top row: roots plus isolated agents, sorted by name
+  layers[0].push(...isolated);
+  layers[0].sort(byName);
+  reindex();
+
   // 3. Placement. Start packed, then pull toward neighbours while keeping order and spacing.
   const x = new Map<string, number>();
   layers.forEach((layer) => layer.forEach((id, i) => x.set(id, i * SLOT)));
@@ -109,14 +114,6 @@ export function layout(
 
   const positions = new Map<string, { x: number; y: number }>();
   layers.forEach((layer, d) => layer.forEach((id) => positions.set(id, { x: x.get(id)!, y: d * ROW_GAP })));
-
-  // Isolated agents: grid under the tree, aligned to its left edge
-  const minX = connected.length ? Math.min(...x.values()) : 0;
-  const top = connected.length ? (maxDepth + 1) * ROW_GAP + ROW_GAP : 0;
-  const perRow = Math.max(4, ...layers.map((l) => l.length));
-  isolated.forEach((id, i) => {
-    positions.set(id, { x: minX + (i % perRow) * SLOT, y: top + Math.floor(i / perRow) * ROW_GAP });
-  });
   return positions;
 }
 
