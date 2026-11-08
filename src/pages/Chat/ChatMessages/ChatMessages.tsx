@@ -131,7 +131,16 @@ export function ChatMessages({
             ) : null,
           Footer: () => (
               <>
-                {sending && <RunStatus statusText={statusText} runId={currentRunId} steps={steps} ms="xs" mx="sm" mb="xs" />}
+                {sending && 
+                    <RunStatus 
+                      statusText={statusText} 
+                      runId={currentRunId} 
+                      steps={steps} 
+                      ms={22} 
+                      mx="sm" 
+                      mb="xs" 
+                      />
+                }
                 <Box style={{ height: inputHeight + 32 }} />
               </>
             ),

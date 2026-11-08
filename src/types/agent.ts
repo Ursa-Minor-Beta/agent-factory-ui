@@ -1,6 +1,8 @@
 // Input Schema types (for agent input nodes)
 export interface InputFieldSchema {
-  type: 'string' | 'number' | 'boolean';
+  type: 'string' | 'number' | 'boolean' | 'enum';
+  // Allowed values for 'enum' fields
+  options?: string[];
   required?: boolean;
   default?: unknown;
   description?: string;

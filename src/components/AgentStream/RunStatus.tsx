@@ -23,7 +23,7 @@ export function RunStatus({ statusText, runId, steps, ...props }: RunStatusProps
       radius="lg"
       miw={180}
       maw="90%"
-      w="fit-content"
+      w={toolSteps.length ? '100%' : 'fit-content'}
       bg="light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))"
       {...props}
     >

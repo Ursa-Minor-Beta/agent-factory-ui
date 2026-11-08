@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { Stack, Group, Text, Button, TextInput, Select, Checkbox, ActionIcon, Card, Box, Modal } from '@mantine/core';
+import { Stack, Group, Text, Button, TextInput, Select, Checkbox, ActionIcon, TagsInput, Card, Box, Modal } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconPlus, IconTrash, IconPencil } from '@tabler/icons-react';
 
+type FieldType = 'string' | 'number' | 'boolean' | 'enum';
+
 interface SchemaField {
-  type: 'string' | 'number' | 'boolean';
+  type: FieldType;
+  options?: string[];
   required: boolean;
   default?: string | number | boolean;
 }
@@ -16,7 +19,8 @@ interface SchemaEditorProps {
 
 interface EditingField {
   name: string;
-  type: 'string' | 'number' | 'boolean';
+  type: FieldType;
+  options: string[];
   required: boolean;
   default: string;
   isNew: boolean;
@@ -32,6 +36,7 @@ export function InputNodeEditor({ schema, onChange }: SchemaEditorProps) {
     setEditingField({
       name: '',
       type: 'string',
+      options: [],
       required: false,
       default: '',
       isNew: true,
@@ -43,6 +48,7 @@ export function InputNodeEditor({ schema, onChange }: SchemaEditorProps) {
     setEditingField({
       name: fieldName,
       type: field.type,
+      options: field.options ?? [],
       required: field.required,
       default: String(field.default ?? ''),
       isNew: false,
@@ -89,6 +95,7 @@ export function InputNodeEditor({ schema, onChange }: SchemaEditorProps) {
 
     newSchema[editingField.name] = {
       type: editingField.type,
+      ...(editingField.type === 'enum' && { options: editingField.options }),
       required: editingField.required,
       ...(defaultValue !== undefined && { default: defaultValue }),
     };
@@ -99,6 +106,99 @@ export function InputNodeEditor({ schema, onChange }: SchemaEditorProps) {
 
   const handleCancelEdit = () => {
     setEditingField(null);
+  };
+
+  const renderFieldForm = (title: string) => {
+    if (!editingField) return null;
+    const isEnum = editingField.type === 'enum';
+
+    return (
+      <Card padding="md" withBorder style={{ backgroundColor: 'var(--mantine-color-default-hover)' }}>
+        <Stack gap="sm">
+          <Text size="sm" fw={500}>{title}</Text>
+
+          <TextInput
+            label="Field Name"
+            placeholder="e.g., url, apiKey, timeout"
+            size="xs"
+            value={editingField.name}
+            onChange={(e) => setEditingField({ ...editingField, name: e.target.value })}
+            styles={{ input: { fontFamily: 'monospace' } }}
+          />
+
+          <Select
+            label="Type"
+            size="xs"
+            value={editingField.type}
+            onChange={(value) => setEditingField({ ...editingField, type: value as FieldType, default: '' })}
+            data={[
+              { value: 'string', label: 'String' },
+              { value: 'number', label: 'Number' },
+              { value: 'boolean', label: 'Boolean' },
+              { value: 'enum', label: 'Enum' },
+            ]}
+          />
+
+          {isEnum && (
+            <TagsInput
+              label="Options"
+              description="Press Enter to add an option"
+              placeholder="e.g., low, medium, high"
+              size="xs"
+              value={editingField.options}
+              onChange={(options) =>
+                setEditingField({
+                  ...editingField,
+                  options,
+                  default: options.includes(editingField.default) ? editingField.default : '',
+                })
+              }
+            />
+          )}
+
+          <Checkbox
+            label="Required"
+            size="xs"
+            checked={editingField.required}
+            onChange={(e) => setEditingField({ ...editingField, required: e.target.checked })}
+          />
+
+          {isEnum ? (
+            <Select
+              label="Default Value (optional)"
+              size="xs"
+              data={editingField.options}
+              value={editingField.default || null}
+              onChange={(value) => setEditingField({ ...editingField, default: value ?? '' })}
+              clearable
+            />
+          ) : (
+            <TextInput
+              label="Default Value (optional)"
+              placeholder={
+                editingField.type === 'boolean'
+                  ? 'true or false'
+                  : editingField.type === 'number'
+                  ? 'e.g., 42'
+                  : 'e.g., https://example.com'
+              }
+              size="xs"
+              value={editingField.default}
+              onChange={(e) => setEditingField({ ...editingField, default: e.target.value })}
+            />
+          )}
+
+          <Group gap="xs" mt="xs">
+            <Button size="xs" onClick={handleSaveField} disabled={isEnum && editingField.options.length === 0}>
+              Save
+            </Button>
+            <Button size="xs" variant="subtle" onClick={handleCancelEdit}>
+              Cancel
+            </Button>
+          </Group>
+        </Stack>
+      </Card>
+    );
   };
 
   return (
@@ -116,66 +216,7 @@ export function InputNodeEditor({ schema, onChange }: SchemaEditorProps) {
           // Show edit form in place of the field if this field is being edited
           const isEditing = editingField && !editingField.isNew && editingField.originalName === fieldName;
 
-          if (isEditing) {
-            return (
-              <Card key={fieldName} padding="md" withBorder style={{ backgroundColor: 'var(--mantine-color-default-hover)' }}>
-                <Stack gap="sm">
-                  <Text size="sm" fw={500}>Edit Field</Text>
-
-                  <TextInput
-                    label="Field Name"
-                    placeholder="e.g., url, apiKey, timeout"
-                    size="xs"
-                    value={editingField.name}
-                    onChange={(e) => setEditingField({ ...editingField, name: e.target.value })}
-                    styles={{ input: { fontFamily: 'monospace' } }}
-                  />
-
-                  <Select
-                    label="Type"
-                    size="xs"
-                    value={editingField.type}
-                    onChange={(value) => setEditingField({ ...editingField, type: value as 'string' | 'number' | 'boolean' })}
-                    data={[
-                      { value: 'string', label: 'String' },
-                      { value: 'number', label: 'Number' },
-                      { value: 'boolean', label: 'Boolean' },
-                    ]}
-                  />
-
-                  <Checkbox
-                    label="Required"
-                    size="xs"
-                    checked={editingField.required}
-                    onChange={(e) => setEditingField({ ...editingField, required: e.target.checked })}
-                  />
-
-                  <TextInput
-                    label="Default Value (optional)"
-                    placeholder={
-                      editingField.type === 'boolean'
-                        ? 'true or false'
-                        : editingField.type === 'number'
-                        ? 'e.g., 42'
-                        : 'e.g., https://example.com'
-                    }
-                    size="xs"
-                    value={editingField.default}
-                    onChange={(e) => setEditingField({ ...editingField, default: e.target.value })}
-                  />
-
-                  <Group gap="xs" mt="xs">
-                    <Button size="xs" onClick={handleSaveField}>
-                      Save
-                    </Button>
-                    <Button size="xs" variant="subtle" onClick={handleCancelEdit}>
-                      Cancel
-                    </Button>
-                  </Group>
-                </Stack>
-              </Card>
-            );
-          }
+          if (isEditing) return <Box key={fieldName}>{renderFieldForm('Edit Field')}</Box>;
 
           return (
             <Card key={fieldName} padding="xs" withBorder>
@@ -188,6 +229,11 @@ export function InputNodeEditor({ schema, onChange }: SchemaEditorProps) {
                       <Text size="xs" c="red">*required</Text>
                     )}
                   </Group>
+                  {field.type === 'enum' && field.options && (
+                    <Text size="xs" c="dimmed" mt={2}>
+                      Options: {field.options.join(', ')}
+                    </Text>
+                  )}
                   {field.default !== undefined && (
                     <Text size="xs" c="dimmed" mt={2}>
                       Default: {String(field.default)}
@@ -219,64 +265,7 @@ export function InputNodeEditor({ schema, onChange }: SchemaEditorProps) {
         })}
 
         {/* New field form */}
-        {editingField?.isNew && (
-          <Card padding="md" withBorder style={{ backgroundColor: 'var(--mantine-color-default-hover)' }}>
-            <Stack gap="sm">
-              <Text size="sm" fw={500}>New Field</Text>
-
-              <TextInput
-                label="Field Name"
-                placeholder="e.g., url, apiKey, timeout"
-                size="xs"
-                value={editingField.name}
-                onChange={(e) => setEditingField({ ...editingField, name: e.target.value })}
-                styles={{ input: { fontFamily: 'monospace' } }}
-              />
-
-              <Select
-                label="Type"
-                size="xs"
-                value={editingField.type}
-                onChange={(value) => setEditingField({ ...editingField, type: value as 'string' | 'number' | 'boolean' })}
-                data={[
-                  { value: 'string', label: 'String' },
-                  { value: 'number', label: 'Number' },
-                  { value: 'boolean', label: 'Boolean' },
-                ]}
-              />
-
-              <Checkbox
-                label="Required"
-                size="xs"
-                checked={editingField.required}
-                onChange={(e) => setEditingField({ ...editingField, required: e.target.checked })}
-              />
-
-              <TextInput
-                label="Default Value (optional)"
-                placeholder={
-                  editingField.type === 'boolean'
-                    ? 'true or false'
-                    : editingField.type === 'number'
-                    ? 'e.g., 42'
-                    : 'e.g., https://example.com'
-                }
-                size="xs"
-                value={editingField.default}
-                onChange={(e) => setEditingField({ ...editingField, default: e.target.value })}
-              />
-
-              <Group gap="xs" mt="xs">
-                <Button size="xs" onClick={handleSaveField}>
-                  Save
-                </Button>
-                <Button size="xs" variant="subtle" onClick={handleCancelEdit}>
-                  Cancel
-                </Button>
-              </Group>
-            </Stack>
-          </Card>
-        )}
+        {editingField?.isNew && renderFieldForm('New Field')}
 
         {Object.keys(schema).length === 0 && !editingField && (
           <Text size="xs" c="dimmed" ta="center" py="md">
