@@ -20,7 +20,7 @@ export const getBaseNavItems = (): NavItem[] => [
 
   { label: 'All Agents', path: routes.agents(), icon: <IconRobot size={20} /> },
   
-  { label: 'Agents Workspaces', path: routes.workspaces(), icon: <IconFolders size={20} /> },
+  { label: 'Agent Workspaces', path: routes.workspaces(), icon: <IconFolders size={20} /> },
 
   {
     label: 'Configurations',
