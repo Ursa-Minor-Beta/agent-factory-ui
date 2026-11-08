@@ -7,7 +7,7 @@ import type { RunTrailItem } from './useRunDetailsModal';
 import { RunStatusBadge } from './RunStatusBadge';
 import { CopyIconButton } from './CopyIconButton';
 import { JsonPanel } from './JsonPanel';
-import { ToolCallsTree, getToolCalls } from './ToolCallsTree';
+import { ToolCallsTree, getToolCalls, matchToolCallRuns } from './ToolCallsTree';
 import { ChildRunsTree, getNodeChildRuns } from './ChildRunsTree';
 
 // Started first, not started last
@@ -34,7 +34,8 @@ interface NodeStateItemProps {
 function NodeStateItem({ run, nodeId, state, childTrail }: NodeStateItemProps) {
   const usage = getNodeUsage(state);
   const toolCalls = getToolCalls(state.output);
-  const childRuns = getNodeChildRuns(run, nodeId);
+  // Child runs started by tool calls are shown inline on the call row
+  const toolCallRuns = matchToolCallRuns(toolCalls ?? [], getNodeChildRuns(run, nodeId));
 
   return (
     <Accordion.Item value={nodeId}>
@@ -65,8 +66,8 @@ function NodeStateItem({ run, nodeId, state, childTrail }: NodeStateItemProps) {
             </Tooltip>
           )}
         </Group>
-        {toolCalls && <ToolCallsTree calls={toolCalls} />}
-        {childRuns.length > 0 && <ChildRunsTree runs={childRuns} trail={childTrail} />}
+        {toolCalls && <ToolCallsTree calls={toolCalls} childRuns={toolCallRuns.matched} trail={childTrail} />}
+        {toolCallRuns.unmatched.length > 0 && <ChildRunsTree runs={toolCallRuns.unmatched} trail={childTrail} />}
       </Accordion.Control>
       <Accordion.Panel>
         <Stack gap="sm">

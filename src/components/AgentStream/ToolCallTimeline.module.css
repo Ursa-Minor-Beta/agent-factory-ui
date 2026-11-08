@@ -5,6 +5,11 @@
   color: var(--item-color);
 }
 
+/* Tighter than Mantine's default xl gap between items */
+.item.item:not(:first-of-type) {
+  margin-top: var(--mantine-spacing-md);
+}
+
 /* Running: empty circle with a dot orbiting its edge */
 .orbit {
   position: relative;

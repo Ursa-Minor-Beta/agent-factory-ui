@@ -126,7 +126,7 @@ export function ToolCallTimeline({ calls, live = false }: { calls: TimelineToolC
 
   const Chevron = expanded ? IconChevronDown : IconChevronRight;
   return (
-    <Stack gap={6}>
+    <Stack gap={6} mb="md">
       <UnstyledButton onClick={toggle} title={expanded ? 'Hide tool calls' : 'Show tool calls'}>
         <Group gap={4} wrap="nowrap">
           <Chevron size={12} color="var(--mantine-color-dimmed)" />
@@ -136,14 +136,40 @@ export function ToolCallTimeline({ calls, live = false }: { calls: TimelineToolC
         </Group>
       </UnstyledButton>
       <Collapse expanded={expanded}>
-        <Timeline bulletSize={16} lineWidth={1} classNames={{ itemBullet: classes.itemBullet }}>
-          {calls.map(({ id, name, label, status, args, depth = 0, durationMs, error }) => {
+        <ToolCallTree nodes={buildTree(calls)} />
+      </Collapse>
+    </Stack>
+  );
+}
+
+interface ToolCallNode extends TimelineToolCall {
+  children: ToolCallNode[];
+}
+
+// Flat pre-order list with depth -> tree (a call's children follow it with depth + 1)
+const buildTree = (calls: TimelineToolCall[]) => {
+  const roots: ToolCallNode[] = [];
+  const stack: ToolCallNode[] = [];
+  for (const call of calls) {
+    const node = { ...call, children: [] };
+    const depth = call.depth ?? 0;
+    stack.length = Math.min(stack.length, depth);
+    (stack[stack.length - 1]?.children ?? roots).push(node);
+    stack.push(node);
+  }
+  return roots;
+};
+
+// Children render as a nested timeline inside the parent item, so the parent's line spans its whole subtree
+function ToolCallTree({ nodes }: { nodes: ToolCallNode[] }) {
+  return (
+    <Timeline bulletSize={16} lineWidth={1} classNames={{ item: classes.item, itemBullet: classes.itemBullet }}>
+          {nodes.map(({ id, name, label, status, args, durationMs, error, children }) => {
             const running = status === 'running';
             const errors = Array.isArray(error) ? error : error ? [error] : [];
             return (
               <Timeline.Item
                 key={id}
-                ml={depth * 12}
                 style={{ '--item-color': `var(--mantine-color-${STATUS_COLORS[status]}-5)` } as CSSProperties}
                 bullet={
                   running ? <span className={classes.orbit} />
@@ -173,12 +199,15 @@ export function ToolCallTimeline({ calls, live = false }: { calls: TimelineToolC
                     {err}
                   </Text>
                 ))}
+                {children.length > 0 && (
+                  <Box mt="sm">
+                    <ToolCallTree nodes={children} />
+                  </Box>
+                )}
               </Timeline.Item>
             );
           })}
-        </Timeline>
-      </Collapse>
-    </Stack>
+    </Timeline>
   );
 }
 
