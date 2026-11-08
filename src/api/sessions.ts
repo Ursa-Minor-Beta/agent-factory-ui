@@ -31,6 +31,7 @@ export interface ChatToolCallEvent {
   nodeId: string;
   path: string; // Same format as ChatSubagentStatusEvent.path
   status: 'started' | 'completed' | 'failed';
+  args?: Record<string, unknown>; // 'started' only
   error?: string; // 'failed' only
   durationMs?: number; // 'completed' / 'failed' only
 }

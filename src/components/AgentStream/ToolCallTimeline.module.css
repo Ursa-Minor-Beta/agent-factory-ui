@@ -1,0 +1,35 @@
+/* Outline bullet: no fill, same bg as the RunStatus paper so the timeline line doesn't show through */
+.itemBullet {
+  border: none;
+  background-color: light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6));
+  color: var(--item-color);
+}
+
+/* Running: empty circle with a dot orbiting its edge */
+.orbit {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  opacity: 0.9;
+  animation: orbit 1s linear infinite;
+}
+
+.orbit::after {
+  content: '';
+  position: absolute;
+  top: -3.5px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+@keyframes orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
