@@ -98,7 +98,7 @@ export function NavbarLinks({ items, collapsed, closeMobile }: NavbarLinksProps)
           closeDelay={100}
         >
           <HoverCard.Target>{navLinkContent}</HoverCard.Target>
-          <HoverCard.Dropdown p="xs">
+          <HoverCard.Dropdown p="xs" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
             <Stack gap={4}>
               {item.children.map((child) =>
                 renderChildLink(child, { borderRadius: 'var(--mantine-radius-md)' })

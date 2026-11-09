@@ -46,7 +46,8 @@ export function useWorkspaceNav(onCreateWorkspace: () => void) {
   useEffect(() => {
     const loadWorkspaces = async () => {
       try {
-        const data = await workspacesApi.list({ limit: 10, sortBy: 'name', sortOrder: 'asc' });
+        // Backend caps limit at 100
+        const data = await workspacesApi.list({ limit: 100, sortBy: 'name', sortOrder: 'asc' });
         updateWorkspaceNav(data.workspaces);
       } catch (err) {
         console.error('Failed to load workspaces for navigation:', err);
@@ -73,8 +74,7 @@ export function useWorkspaceNav(onCreateWorkspace: () => void) {
       })) || [];
 
       const updatedWorkspaces = [...currentWorkspaces, workspace]
-        .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-        .slice(0, 10);
+        .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
       updateWorkspaceNav(updatedWorkspaces as Workspace[]);
     };
