@@ -6,166 +6,47 @@ import { Center, Loader, LoadingOverlay } from '@mantine/core';
 import { useAgentEditor } from './hooks/useAgentEditor';
 import { useNodeClipboard } from './hooks/useNodeClipboard';
 import { useEditorHistory } from './hooks/useEditorHistory';
+import { useRunReplay } from './hooks/useRunReplay';
+import { useDisplayEdges, useDisplayNodes } from './hooks/useRunDisplay';
+import { useEdgeHighlight } from './hooks/useEdgeHighlight';
+import { usePersistedState } from './hooks/usePersistedState';
+import { useAssistantEditor } from './hooks/useAssistantEditor';
+import { useDeleteNavigation } from './hooks/useDeleteNavigation';
+import { useAgentExport } from './hooks/useAgentExport';
 import { EditorToolbar } from './EditorToolbar';
 import { nodeTypes } from './nodes';
 import { edgeTypes } from './edges';
 import type { AgentFlowEditorProps } from './types';
 import type { NodeType } from '../../api';
-import { agentsApi } from '../../api';
 import { usePageTitle } from '../../layout/pageTitle';
-import type { ChatStatusEvent } from '../../api/sessions';
-import type { NodeStatus } from '../../types';
 import { PanelLeft } from './PanelLeft';
-import type { AgentRunner } from './PanelLeft/RunTab';
 import { PanelRight } from './PanelRight';
 import { clearGitHubCache } from './PanelLeft/GitTab/useGitHubData';
-import { useNavigate } from 'react-router-dom';
-import { routes } from '../../config/routes';
+import { PALETTE_STORAGE_KEY, TAB_STORAGE_KEY } from './constants';
 
-function downloadJson(data: unknown, filename: string) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-const PALETTE_STORAGE_KEY = 'agent-editor-palette-open';
-// Assistant run: how long to wait for the Run tab to be able to start (just-saved agent / other run)
-const RUN_START_ATTEMPTS = 20;
-const RUN_START_RETRY_MS = 100;
-const TAB_STORAGE_KEY = 'agent-editor-active-tab';
-
-// Agents opened in the editor during this session, most recent last - used to pick where to go after a delete
-const visitedAgents: { id: string; workspaceId?: string }[] = [];
+const parseBoolean = (raw: string) => raw === 'true';
+const parseTab = (raw: string) => raw || 'nodes';
 
 export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) {
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
-  const [isPaletteOpen, setIsPaletteOpen] = useState(() => {
-    const saved = localStorage.getItem(PALETTE_STORAGE_KEY);
-    return saved !== null ? saved === 'true' : true;
-  });
-  const [activeTab, setActiveTab] = useState<string | null>(() => {
-    const saved = localStorage.getItem(TAB_STORAGE_KEY);
-    return saved || 'nodes';
-  });
-  const [exporting, setExporting] = useState(false);
+  const [isPaletteOpen, setIsPaletteOpen] = usePersistedState(PALETTE_STORAGE_KEY, true, parseBoolean);
+  const [activeTab, setActiveTab] = usePersistedState<string | null>(TAB_STORAGE_KEY, 'nodes', parseTab);
   const [savedAt, setSavedAt] = useState<number | undefined>();
-
   const [isNodesDragging, setIsNodesDragging] = useState(false);
 
-  // Node statuses of the last run from the Run tab (null = no run yet, missing node = pending)
-  const [runStatuses, setRunStatuses] = useState<Record<string, NodeStatus> | null>(null);
+  const { runStatuses, runningMsRef, handleRunStart, handleRunClear, handleNodeStatus, handleRunEnd } = useRunReplay();
+  const { exporting, handleExport } = useAgentExport(agentId);
 
-  // Runs can be very fast - replay status events sequentially, keeping every executed node
-  // in "running" for at least minRunningMs (Run tab speed). playheadRef = earliest time the next event may show.
-  const playheadRef = useRef(0);
-  const startedRef = useRef<Set<string>>(new Set());
-  // Running time per node at the speed it was scheduled with - drives edge photon timing
-  const runningMsRef = useRef<Record<string, number>>({});
-  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-
-  const setNodeRunStatus = useCallback((nodeId: string, status: NodeStatus) => {
-    setRunStatuses((prev) => ({ ...prev, [nodeId]: status }));
-  }, []);
-
-  const scheduleAt = useCallback((time: number, fn: () => void) => {
-    const delay = time - Date.now();
-    if (delay <= 0) {
-      fn();
-      return;
-    }
-    timersRef.current.push(setTimeout(fn, delay));
-  }, []);
-
-  // Reset replay; {} = new run (all pending), null = no run statuses shown
-  const resetRunStatuses = useCallback((statuses: Record<string, NodeStatus> | null) => {
-    timersRef.current.forEach(clearTimeout);
-    timersRef.current = [];
-    playheadRef.current = 0;
-    startedRef.current = new Set();
-    runningMsRef.current = {};
-    setRunStatuses(statuses);
-  }, []);
-
-  const handleRunStart = useCallback(() => resetRunStatuses({}), [resetRunStatuses]);
-  const handleRunClear = useCallback(() => resetRunStatuses(null), [resetRunStatuses]);
-
-  const handleNodeStatus = useCallback((nodeId: string, status: ChatStatusEvent['status'], minRunningMs: number) => {
-    let at = Math.max(Date.now(), playheadRef.current);
-    if (status === 'skipped') {
-      scheduleAt(at, () => setNodeRunStatus(nodeId, 'skipped'));
-      playheadRef.current = at;
-      return;
-    }
-    // Finished without a 'started' event - show it running first
-    if (status === 'started' || !startedRef.current.has(nodeId)) {
-      startedRef.current.add(nodeId);
-      runningMsRef.current[nodeId] = minRunningMs;
-      scheduleAt(at, () => setNodeRunStatus(nodeId, 'running'));
-      at += minRunningMs;
-    }
-    if (status !== 'started') {
-      scheduleAt(at, () => setNodeRunStatus(nodeId, status));
-    }
-    playheadRef.current = at;
-  }, [setNodeRunStatus, scheduleAt]);
-
-  // Run finished, failed or was stopped - after replay ends, nodes still running didn't complete.
-  // Final statuses stay visible until the next run or animation is turned off.
-  const handleRunEnd = useCallback(() => {
-    const replayEnd = Math.max(Date.now(), playheadRef.current);
-    scheduleAt(replayEnd, () => {
-      setRunStatuses((prev) => prev && Object.fromEntries(
-        Object.entries(prev).map(([nodeId, status]) => [nodeId, status === 'running' ? 'skipped' : status])
-      ));
-    });
-  }, [scheduleAt]);
-
-  // Clear pending status timers on unmount
-  useEffect(() => () => timersRef.current.forEach(clearTimeout), []);
-
-  const handleActiveTabChange = useCallback((tab: string | null) => {
-    setActiveTab(tab);
-    if (tab) {
-      localStorage.setItem(TAB_STORAGE_KEY, tab);
-    }
-  }, []);
-
-  const togglePalette = useCallback(() => {
-    setIsPaletteOpen((prev) => {
-      const newValue = !prev;
-      localStorage.setItem(PALETTE_STORAGE_KEY, String(newValue));
-      return newValue;
-    });
-  }, []);
+  const togglePalette = useCallback(() => setIsPaletteOpen((prev) => !prev), [setIsPaletteOpen]);
 
   // Toolbar Run: bumps a counter the Run tab reacts to; Run tab reports back running state / missing inputs
   const [runRequest, setRunRequest] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const handleToolbarRun = useCallback(() => setRunRequest((n) => n + 1), []);
   const handleRunInputsRequired = useCallback(() => {
-    handleActiveTabChange('run');
+    setActiveTab('run');
     setIsPaletteOpen(true);
-    localStorage.setItem(PALETTE_STORAGE_KEY, 'true');
-  }, [handleActiveTabChange]);
-
-  // Handle Export button
-  const handleExport = useCallback(async () => {
-    if (!agentId) return;
-    setExporting(true);
-    try {
-      const exportData = await agentsApi.export(agentId);
-      const agentName = exportData.agent?.name || 'agent';
-      downloadJson(exportData, `${agentName}.agent.json`);
-    } catch (err) {
-      console.error('Failed to export agent:', err);
-    } finally {
-      setExporting(false);
-    }
-  }, [agentId]);
+  }, [setActiveTab, setIsPaletteOpen]);
 
   const {
     agent,
@@ -208,39 +89,27 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
   // Show agent name in browser tab title
   usePageTitle(agent?.name);
 
-  // Apply run status classes for rendering only - stored nodes stay untouched.
-  // Copies are reused while node and status are unchanged, so a status update re-renders only that node
-  const displayNodeCache = useRef(new Map<string, { source: (typeof nodes)[number]; display: (typeof nodes)[number] }>());
-  const displayNodes = useMemo(() => {
-    if (!runStatuses) {
-      displayNodeCache.current.clear();
-      return nodes;
-    }
-    const cache = displayNodeCache.current;
-    const next = new Map<string, { source: (typeof nodes)[number]; display: (typeof nodes)[number] }>();
-    const result = nodes.map((node) => {
-      const className = `run-${runStatuses[node.id] ?? 'pending'}`;
-      const cached = cache.get(node.id);
-      const display = cached && cached.source === node && cached.display.className === className
-        ? cached.display
-        : { ...node, className };
-      next.set(node.id, { source: node, display });
-      return display;
-    });
-    displayNodeCache.current = next;
-    return result;
-  }, [nodes, runStatuses]);
+  const { highlightedNodeIds, handleNodeClick, handleNodeDoubleClick, handlePaneClick } =
+    useEdgeHighlight({ onNodeClick, onPaneClick });
+  const displayNodes = useDisplayNodes(nodes, runStatuses);
+  const displayEdges = useDisplayEdges(edges, runStatuses, runningMsRef, highlightedNodeIds);
 
-  // Photons flow along edges carrying data: source finished, target running
-  const displayEdges = useMemo(() => {
-    if (!runStatuses) return edges;
-    return edges.map((edge) => {
-      const active = runStatuses[edge.source] === 'completed' && runStatuses[edge.target] === 'running';
-      // photon = target's running time, so the trail follows the animation speed
-      // zIndex keeps active edges drawn above overlapping ones
-      return active ? { ...edge, zIndex: 1, data: { ...edge.data, photon: runningMsRef.current[edge.target] } } : edge;
-    });
-  }, [edges, runStatuses]);
+  const handleInit = useCallback((instance: ReactFlowInstance) => {
+    reactFlowInstance.current = instance;
+    setViewportGetter(() => instance.getViewport());
+    // Restore saved viewport if available
+    if (initialViewport) {
+      instance.setViewport(initialViewport);
+    }
+  }, [initialViewport, setViewportGetter]);
+
+  const handleNodeDragStart = useCallback(() => setIsNodesDragging(true), []);
+  const handleNodeDragStop = useCallback(() => setIsNodesDragging(false), []);
+
+  const handleRemoveNode = useCallback((nodeId: string) => {
+    deleteNode(nodeId);
+    onPaneClick();
+  }, [deleteNode, onPaneClick]);
 
   // Compute set of node types already on the canvas
   // Keyed by the sorted type list so node edits/moves keep the same Set (it's a PanelLeft prop)
@@ -308,69 +177,18 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     return savedId;
   }, [saveAgent, agent?.id, agent?.github?.rootId, history.markSaved]);
 
-  // Assistant tools call the latest save / Run tab runner through refs, keeping assistantEditor stable
-  const handleSaveRef = useRef(handleSave);
-  handleSaveRef.current = handleSave;
-  const runnerRef = useRef<AgentRunner | null>(null);
-  const agentRef = useRef(agent);
-  agentRef.current = agent;
-  const updateAgentMetaRef = useRef(updateAgentMeta);
-  updateAgentMetaRef.current = updateAgentMeta;
-  const selectedNodeIdRef = useRef(selectedNode?.id);
-  selectedNodeIdRef.current = selectedNode?.id;
+  const { assistantEditor, runnerRef } = useAssistantEditor({
+    agent,
+    getAgentNodes,
+    upsertNode,
+    removeNode,
+    updateAgentMeta,
+    nodeTypes: availableNodeTypes,
+    selectedNodeId: selectedNode?.id,
+    save: handleSave,
+  });
 
-  const assistantEditor = useMemo(
-    () => ({
-      getNodes: getAgentNodes,
-      upsertNode,
-      removeNode,
-      nodeTypes: availableNodeTypes,
-      save: () => handleSaveRef.current(),
-      getSelection: () => (selectedNodeIdRef.current ? [selectedNodeIdRef.current] : []),
-      getAgentInfo: () => ({
-        name: agentRef.current?.name ?? '',
-        description: agentRef.current?.description ?? '',
-        workspaceId: agentRef.current?.workspaceId ?? null,
-      }),
-      updateAgentInfo: (data: { name?: string; description?: string; workspaceId?: string | null }) =>
-        updateAgentMetaRef.current(data),
-      run: async (input?: Record<string, unknown>) => {
-        // Backend runs the saved version - save first so the latest edits run
-        const savedId = await handleSaveRef.current();
-        if (!savedId) return { error: 'Failed to save the agent' };
-        // A just-created agent reaches the Run tab on the next render - retry briefly
-        for (let attempt = 0; attempt < RUN_START_ATTEMPTS; attempt++) {
-          const result = await runnerRef.current?.(input);
-          if (result) return result;
-          await new Promise((resolve) => setTimeout(resolve, RUN_START_RETRY_MS));
-        }
-        return { error: 'Could not start the run - another run may be in progress' };
-      },
-    }),
-    [getAgentNodes, upsertNode, removeNode, availableNodeTypes]
-  );
-
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!agent?.id) return;
-    const i = visitedAgents.findIndex((v) => v.id === agent.id);
-    if (i !== -1) visitedAgents.splice(i, 1);
-    visitedAgents.push({ id: agent.id, workspaceId: agent.workspaceId });
-  }, [agent?.id, agent?.workspaceId]);
-
-  // After delete: open the previously visited agent of the same workspace, else the workspace, else the agents list
-  const handleAgentDeleted = useCallback(() => {
-    const deletedId = agent?.id;
-    const i = visitedAgents.findIndex((v) => v.id === deletedId);
-    if (i !== -1) visitedAgents.splice(i, 1);
-    // Most recently visited agent from the same workspace
-    const previousId = visitedAgents.findLast((v) => v.workspaceId === agent?.workspaceId)?.id;
-    const target = previousId
-      ? routes.agentEditor(previousId)
-      : agent?.workspaceId ? routes.workspace(agent.workspaceId) : routes.agents();
-    navigate(target, { replace: true });
-  }, [agent?.id, agent?.workspaceId, navigate]);
+  const handleAgentDeleted = useDeleteNavigation(agent?.id, agent?.workspaceId);
 
   // Memoized so it doesn't break PanelLeft memoization
   const editorToolbar = useMemo(() => (
@@ -399,16 +217,16 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     history.canRedo,
     history.undo,
     history.redo,
-    agent?.name, 
-    agent?.id, 
-    agent?.workspaceId, 
-    agent?.workspaceName, 
-    agent?.github, 
-    saving, 
-    isPaletteOpen, 
-    isRunning, 
-    handleSave, 
-    togglePalette, 
+    agent?.name,
+    agent?.id,
+    agent?.workspaceId,
+    agent?.workspaceName,
+    agent?.github,
+    saving,
+    isPaletteOpen,
+    isRunning,
+    handleSave,
+    togglePalette,
     handleToolbarRun
   ]);
 
@@ -418,7 +236,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     if (!instance || loading) return;
     if (initialViewport) instance.setViewport(initialViewport);
     else requestAnimationFrame(() => instance.fitView());
-    setRunStatuses(null);
+    handleRunClear();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- only when a different agent finished loading
   }, [agent?.id, loading]);
 
@@ -447,29 +265,24 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           defaultEdgeOptions={{ type: edgeType }}
+          elevateEdgesOnSelect
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           isValidConnection={isValidConnection}
-          onNodeClick={onNodeClick}
-          onPaneClick={onPaneClick}
-          onNodeDragStart={ () => setIsNodesDragging(true) }
-          onNodeDragStop={ () => setIsNodesDragging(false) }
-          onInit={(instance) => {
-            reactFlowInstance.current = instance;
-            setViewportGetter(() => instance.getViewport());
-            // Restore saved viewport if available
-            if (initialViewport) {
-              instance.setViewport(initialViewport);
-            }
-          }}
+          onNodeClick={handleNodeClick}
+          onNodeDoubleClick={handleNodeDoubleClick}
+          onPaneClick={handlePaneClick}
+          onNodeDragStart={handleNodeDragStart}
+          onNodeDragStop={handleNodeDragStop}
+          onInit={handleInit}
           fitView={!initialViewport}
           snapToGrid={true}
           snapGrid={[1,1]}
           onlyRenderVisibleElements={true}
           style={{ background: 'transparent' }}
         >
-          { !selectedNode && 
+          { !selectedNode &&
               <MiniMap
                 nodeColor="var(--mantine-color-default-border)"
                 maskColor="var(--mantine-color-body)"
@@ -497,7 +310,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
           layoutDirection={layoutDirection}
           nodeTypes={availableNodeTypes}
           savedAt={savedAt}
-          onActiveTabChange={handleActiveTabChange}
+          onActiveTabChange={setActiveTab}
           onAddNode={handleAddNode}
           onAgentInfoChange={updateAgentInfo}
           onWorkspaceChange={updateWorkspace}
@@ -529,7 +342,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
           onUpdate={updateNodeData}
           onUpdateId={updateNodeId}
           onReplace={replaceNodeData}
-          onRemove={(nodeId) => { deleteNode(nodeId); onPaneClick(); }}
+          onRemove={handleRemoveNode}
           onClose={onPaneClick}
           />
       )}
