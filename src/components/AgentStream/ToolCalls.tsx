@@ -90,7 +90,7 @@ export interface TimelineToolCall {
   error?: string | string[];
 }
 
-const STATUS_COLORS = { running: 'cyan', completed: 'green', failed: 'orange' } as const;
+const STATUS_COLORS = { running: 'yellow', completed: 'green', failed: 'orange' } as const;
 
 // "11 tools: 10 succeeded, 1 failed"
 const summarize = (calls: TimelineToolCall[]) => {
