@@ -1,6 +1,6 @@
-import { Textarea, type TextareaProps } from '@mantine/core';
+import { Select, Textarea, type TextareaProps } from '@mantine/core';
 import type { InputSchema } from '../../types';
-import { formatFieldLabel } from './models/agentInput';
+import { formatFieldLabel, isRequiredField } from './models/agentInput';
 
 interface AgentInputFieldProps extends Omit<TextareaProps, 'value' | 'onChange'> {
   fieldKey: string;
@@ -19,9 +19,27 @@ export function AgentInputField({ fieldKey, schema, value, onChange, withLabel =
     ? `Default: ${defaultStr.length > MAX_DEFAULT_LENGTH ? `${defaultStr.slice(0, MAX_DEFAULT_LENGTH)}...` : defaultStr}`
     : undefined;
 
+  if (schema.type === 'enum') {
+    return (
+      <Select
+        label={withLabel ? formatFieldLabel(fieldKey) : undefined}
+        withAsterisk={withLabel && isRequiredField(schema)}
+        placeholder={placeholder ?? 'Select...'}
+        data={schema.options ?? []}
+        value={value || null}
+        onChange={(v) => onChange(fieldKey, v ?? '')}
+        clearable
+        size={props.size}
+        disabled={props.disabled}
+        comboboxProps={{ withinPortal: true }}
+      />
+    );
+  }
+
   return (
     <Textarea
       label={withLabel ? formatFieldLabel(fieldKey) : undefined}
+      withAsterisk={withLabel && isRequiredField(schema)}
       placeholder={placeholder}
       value={value}
       onChange={(e) => onChange(fieldKey, e.currentTarget.value)}

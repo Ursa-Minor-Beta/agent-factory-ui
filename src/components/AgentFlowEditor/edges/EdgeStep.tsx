@@ -7,7 +7,7 @@ function createPhotonEdge(getPath: (props: EdgeProps) => string) {
     const path = getPath(props);
     return (
       <>
-        <BaseEdge path={path} markerEnd={props.markerEnd} />
+        <BaseEdge path={path} markerEnd={props.markerEnd} style={props.style} />
         {typeof props.data?.photon === 'number' && <EdgePhoton path={path} runningMs={props.data.photon} />}
       </>
     );

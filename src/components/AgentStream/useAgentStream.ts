@@ -17,6 +17,7 @@ export interface RunStep {
     name: string;
     toolType: 'builtin' | 'agent' | 'client';
     label?: string; // UI tools: summary of what was done
+    args?: Record<string, unknown>;
     error?: string | string[];
     durationMs?: number;
   };
@@ -97,7 +98,7 @@ export function useAgentStream() {
         setSteps((prev) => [...prev, step]);
         if (step.statusText) setStatusText(step.statusText);
       };
-      const startTool = (toolCallId: string, name: string, toolType: NonNullable<RunStep['tool']>['toolType'], nodeId: string, depth: number) => {
+      const startTool = (toolCallId: string, name: string, toolType: NonNullable<RunStep['tool']>['toolType'], nodeId: string, depth: number, args?: Record<string, unknown>) => {
         if (depth === 0) toolCalls.set(toolCallId, { name });
         // No statusText: the tool list shows its progress, the status line stays on the node status
         addStep({
@@ -105,7 +106,7 @@ export function useAgentStream() {
           label: toolLabel(name),
           depth,
           status: 'running',
-          tool: { toolCallId, name, toolType },
+          tool: { toolCallId, name, toolType, args },
         });
       };
       // Parallel calls finish in any order - match by toolCallId
@@ -147,13 +148,13 @@ export function useAgentStream() {
               handlers.onSubagentStatus?.(event);
             },
             onToolCall: (event) => {
-              if (event.status === 'started') startTool(event.toolCallId, event.name, event.toolType, event.nodeId, pathDepth(event.path));
+              if (event.status === 'started') startTool(event.toolCallId, event.name, event.toolType, event.nodeId, pathDepth(event.path), event.args);
               else finishTool(event.toolCallId, event.status, { error: event.error, durationMs: event.durationMs });
               handlers.onToolCall?.(event);
             },
             onClientToolCall: async (event) => {
               if (!handlers.onClientToolCall) return;
-              startTool(event.toolCallId, event.name, 'client', '', 0);
+              startTool(event.toolCallId, event.name, 'client', '', 0, event.args);
               const startedAt = Date.now();
               const outcome = await handlers.onClientToolCall(event);
               finishTool(event.toolCallId, outcome.ok ? 'completed' : 'failed', {

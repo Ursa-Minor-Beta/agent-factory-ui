@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { BaseEdge, Position, useNodes, type Node } from '@xyflow/react';
 import { EdgePhoton } from './EdgePhoton';
 
@@ -38,6 +39,7 @@ interface EdgeProps {
   targetPosition?: Position;
   sourceHandleId?: string | null;
   markerEnd?: string;
+  style?: CSSProperties;
   data?: { photon?: number };
 }
 
@@ -287,7 +289,7 @@ export function EdgeSmart(edgeProps: EdgeProps) {
 
   return (
     <>
-      <BaseEdge path={path} markerEnd={edgeProps.markerEnd} />
+      <BaseEdge path={path} markerEnd={edgeProps.markerEnd} style={edgeProps.style} />
       {edgeProps.data?.photon !== undefined && <EdgePhoton path={path} runningMs={edgeProps.data.photon} />}
     </>
   );

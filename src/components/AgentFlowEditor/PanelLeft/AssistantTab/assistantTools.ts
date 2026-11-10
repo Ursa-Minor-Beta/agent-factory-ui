@@ -78,7 +78,7 @@ export const ASSISTANT_CLIENT_TOOLS: ChatClientTool[] = [
   },
   {
     name: 'editor_save_agent',
-    description: 'Save the agent from the editor. A new agent is created on first save - required before it can run.',
+    description: 'Save the agent from the editor. A new agent is created on first save - required before it can run. Save after you update all nodes.',
     parameters: { type: 'object', properties: {} },
     nodeIds: TOOL_NODE_IDS,
   },

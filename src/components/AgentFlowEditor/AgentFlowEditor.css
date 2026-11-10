@@ -112,8 +112,9 @@
   stroke-width: 2;
 }
 
-.react-flow__edge.selected .react-flow__edge-path {
-  stroke: var(--mantine-color-cyan-5);
+/* Via the variable: React Flow's :focus rule outranks a plain .selected override */
+.react-flow {
+  --xy-edge-stroke-selected: var(--mantine-color-cyan-5);
 }
 
 /* runAfter: ordering-only dependency, no data passed */

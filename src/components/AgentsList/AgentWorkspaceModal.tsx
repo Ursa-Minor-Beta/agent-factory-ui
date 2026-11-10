@@ -78,13 +78,15 @@ export function AgentWorkspaceModal({ agent, onClose, onSaved }: AgentWorkspaceM
 
         <Select
           label="Workspace"
-          placeholder={workspacesLoading ? 'Loading...' : 'Select workspace (or leave empty for no workspace)'}
+          placeholder={workspacesLoading ? 'Loading...' : 'Select workspace'}
           value={selectedWorkspaceId}
           onChange={(val) => setSelectedWorkspaceId(val || '')}
-          data={workspaces.map((ws) => ({ value: ws.id, label: ws.name }))}
+          data={[
+            { value: '', label: 'Global' },
+            ...workspaces.map((ws) => ({ value: ws.id, label: ws.name })),
+          ]}
           disabled={workspacesLoading}
           searchable
-          clearable
         />
 
         <Group justify="flex-end" mt="md">

@@ -3,6 +3,8 @@ import type { Secret } from '../types';
 
 export interface ListSecretsOptions {
   workspaceId?: string | null; // string = specific workspace, null = global only, undefined = all
+  sortBy?: 'name' | 'createdAt' | 'updatedAt';
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface CreateSecretInput {
@@ -25,6 +27,8 @@ export const secretsApi = {
     if (options?.workspaceId !== undefined) {
       params.append('workspaceId', options.workspaceId === null ? 'null' : options.workspaceId);
     }
+    if (options?.sortBy) params.append('sortBy', options.sortBy);
+    if (options?.sortOrder) params.append('sortOrder', options.sortOrder);
     const query = params.toString();
     return api.get<Secret[]>(`/api/secrets${query ? `?${query}` : ''}`);
   },

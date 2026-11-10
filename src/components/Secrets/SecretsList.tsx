@@ -62,7 +62,11 @@ export function SecretsList({
   const loadSecrets = async () => {
     try {
       setLoading(true);
-      const data = await secretsApi.list(workspaceId !== undefined ? { workspaceId } : undefined);
+      const data = await secretsApi.list({ 
+        workspaceId: workspaceId !== undefined ? workspaceId : undefined,
+        sortBy: 'name',
+        sortOrder: 'asc'
+      });
       setSecrets(data);
       setError('');
     } catch (err) {

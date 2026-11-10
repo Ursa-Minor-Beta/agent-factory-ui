@@ -4,7 +4,7 @@ import type { RunStep } from './useAgentStream';
 
 // Live tool call step
 export function ToolCallStep({ step }: { step: RunStep }) {
-  const { name, label, toolType, durationMs, error } = step.tool!;
+  const { name, label, toolType, args, durationMs, error } = step.tool!;
   return (
     <ToolCallRow
       name={name}
@@ -12,6 +12,7 @@ export function ToolCallStep({ step }: { step: RunStep }) {
       status={step.status === 'completed' || step.status === 'failed' ? step.status : 'running'}
       toolType={toolType}
       depth={step.depth}
+      args={args}
       durationMs={durationMs}
       error={error}
     />

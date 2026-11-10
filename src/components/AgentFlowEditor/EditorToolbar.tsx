@@ -135,7 +135,7 @@ export function EditorToolbar({
         )}
         <ActionIcon
           size="xs"
-          variant="subtle"
+          variant={!canSave && !saving ? "subtle" : "light"}
           title={saving ? 'Saving...' : canSave ? 'Save' : 'No changes'}
           loading={saving}
           // Settings save instantly without graph changes - keep it enabled so the spinner shows

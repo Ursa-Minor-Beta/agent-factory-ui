@@ -197,11 +197,11 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
                 icon={IconPlayerPlay}
                 className={agent?.id && agentRunStatuses[agent.id] ? `run-tab-${agentRunStatuses[agent.id]}` : undefined}
               />
+              {workspaceId && <IconTab value="relations" label="Relations" icon={IconHierarchy2} />}
               <IconTab value="nodes" label="Nodes" icon={IconComponents} />
               <IconTab value="templates" label="Templates" icon={IconTemplate} />
-              <IconTab value="settings" label="Settings" icon={IconSettings} />
               <IconTab value="git" label="Git" icon={IconBrandGithub} />
-              {workspaceId && <IconTab value="relations" label="Relations" icon={IconHierarchy2} />}
+              <IconTab value="settings" label="Settings" icon={IconSettings} />
             </Tabs.List>
 
             <Tabs.Panel value="assistant" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>

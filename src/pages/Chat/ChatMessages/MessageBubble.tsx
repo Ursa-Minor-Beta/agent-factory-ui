@@ -53,7 +53,7 @@ export function MessageBubble({ message, isFirst, showRetry, onViewRun, onRepeat
             message.role === 'user'
               ? showRetry
                 ? 'light-dark(var(--mantine-color-red-1), var(--mantine-color-red-9))'
-                : 'light-dark(var(--mantine-color-cyan-1), var(--mantine-color-cyan-9))'
+                : 'var(--mantine-color-cyan-light)'
               : 'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5))',
         }}
       >

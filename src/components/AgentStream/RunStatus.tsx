@@ -1,7 +1,7 @@
-import { ActionIcon, Group, Loader, Paper, Stack, Text, type PaperProps } from '@mantine/core';
+import { ActionIcon, Box, Group, Loader, Paper, Text, type PaperProps } from '@mantine/core';
 import { IconListDetails } from '@tabler/icons-react';
 import { useRunDetailsModal } from '../RunDetailsModal';
-import { ToolCallStep } from './RunSteps';
+import { ToolCallTimeline } from './ToolCalls';
 import type { RunStep } from './useAgentStream';
 
 interface RunStatusProps extends PaperProps {
@@ -23,14 +23,22 @@ export function RunStatus({ statusText, runId, steps, ...props }: RunStatusProps
       radius="lg"
       miw={180}
       maw="90%"
-      w="fit-content"
+      w={toolSteps.length ? '100%' : 'fit-content'}
       bg="light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-6))"
       {...props}
     >
       {toolSteps.length > 0 && (
-        <Stack gap={8} py={8}>
-          {toolSteps.map((step) => <ToolCallStep key={step.tool!.toolCallId} step={step} />)}
-        </Stack>
+        <Box py={8}>
+          <ToolCallTimeline
+            live
+            calls={toolSteps.map(({ tool, status, depth }) => ({
+              ...tool!,
+              id: tool!.toolCallId,
+              status: status === 'completed' || status === 'failed' ? status : 'running',
+              depth,
+            }))}
+          />
+        </Box>
       )}
       <Group gap="sm" wrap="nowrap" mih="1.5rem">
         <Loader type="dots" size="xs" />

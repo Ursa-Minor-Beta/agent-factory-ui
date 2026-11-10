@@ -34,7 +34,7 @@ import type { Agent, AgentQueryParams } from '../../types';
 import type { Workspace } from '../../types/workspace';
 import { AgentCard } from './AgentCard';
 import { AgentsRelationsGraph } from '../AgentsGraph';
-import { AgentFilters } from './AgentFilters';
+import { AgentFilters, GLOBAL_WORKSPACE_FILTER } from './AgentFilters';
 import { AgentDeleteModal } from './AgentDeleteModal';
 import { AgentWorkspaceModal } from './AgentWorkspaceModal';
 import { ModalAgentImport } from './ModalAgentImport/ModalAgentImport';
@@ -134,14 +134,10 @@ export function AgentsList({
     AgentQueryParams['sortOrder']
   ];
 
-  // Check if any filters are active
-  const activeFilterCount = [
-    searchDebounced,
-    descriptionDebounced,
-    workspaceFilter,
-    createdAfter,
-    createdBefore,
-  ].filter(Boolean).length;
+  // Filters inside the expandable panel (drives the Filters button badge)
+  const panelFilterCount = [descriptionDebounced, createdAfter, createdBefore].filter(Boolean).length;
+  // Any filter active, incl. toolbar ones (drives the empty-state message)
+  const activeFilterCount = panelFilterCount + [searchDebounced, workspaceFilter].filter(Boolean).length;
 
   // Load workspaces for filter (only if filters are shown and no workspace is pre-selected)
   useEffect(() => {
@@ -196,6 +192,8 @@ export function AgentsList({
       // Use workspace from props if provided, otherwise use filter
       if (workspaceId) {
         params.workspaceId = workspaceId;
+      } else if (workspaceFilter === GLOBAL_WORKSPACE_FILTER) {
+        params.workspaceId = null; // agents not in any workspace
       } else if (workspaceFilter) {
         params.workspaceId = workspaceFilter;
       }
@@ -276,12 +274,10 @@ export function AgentsList({
     }
   };
 
-  const clearFilters = () => {
-    setSearch('');
-    setSearchDebounced('');
+  // Clears only the expandable panel filters; search and workspace live in the toolbar with their own controls
+  const clearPanelFilters = () => {
     setDescriptionFilter('');
     setDescriptionDebounced('');
-    setWorkspaceFilter('');
     setCreatedAfter('');
     setCreatedBefore('');
     setPage(1);
@@ -309,41 +305,59 @@ export function AgentsList({
           />
         )}
         {viewMode === 'list' && (<>
-        <TextInput
-          placeholder="Search by name..."
-          value={search}
-          onChange={(e) => setSearch(e.currentTarget.value)}
-          leftSection={<IconSearch size={16} />}
-          style={{ flex: 1, minWidth: 200, maxWidth: 300 }}
-        />
-        {showFilters && !workspaceId && (
-          <Button
-            variant={filtersOpened ? 'filled' : 'outline'}
-            leftSection={<IconFilter size={16} />}
-            onClick={toggleFilters}
-            color={activeFilterCount > 0 ? 'cyan' : 'gray'}
-          >
-            Filters
-            {activeFilterCount > 0 && (
-              <Badge size="sm" ml="xs" circle>
-                {activeFilterCount}
-              </Badge>
+            <Select
+              value={sortValue}
+              onChange={handleSortChange}
+              data={[
+                { value: 'name-asc', label: 'Name A-Z' },
+                { value: 'name-desc', label: 'Name Z-A' },
+                { value: 'updatedAt-desc', label: 'Recently updated' },
+                { value: 'updatedAt-asc', label: 'Oldest updated' },
+                { value: 'createdAt-desc', label: 'Newest first' },
+                { value: 'createdAt-asc', label: 'Oldest first' },
+              ]}
+              style={{ minWidth: 160 }}
+            />
+            {showFilters && !workspaceId && (
+              <Select
+                placeholder={workspacesLoading ? 'Loading...' : 'All workspaces'}
+                value={workspaceFilter || null}
+                onChange={(val) => {
+                  setWorkspaceFilter(val || '');
+                  setPage(1);
+                }}
+                data={[
+                  { value: GLOBAL_WORKSPACE_FILTER, label: 'Global' },
+                  ...workspaces.map((ws) => ({ value: ws.id, label: ws.name })),
+                ]}
+                disabled={workspacesLoading}
+                searchable
+                clearable
+                style={{ minWidth: 180 }}
+              />
             )}
-          </Button>
-        )}
-        <Select
-          value={sortValue}
-          onChange={handleSortChange}
-          data={[
-            { value: 'name-asc', label: 'Name A-Z' },
-            { value: 'name-desc', label: 'Name Z-A' },
-            { value: 'updatedAt-desc', label: 'Recently updated' },
-            { value: 'updatedAt-asc', label: 'Oldest updated' },
-            { value: 'createdAt-desc', label: 'Newest first' },
-            { value: 'createdAt-asc', label: 'Oldest first' },
-          ]}
-          style={{ minWidth: 160 }}
-        />
+            <TextInput
+              placeholder="Search by name..."
+              value={search}
+              onChange={(e) => setSearch(e.currentTarget.value)}
+              leftSection={<IconSearch size={16} />}
+              style={{ flex: 1, minWidth: 200, maxWidth: 300 }}
+            />
+            {showFilters && !workspaceId && (
+              <Button
+                variant={filtersOpened ? 'filled' : 'outline'}
+                leftSection={<IconFilter size={16} />}
+                onClick={toggleFilters}
+                color={panelFilterCount > 0 ? 'cyan' : 'gray'}
+              >
+                Filters
+                {panelFilterCount > 0 && (
+                  <Badge size="sm" ml="xs" circle>
+                    {panelFilterCount}
+                  </Badge>
+                )}
+              </Button>
+            )}
         </>)}
         <Box style={{ flex: 1 }} />
         {showCreateButton && (
@@ -395,13 +409,6 @@ export function AgentsList({
         <AgentFilters
           descriptionFilter={descriptionFilter}
           onDescriptionChange={setDescriptionFilter}
-          workspaceId={workspaceFilter}
-          onWorkspaceChange={(val) => {
-            setWorkspaceFilter(val);
-            setPage(1);
-          }}
-          workspaces={workspaces}
-          workspacesLoading={workspacesLoading}
           createdAfter={createdAfter}
           onCreatedAfterChange={(val) => {
             setCreatedAfter(val);
@@ -412,8 +419,8 @@ export function AgentsList({
             setCreatedBefore(val);
             setPage(1);
           }}
-          activeFilterCount={activeFilterCount}
-          onClearFilters={clearFilters}
+          activeFilterCount={panelFilterCount}
+          onClearFilters={clearPanelFilters}
         />
       )}
 

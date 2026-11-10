@@ -1,6 +1,8 @@
 // Input Schema types (for agent input nodes)
 export interface InputFieldSchema {
-  type: 'string' | 'number' | 'boolean';
+  type: 'string' | 'number' | 'boolean' | 'enum';
+  // Allowed values for 'enum' fields
+  options?: string[];
   required?: boolean;
   default?: unknown;
   description?: string;
@@ -99,7 +101,7 @@ export interface AgentQueryParams {
   id?: string;
   name?: string;
   description?: string;
-  workspaceId?: string;
+  workspaceId?: string | null; // null = agents not assigned to any workspace (sent as 'null')
   createdAfter?: string;
   createdBefore?: string;
   sortBy?: 'name' | 'createdAt' | 'updatedAt';
