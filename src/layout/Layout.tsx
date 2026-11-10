@@ -21,6 +21,12 @@ const RunDetailsModal = lazy(() =>
   }))
 );
 
+const ScheduleModal = lazy(() =>
+  import('../components/Schedules/ScheduleModal').then((module) => ({
+    default: module.ScheduleModal,
+  }))
+);
+
 const AgentModalWrapper = lazy(() =>
   import('../components/AgentCreateModal').then((module) => ({
     default: module.AgentModalWrapper,
@@ -142,6 +148,7 @@ export function Layout() {
 
       {/* Global modals - read state from URL */}
       <Suspense fallback={null}>
+        <ScheduleModal />
         <RunDetailsModal />
         <AgentModalWrapper />
       </Suspense>

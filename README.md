@@ -18,7 +18,8 @@ Visual platform for building and managing AI agents through a no-code/low-code i
 - **Streaming Chat** - Real-time SSE streaming with session management, tool call display, and message queueing while a run is active
 - **GitHub Sync** - Clone/Link agents to repos with push/pull support via a GitHub provider
 - **Export/Import** - Export agents to JSON packages with dependencies
-- **Execution Monitoring** - Run tracking with node-level timing, logs, tool calls, LLM token usage, and child run tree
+- **Schedules** - Run agents automatically on a repeating calendar, once at a set time, or every N minutes/hours/days, with next-run preview, run now, pause, failure auto-stop, incognito or chat-session runs, and per-schedule run history; manage them on the Schedules page, in the agent editor, and in workspaces
+- **Execution Monitoring** - Run tracking with node-level timing, logs, tool calls, LLM token usage, child run tree, and what triggered each run (chat, API, schedule, agent node, tool call) with filtering by trigger
 - **Encrypted Secrets** - Secure credential storage (AES-256-GCM)
 - **Variables** - Plain-text global/workspace variables referenced via `{{var:NAME}}`
 - **File Storage** - Built-in file management for agent artifacts

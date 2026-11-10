@@ -4,6 +4,32 @@ import type { ProviderType } from './provider';
 export type NodeStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
 export type RunStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelling' | 'cancelled';
 
+export type RunTrigger =
+  | { triggerType: 'agent_node'; nodeId: string }
+  | { triggerType: 'tool_call'; nodeId: string; toolName?: string }
+  | { triggerType: 'chat'; sessionId?: string }
+  | { triggerType: 'api' }
+  | { triggerType: 'schedule'; scheduleId: string; scheduledFor: string };
+
+export type RunTriggerType = RunTrigger['triggerType'];
+
+export const triggerLabels: Record<RunTriggerType, string> = {
+  chat: 'Chat',
+  api: 'API',
+  schedule: 'Schedule',
+  agent_node: 'Agent node',
+  tool_call: 'Tool call',
+};
+
+// Child-run triggers (agent_node / tool_call) carry the parent node id
+export function getTriggerNodeId(trigger?: RunTrigger): string | undefined {
+  return trigger && 'nodeId' in trigger ? trigger.nodeId : undefined;
+}
+
+export function getTriggerToolName(trigger?: RunTrigger): string | undefined {
+  return trigger?.triggerType === 'tool_call' ? trigger.toolName : undefined;
+}
+
 export interface NodeState {
   nodeType: NodeTypeName;
   status: NodeStatus;
@@ -29,7 +55,7 @@ export interface Run {
   startedAt: string;
   completedAt?: string | null;
   parentRunId?: string;
-  triggeredBy?: { triggerType: 'agent_node' | 'tool_call'; nodeId: string; toolName?: string };
+  triggeredBy?: RunTrigger; // Old runs may have none
   childRuns?: Run[]; // Only when includeChildren=true
 }
 
@@ -45,7 +71,7 @@ export interface RunSummary {
   startedAt: string;
   completedAt: string | null;
   parentRunId?: string;
-  triggeredBy?: { triggerType: 'agent_node' | 'tool_call'; nodeId: string; toolName?: string };
+  triggeredBy?: RunTrigger; // Old runs may have none
   childRunIds?: string[]; // Only when includeChildren=true
 }
 

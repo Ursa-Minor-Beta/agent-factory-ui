@@ -15,7 +15,7 @@ import {
   Tooltip,
   SegmentedControl,
 } from '@mantine/core';
-import { useDisclosure, useMediaQuery } from '@mantine/hooks';
+import { useDisclosure, useLocalStorage, useMediaQuery } from '@mantine/hooks';
 import {
   IconSearch,
   IconFilter,
@@ -45,10 +45,9 @@ import { routes } from '../../config/routes';
 const ITEMS_PER_PAGE = 12;
 const SORT_STORAGE_KEY = 'agents-sort';
 
-type ViewMode = 'list' | 'graph';
+const VIEW_MODE_STORAGE_KEY = 'agents-view-mode';
 
-// Last chosen view: module-level so it survives tab switches and opening an agent, resets on page reload
-let lastViewMode: ViewMode = 'list';
+type ViewMode = 'list' | 'graph';
 
 function downloadJson(data: unknown, filename: string) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -114,12 +113,13 @@ export function AgentsList({
   const [workspacesLoading, setWorkspacesLoading] = useState(false);
 
   // Graph view is only offered inside a workspace
-  const [selectedViewMode, setSelectedViewMode] = useState<ViewMode>(lastViewMode);
-  const viewMode: ViewMode = workspaceId ? selectedViewMode : 'list';
-  const setViewMode = (value: ViewMode) => {
-    lastViewMode = value;
-    setSelectedViewMode(value);
-  };
+  // Last chosen view is remembered across reloads
+  const [selectedViewMode, setViewMode] = useLocalStorage<ViewMode>({
+    key: VIEW_MODE_STORAGE_KEY,
+    defaultValue: 'list',
+    getInitialValueInEffect: false,
+  });
+  const viewMode: ViewMode = workspaceId && selectedViewMode === 'graph' ? 'graph' : 'list';
 
   // Persist sort value
   const handleSortChange = (val: string | null) => {

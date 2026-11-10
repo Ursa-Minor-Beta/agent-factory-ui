@@ -36,3 +36,6 @@ export * from './workspace';
 
 // GitHub sync types
 export * from './github';
+
+// Schedule types
+export * from './schedule';

@@ -21,6 +21,7 @@ import {
   IconKey,
   IconDatabase,
   IconVariable,
+  IconCalendarTime,
 } from '@tabler/icons-react';
 import { workspacesApi } from '../../api/workspaces';
 import type { Workspace } from '../../types/workspace';
@@ -31,9 +32,10 @@ import { ProvidersList } from '../../components/Providers';
 import { SecretsList } from '../../components/Secrets';
 import { VariablesList } from '../../components/Variables';
 import { CollectionsList } from '../../components/Collections';
+import { SchedulesList } from '../../components/Schedules';
 import { routes } from '../../config/routes';
 
-const VALID_TABS = ['agents', 'providers', 'secrets', 'variables', 'collections'] as const;
+const VALID_TABS = ['agents', 'providers', 'secrets', 'variables', 'schedules', 'collections'] as const;
 
 export function WorkspaceDetailPage() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
@@ -191,6 +193,9 @@ export function WorkspaceDetailPage() {
           <Tabs.Tab value="agents" leftSection={<IconRobot size={16} />}>
             Agents{workspace.agentCount !== undefined && ` (${workspace.agentCount})`}
           </Tabs.Tab>
+          <Tabs.Tab value="schedules" leftSection={<IconCalendarTime size={16} />}>
+            Schedules{workspace.scheduleCount !== undefined && ` (${workspace.scheduleCount})`}
+          </Tabs.Tab>
           <Tabs.Tab value="providers" leftSection={<IconCloud size={16} />}>
             Providers{workspace.providerCount !== undefined && ` (${workspace.providerCount})`}
           </Tabs.Tab>
@@ -258,6 +263,18 @@ export function WorkspaceDetailPage() {
             onCreate={loadWorkspace}
             onDelete={loadWorkspace}
           />
+        </Tabs.Panel>
+
+        <Tabs.Panel value="schedules">
+          {tab === 'schedules' && (
+            <SchedulesList
+              workspaceId={workspaceId}
+              description="Schedules of this workspace's agents"
+              columns={['name', 'status', 'schedule', 'nextRun', 'lastRun', 'enabled', 'actions']}
+              onCreate={loadWorkspace}
+              onDelete={loadWorkspace}
+            />
+          )}
         </Tabs.Panel>
       </Tabs>
 

@@ -2,9 +2,11 @@ import { useMemo, type ReactNode } from 'react';
 import { Alert, Box, Card, Code, Group, Paper, ScrollArea, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { IconAlertCircle } from '@tabler/icons-react';
 import type { Run } from '../../types';
-import { formatDuration, formatTokens, getRunProviderNames, getRunUsage, resolveRunOutput } from '../../types';
+import { formatDuration, formatTokens, getTriggerNodeId, getTriggerToolName, getRunProviderNames, getRunUsage, resolveRunOutput } from '../../types';
 import { CopyIconButton, toJson } from './CopyIconButton';
 import { DataWithFileRefs } from './utils';
+import { TriggerBadge } from './TriggerBadge';
+import { ScheduleTriggerInfo } from './ScheduleTriggerInfo';
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -51,13 +53,19 @@ export function RunSummaryCard({ run }: { run: Run }) {
               <CopyIconButton value={run.id} />
             </Group>
           </Field>
-          {run.triggeredBy && (
+          <Field label="Trigger">
+            <Box mt={4}><TriggerBadge trigger={run.triggeredBy} /></Box>
+            {run.triggeredBy?.triggerType === 'schedule' && (
+              <ScheduleTriggerInfo scheduleId={run.triggeredBy.scheduleId} scheduledFor={run.triggeredBy.scheduledFor} />
+            )}
+          </Field>
+          {run.triggeredBy && run.parentRunId && (
             <Field label="Triggered by">
               <Stack gap={0} mt={4}>
                 <Code fz="xs">Parent Run Id: {run.parentRunId}</Code>
-                <Code fz="xs">Node Id: {run.triggeredBy.nodeId}</Code>
+                <Code fz="xs">Node Id: {getTriggerNodeId(run.triggeredBy)}</Code>
                 <Code fz="xs">Trigger Type: {run.triggeredBy.triggerType}</Code>
-                {run.triggeredBy.toolName && <Code fz="xs">Tool Name: {run.triggeredBy.toolName}</Code>}
+                {getTriggerToolName(run.triggeredBy) && <Code fz="xs">Tool Name: {getTriggerToolName(run.triggeredBy)}</Code>}
               </Stack>
             </Field>
           )}

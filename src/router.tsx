@@ -15,6 +15,7 @@ const SecretsPage = lazy(() => import('./pages/Secrets').then(m => ({ default: m
 const VariablesPage = lazy(() => import('./pages/Variables').then(m => ({ default: m.VariablesPage })));
 const FilesPage = lazy(() => import('./pages/Files').then(m => ({ default: m.FilesPage })));
 const RunsPage = lazy(() => import('./pages/Runs/index').then(m => ({ default: m.RunsPage })));
+const SchedulesPage = lazy(() => import('./pages/Schedules').then(m => ({ default: m.SchedulesPage })));
 const SessionsPage = lazy(() => import('./pages/Sessions/index').then(m => ({ default: m.SessionsPage })));
 const SystemSettings = lazy(() => import('./pages/Settings').then(m => ({ default: m.SystemSettings })));
 const UsersSettings = lazy(() => import('./pages/Settings').then(m => ({ default: m.UsersSettings })));
@@ -113,6 +114,10 @@ export const router = createBrowserRouter([
           {
             path: 'collections/:collectionId/records',
             element: <CollectionRecordsPage />,
+          },
+          {
+            path: 'schedules',
+            element: <SchedulesPage />,
           },
         ],
       },
