@@ -3,6 +3,7 @@ import { Box, Text, Combobox, useCombobox, ScrollArea, type FloatingPosition } f
 import {
   HighlightedText,
   findTemplateStart,
+  getCaretCoordinates,
   buildTemplateOptions,
   buildTemplateValidation,
   filterTemplateOptions,
@@ -47,6 +48,9 @@ export function TemplateInputWrapper({
 }: TemplateInputWrapperProps) {
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
   const internalHighlightRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  // Dropdown anchor at the caret, relative to the wrapper
+  const [caret, setCaret] = useState({ top: 0, left: 0, height: 0 });
   const highlightRef = externalHighlightRef || internalHighlightRef;
   const onChangeRef = useRef(onChange);
   const debounceRef = useRef<number | null>(null);
@@ -144,6 +148,25 @@ export function TemplateInputWrapper({
     setFilterQuery('');
   };
 
+  // Move the dropdown anchor to the caret; single-line inputs keep it under the field
+  const updateCaret = (cursorPos: number) => {
+    const input = inputRef.current;
+    const wrapper = wrapperRef.current;
+    if (!input || !wrapper) return;
+
+    const inputRect = input.getBoundingClientRect();
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const coords = getCaretCoordinates(input, cursorPos);
+    const offsetTop = inputRect.top - wrapperRect.top;
+    const isInput = input.tagName === 'INPUT';
+
+    setCaret({
+      top: isInput ? offsetTop : offsetTop + Math.max(0, Math.min(coords.top, inputRect.height - coords.height)),
+      left: inputRect.left - wrapperRect.left + Math.max(0, Math.min(coords.left, inputRect.width)),
+      height: isInput ? inputRect.height : coords.height,
+    });
+  };
+
   // Check autocomplete with given value and cursor position
   const checkAutocomplete = (currentValue: string, cursorPos: number) => {
     if (allTemplateOptions.length === 0) {
@@ -154,6 +177,7 @@ export function TemplateInputWrapper({
     const templateInfo = findTemplateStart(currentValue, cursorPos);
 
     if (templateInfo) {
+      updateCaret(cursorPos);
       setFilterQuery(templateInfo.query);
       combobox.openDropdown();
       combobox.resetSelectedOption();
@@ -254,9 +278,12 @@ export function TemplateInputWrapper({
         inputRef.current?.focus();
       }}
       position={dropdownPosition}
+      // Anchor is a 1px caret marker - size the dropdown to its options instead
+      width="max-content"
     >
-      <Combobox.Target>
+      <Combobox.EventsTarget>
         <Box
+          ref={wrapperRef}
           pos="relative"
           style={{
             backgroundColor: 'var(--input-bg)',
@@ -264,6 +291,20 @@ export function TemplateInputWrapper({
             ...wrapperStyle,
           }}
         >
+          {/* Dropdown anchor following the caret */}
+          <Combobox.DropdownTarget>
+            <Box
+              style={{
+                position: 'absolute',
+                top: caret.top,
+                left: caret.left,
+                width: 1,
+                height: caret.height,
+                pointerEvents: 'none',
+              }}
+            />
+          </Combobox.DropdownTarget>
+
           {/* Highlight layer */}
           <Box ref={highlightRef} style={defaultHighlightStyle}>
             <HighlightedText text={highlightValue} validation={validation} />
@@ -278,10 +319,12 @@ export function TemplateInputWrapper({
             handleKeyDown,
           })}
         </Box>
-      </Combobox.Target>
+      </Combobox.EventsTarget>
 
       <Combobox.Dropdown
         hidden={filteredSuggestions.length === 0}
+        miw={200}
+        maw={400}
       >
         <Combobox.Options>
           <ScrollArea.Autosize mah={200}>

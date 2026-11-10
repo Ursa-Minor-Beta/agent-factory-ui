@@ -288,7 +288,6 @@ export function TemplateTextEditorFull({
                             refs={refs}
                             onChange={handleRawContentChange}
                             highlightRef={highlightRef}
-                            dropdownPosition="top-start"
                             wrapperStyle={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}
                             highlightStyle={{
                                 top: 0,

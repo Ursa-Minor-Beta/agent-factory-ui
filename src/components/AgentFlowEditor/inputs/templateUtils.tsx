@@ -121,6 +121,47 @@ export const HighlightedText = memo(function HighlightedText({ text, validation 
 });
 
 // Find the start of the current template being typed (after {{ )
+// Style properties that affect text layout, copied to the caret measuring mirror
+const CARET_MIRROR_PROPS = [
+  'boxSizing', 'width', 'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth',
+  'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
+  'fontStyle', 'fontWeight', 'fontSize', 'lineHeight', 'fontFamily', 'letterSpacing', 'tabSize',
+] as const;
+
+// Caret position inside an input/textarea, relative to its border box (mirror div technique)
+export function getCaretCoordinates(
+  el: HTMLInputElement | HTMLTextAreaElement,
+  pos: number
+): { top: number; left: number; height: number } {
+  const computed = window.getComputedStyle(el);
+  const isInput = el.tagName === 'INPUT';
+  const mirror = document.createElement('div');
+
+  CARET_MIRROR_PROPS.forEach(prop => { mirror.style[prop] = computed[prop]; });
+  Object.assign(mirror.style, {
+    position: 'absolute',
+    top: '0',
+    visibility: 'hidden',
+    whiteSpace: isInput ? 'pre' : 'pre-wrap',
+    overflowWrap: 'break-word',
+  });
+
+  mirror.textContent = el.value.slice(0, pos);
+  const marker = document.createElement('span');
+  marker.textContent = el.value.slice(pos) || '.';
+  mirror.appendChild(marker);
+  document.body.appendChild(mirror);
+
+  const lineHeight = parseFloat(computed.lineHeight) || parseFloat(computed.fontSize) * 1.2;
+  const coords = {
+    top: marker.offsetTop - el.scrollTop,
+    left: marker.offsetLeft - el.scrollLeft,
+    height: lineHeight,
+  };
+  document.body.removeChild(mirror);
+  return coords;
+}
+
 export function findTemplateStart(text: string, cursorPos: number): { start: number; query: string } | null {
   const beforeCursor = text.slice(0, cursorPos);
   const lastOpen = beforeCursor.lastIndexOf('{{');
