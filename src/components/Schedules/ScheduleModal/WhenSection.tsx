@@ -15,11 +15,12 @@ import {
 import { DateTimePicker, TimeInput } from '@mantine/dates';
 import { IconAlertCircle, IconInfoCircle } from '@tabler/icons-react';
 import { Controller, useWatch, type Control, type UseFormRegister } from 'react-hook-form';
-import { HOUR_STEPS, MINUTE_STEPS, type CronPresetKind } from '../../../utils/cron';
+import { HOUR_STEPS, MINUTE_STEPS, SECOND_STEPS, type CronPresetKind } from '../../../utils/cron';
 import { buildCronExpression, buildTrigger, effectiveTimezone, type ScheduleFormValues } from './formModel';
 import { SchedulePreview } from './SchedulePreview';
 
 const KIND_OPTIONS: { value: CronPresetKind; label: string }[] = [
+  { value: 'seconds', label: 'Every N seconds' },
   { value: 'minutes', label: 'Every N minutes' },
   { value: 'hours', label: 'Every N hours' },
   { value: 'daily', label: 'Daily' },
@@ -62,7 +63,7 @@ export function WhenSection({ control, register, error, atError }: WhenSectionPr
   const timezones = useMemo(() => Intl.supportedValuesOf('timeZone'), []);
   const [now] = useState(() => new Date());
   const { triggerType, cronAdvanced, cronKind, monthDay } = values;
-  const showTime = !['minutes', 'hours'].includes(cronKind);
+  const showTime = !['seconds', 'minutes', 'hours'].includes(cronKind);
 
   const limits = (
     <SimpleGrid cols={{ base: 1, sm: triggerType === 'cron' ? 3 : 2 }}>
@@ -137,6 +138,22 @@ export function WhenSection({ control, register, error, atError }: WhenSectionPr
                     <Select label="Frequency" data={KIND_OPTIONS} allowDeselect={false} {...field} />
                   )}
                 />
+                {cronKind === 'seconds' && (
+                  <Controller
+                    name="secondStep"
+                    control={control}
+                    render={({ field: { value, onChange, ...field } }) => (
+                      <Select
+                        label="Every"
+                        data={SECOND_STEPS.map((n) => ({ value: String(n), label: `${n} seconds` }))}
+                        value={String(value)}
+                        onChange={(v) => v && onChange(Number(v))}
+                        allowDeselect={false}
+                        {...field}
+                      />
+                    )}
+                  />
+                )}
                 {cronKind === 'minutes' && (
                   <Controller
                     name="minuteStep"

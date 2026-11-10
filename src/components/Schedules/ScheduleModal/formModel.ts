@@ -16,6 +16,7 @@ import {
   type HourStep,
   type IntervalUnit,
   type MinuteStep,
+  type SecondStep,
 } from '../../../utils/cron';
 import dayjs, { browserTimezone } from '../../../utils/dayjs';
 import { buildAgentInput } from '../../../pages/Chat/models/agentInput';
@@ -37,6 +38,7 @@ export interface ScheduleFormValues {
   cronAdvanced: boolean;
   cronExpression: string;
   cronKind: CronPresetKind;
+  secondStep: SecondStep;
   minuteStep: MinuteStep;
   hourStep: HourStep;
   time: string; // 'HH:mm' - daily/weekly/monthly/yearly; minute part only for 'hours'
@@ -90,6 +92,7 @@ export function defaultFormValues(agentId = ''): ScheduleFormValues {
     cronAdvanced: false,
     cronExpression: '0 9 * * *',
     cronKind: 'daily',
+    secondStep: 30,
     minuteStep: 15,
     hourStep: 1,
     time: '09:00',
@@ -117,6 +120,9 @@ export function defaultFormValues(agentId = ''): ScheduleFormValues {
 function applyPreset(values: ScheduleFormValues, preset: CronPreset) {
   values.cronKind = preset.kind;
   switch (preset.kind) {
+    case 'seconds':
+      values.secondStep = preset.every;
+      break;
     case 'minutes':
       values.minuteStep = preset.every;
       break;
@@ -181,6 +187,8 @@ export function buildCronExpression(values: ScheduleFormValues): string {
   if (values.cronAdvanced) return values.cronExpression.trim();
   const { hour, minute } = parseTime(values.time);
   switch (values.cronKind) {
+    case 'seconds':
+      return buildCron({ kind: 'seconds', every: values.secondStep });
     case 'minutes':
       return buildCron({ kind: 'minutes', every: values.minuteStep });
     case 'hours':

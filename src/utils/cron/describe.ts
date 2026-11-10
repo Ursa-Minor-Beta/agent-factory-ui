@@ -20,6 +20,8 @@ function describeDays(days: number[]): string {
 
 export function describeCronPreset(preset: CronPreset): string {
   switch (preset.kind) {
+    case 'seconds':
+      return `Every ${preset.every} sec`;
     case 'minutes':
       return `Every ${preset.every} min`;
     case 'hours':
@@ -49,8 +51,8 @@ export function describeTrigger(trigger: ScheduleTrigger, timezone: string): str
   switch (trigger.type) {
     case 'cron': {
       const preset = parseCron(trigger.expression);
-      // Minute steps don't depend on the timezone
-      if (preset?.kind === 'minutes') return describeCronPreset(preset);
+      // Second/minute steps don't depend on the timezone
+      if (preset?.kind === 'seconds' || preset?.kind === 'minutes') return describeCronPreset(preset);
       const text = preset ? describeCronPreset(preset) : `Cron: ${trigger.expression}`;
       return `${text} (${timezone})`;
     }

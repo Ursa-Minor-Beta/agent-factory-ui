@@ -1,13 +1,17 @@
 // Friendly cron builder presets <-> cron expression.
 // build() and parse() must round-trip: parse(build(p)) deep-equals p.
 
+// Second steps use the 6-field (seconds-first) form; server minimum gap is 10s
+export const SECOND_STEPS = [10, 15, 20, 30] as const;
 export const MINUTE_STEPS = [5, 10, 15, 20, 30] as const;
 export const HOUR_STEPS = [1, 2, 3, 4, 6, 12] as const;
 
+export type SecondStep = (typeof SECOND_STEPS)[number];
 export type MinuteStep = (typeof MINUTE_STEPS)[number];
 export type HourStep = (typeof HOUR_STEPS)[number];
 
 export type CronPreset =
+  | { kind: 'seconds'; every: SecondStep }
   | { kind: 'minutes'; every: MinuteStep }
   | { kind: 'hours'; every: HourStep; minute: number }
   | { kind: 'daily'; hour: number; minute: number }
@@ -19,6 +23,8 @@ export type CronPresetKind = CronPreset['kind'];
 
 export function buildCron(preset: CronPreset): string {
   switch (preset.kind) {
+    case 'seconds':
+      return `*/${preset.every} * * * * *`;
     case 'minutes':
       return `*/${preset.every} * * * *`;
     case 'hours':
@@ -36,7 +42,17 @@ export function buildCron(preset: CronPreset): string {
 
 // Returns null when the expression doesn't match a preset - the form then opens Advanced
 export function parseCron(expression: string): CronPreset | null {
-  const fields = expression.trim().split(/\s+/);
+  let fields = expression.trim().split(/\s+/);
+  if (fields.length === 6) {
+    const [sec, ...rest] = fields;
+    const secondStep = matchStep(sec);
+    if (secondStep !== null && rest.every((f) => f === '*')) {
+      return isOneOf(SECOND_STEPS, secondStep) ? { kind: 'seconds', every: secondStep } : null;
+    }
+    // A zero seconds field is the same as the 5-field form
+    if (sec !== '0') return null;
+    fields = rest;
+  }
   if (fields.length !== 5) return null;
   const [min, hour, dom, mon, dow] = fields;
 

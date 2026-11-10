@@ -10,6 +10,7 @@ import {
 } from '.';
 
 const presets: [CronPreset, string][] = [
+  [{ kind: 'seconds', every: 30 }, '*/30 * * * * *'],
   [{ kind: 'minutes', every: 15 }, '*/15 * * * *'],
   [{ kind: 'hours', every: 6, minute: 30 }, '30 */6 * * *'],
   [{ kind: 'daily', hour: 9, minute: 5 }, '5 9 * * *'],
@@ -29,6 +30,10 @@ describe('cron presets', () => {
     expect(parseCron('0 8 * * 7,1')).toEqual({ kind: 'weekly', days: [0, 1], hour: 8, minute: 0 });
   });
 
+  it('treats a zero seconds field like the 5-field form', () => {
+    expect(parseCron('0 0 9 * * *')).toEqual({ kind: 'daily', hour: 9, minute: 0 });
+  });
+
   it('treats "M * * * *" as every 1 hour', () => {
     expect(parseCron('15 * * * *')).toEqual({ kind: 'hours', every: 1, minute: 15 });
   });
@@ -42,6 +47,8 @@ describe('cron presets', () => {
     '61 9 * * *', // out of range
     '0 9 * *', // 4 fields
     '0,30 9 * * *', // minute lists
+    '*/5 * * * * *', // second step not offered
+    '30 0 9 * * *', // non-zero seconds
   ])('returns null for non-preset %s', (expression) => {
     expect(parseCron(expression)).toBeNull();
   });

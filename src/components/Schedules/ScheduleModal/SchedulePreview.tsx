@@ -9,6 +9,7 @@ import dayjs, { browserTimezone } from '../../../utils/dayjs';
 const PREVIEW_COUNT = 5;
 const PREVIEW_DEBOUNCE_MS = 400;
 const PREVIEW_FORMAT = 'ddd, D MMM YYYY HH:mm';
+const PREVIEW_FORMAT_SECONDS = 'ddd, D MMM YYYY HH:mm:ss';
 
 interface PreviewState {
   runs: string[];
@@ -60,6 +61,8 @@ export function SchedulePreview({ trigger, timezone }: SchedulePreviewProps) {
   const { runs, error, loading } = useSchedulePreview(trigger, timezone);
   const localTz = browserTimezone();
   const showLocal = timezone !== localTz;
+  // Seconds only matter when some run isn't on a whole minute
+  const previewFormat = runs.some((run) => dayjs(run).second() !== 0) ? PREVIEW_FORMAT_SECONDS : PREVIEW_FORMAT;
 
   return (
     <Box>
@@ -77,9 +80,9 @@ export function SchedulePreview({ trigger, timezone }: SchedulePreviewProps) {
         <Stack gap={0}>
           {runs.map((run) => (
             <Group key={run} gap="xs" wrap="wrap">
-              <Text size="xs" c="dimmed">{dayjs(run).tz(timezone).format(PREVIEW_FORMAT)}</Text>
+              <Text size="xs" c="dimmed">{dayjs(run).tz(timezone).format(previewFormat)}</Text>
               {showLocal && (
-                <Text size="xs" c="dimmed" opacity={0.7}>({dayjs(run).tz(localTz).format(PREVIEW_FORMAT)} local)</Text>
+                <Text size="xs" c="dimmed" opacity={0.7}>({dayjs(run).tz(localTz).format(previewFormat)} local)</Text>
               )}
             </Group>
           ))}
