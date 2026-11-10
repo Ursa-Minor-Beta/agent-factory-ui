@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Stack, Group, Text, Button, TextInput, Card, Box, ActionIcon, Modal } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconPlus, IconPencil, IconTrash } from '@tabler/icons-react';
-import type { NodeMetadata } from '../inputs/templateUtils';
+import type { NodeMetadata, TemplateRefs } from '../inputs/templateUtils';
 import { StringInput } from '../inputs/StringInput';
 import { FieldInput } from './FieldInput';
 
@@ -11,6 +11,7 @@ interface OutputFieldsEditorProps {
   nodeLabel: string;
   nodeData: Record<string, unknown>;
   nodes?: NodeMetadata[];
+  refs?: TemplateRefs;
   onUpdate: (nodeId: string, data: Record<string, unknown>) => void;
   onReplace: (nodeId: string, data: Record<string, unknown>) => void;
 }
@@ -20,6 +21,7 @@ export function OutputNodeEditor({
   nodeLabel,
   nodeData,
   nodes,
+  refs,
   onUpdate,
   onReplace,
 }: OutputFieldsEditorProps) {
@@ -126,6 +128,7 @@ export function OutputNodeEditor({
                 nodeLabel={nodeLabel}
                 value={newFieldValue}
                 nodes={nodes}
+                refs={refs}
                 onChange={setNewFieldValue}
               />
             </Box>
@@ -185,6 +188,7 @@ export function OutputNodeEditor({
                       nodeId={nodeId}
                       nodeLabel={nodeLabel}
                       nodes={nodes}
+                      refs={refs}
                       onUpdate={onUpdate}
                     />
                   </Box>

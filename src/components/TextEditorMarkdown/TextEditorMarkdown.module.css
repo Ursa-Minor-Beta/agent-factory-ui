@@ -269,6 +269,14 @@
     border-radius: 2px;
 }
 
+.tiptapContent :global(.template-ref-valid.template-ref-secret) {
+    background-color: rgba(250, 176, 5, 0.2);
+}
+
+.tiptapContent :global(.template-ref-valid.template-ref-var) {
+    background-color: rgba(151, 117, 250, 0.2);
+}
+
 .tiptapContent :global(.template-ref-invalid) {
     background-color: rgba(239, 68, 68, 0.15);
     border-radius: 2px;

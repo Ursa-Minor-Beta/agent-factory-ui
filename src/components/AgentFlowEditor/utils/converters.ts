@@ -42,8 +42,10 @@ export function toAgentNode(flowNode: Node): AgentNode {
 }
 
 // Template variable regex patterns
-// Matches entire template variable for splitting: {{node: name.output.field}}
-export const TEMPLATE_VAR_REGEX = /(\{\{node:\s*[^}]+\}\})/g;
+// Matches entire template variable for splitting: {{node: name.output.field}}, {{secret:NAME}}, {{var:NAME}}
+export const TEMPLATE_VAR_REGEX = /(\{\{(?:node|secret|var):\s*[^}]+\}\})/g;
+// Extracts kind and target from template variable: {{secret: NAME}} -> ['secret', 'NAME']
+export const TEMPLATE_REF_REGEX = /^\{\{(node|secret|var):\s*([^}]+?)\s*\}\}$/;
 // Extracts node ID from template variable: {{node: nodeId.output.field}} -> nodeId
 export const TEMPLATE_NODE_ID_REGEX = /\{\{node:\s*([^.}\s]+)/;
 // Global version for extracting all node IDs from a string

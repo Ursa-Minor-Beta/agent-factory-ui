@@ -2,7 +2,7 @@ import { memo, useRef } from 'react';
 import { TextInput, Box, Text, Tooltip, Group, ThemeIcon } from '@mantine/core';
 import { IconQuestionMark } from '@tabler/icons-react';
 import { TemplateInputWrapper } from './TemplateInputWrapper';
-import type { NodeMetadata } from './templateUtils';
+import type { NodeMetadata, TemplateRefs } from './templateUtils';
 
 interface StringInputProps {
   name: string;
@@ -10,10 +10,11 @@ interface StringInputProps {
   nodeLabel?: string;
   value: string;
   nodes?: NodeMetadata[];
+  refs?: TemplateRefs;
   onChange: (value: string) => void;
 }
 
-export const StringInput = memo(function StringInput({ name, description, value, nodes, onChange }: StringInputProps) {
+export const StringInput = memo(function StringInput({ name, description, value, nodes, refs, onChange }: StringInputProps) {
   const highlightRef = useRef<HTMLDivElement>(null);
 
   return (
@@ -31,6 +32,7 @@ export const StringInput = memo(function StringInput({ name, description, value,
       <TemplateInputWrapper
         value={value}
         nodes={nodes}
+        refs={refs}
         onChange={onChange}
         highlightRef={highlightRef}
         highlightStyle={{

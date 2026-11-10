@@ -5,6 +5,7 @@ import './AgentFlowEditor.css';
 import { Center, Loader, LoadingOverlay } from '@mantine/core';
 import { useAgentEditor } from './hooks/useAgentEditor';
 import { useNodeClipboard } from './hooks/useNodeClipboard';
+import { useTemplateRefs } from './hooks/useTemplateRefs';
 import { useEditorHistory } from './hooks/useEditorHistory';
 import { useRunReplay } from './hooks/useRunReplay';
 import { useDisplayEdges, useDisplayNodes } from './hooks/useRunDisplay';
@@ -85,6 +86,9 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     upsertNode,
     removeNode,
   } = useAgentEditor({ agentId, workspaceId });
+
+  // Secret / variable names for {{secret:NAME}} / {{var:NAME}} suggestions
+  const templateRefs = useTemplateRefs(agent?.workspaceId ?? workspaceId);
 
   // Show agent name in browser tab title
   usePageTitle(agent?.name);
@@ -339,6 +343,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
           node={selectedNode}
           nodes={nodes}
           nodeTypes={availableNodeTypes}
+          templateRefs={templateRefs}
           onUpdate={updateNodeData}
           onUpdateId={updateNodeId}
           onReplace={replaceNodeData}

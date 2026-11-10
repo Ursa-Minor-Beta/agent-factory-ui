@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback, memo } from 'react';
 import type { NodeTypeOption } from '../../../api';
-import type { NodeMetadata } from '../inputs/templateUtils';
-import { StringInput, TextInput, EditorInput, NumberInput, BooleanInput, EnumInput, MultiEnumInput } from '../inputs';
+import type { NodeMetadata, TemplateRefs } from '../inputs/templateUtils';
+import { StringInput, TextInput, JSONInput, NumberInput, BooleanInput, EnumInput, MultiEnumInput } from '../inputs';
 
 interface FieldInputProps {
   fieldKey: string;
@@ -10,6 +10,7 @@ interface FieldInputProps {
   nodeId: string;
   nodeLabel: string;
   nodes?: NodeMetadata[];
+  refs?: TemplateRefs;
   onUpdate: (nodeId: string, data: Record<string, unknown>) => void;
 }
 
@@ -21,6 +22,7 @@ export const FieldInput = memo(function FieldInput({
   nodeId,
   nodeLabel,
   nodes,
+  refs,
   onUpdate,
 }: FieldInputProps) {
   const value = nodeData[fieldKey];
@@ -120,6 +122,7 @@ export const FieldInput = memo(function FieldInput({
         nodeId={nodeId}
         value={String(value ?? option?.default ?? '')}
         nodes={nodes}
+        refs={refs}
         onChange={handleChangeDebounced}
       />
     );
@@ -128,7 +131,7 @@ export const FieldInput = memo(function FieldInput({
   // Code type (JSON editor with modal)
   if (fieldType === 'code') {
     return (
-      <EditorInput
+      <JSONInput
         mode='javascript'
         nodeId={nodeId}
         name={fieldKey}
@@ -146,13 +149,15 @@ export const FieldInput = memo(function FieldInput({
 
   if (isObject) {
     return (
-      <EditorInput
+      <JSONInput
         mode='json'
         nodeId={nodeId}
         name={fieldKey}
         description={option?.description}
         nodeLabel={nodeLabel}
         value={value ?? (fieldType === 'array' ? [] : {})}
+        nodes={nodes}
+        refs={refs}
         onChange={handleChangeDebounced}
       />
     );
@@ -166,6 +171,7 @@ export const FieldInput = memo(function FieldInput({
       nodeLabel={nodeLabel}
       value={String(value ?? option?.default ?? '')}
       nodes={nodes}
+      refs={refs}
       onChange={handleChangeDebounced}
     />
   );
