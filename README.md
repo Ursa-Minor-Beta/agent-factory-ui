@@ -8,7 +8,7 @@ Visual platform for building and managing AI agents through a no-code/low-code i
 
 ## Features
 
-- **Node Graph Workflows** - Visual drag-and-drop editor with 11 node types (LLM, HTTP, JS, branch, sub-agent, memory store/search/update/delete), undo/redo, and ready-made templates
+- **Node Graph Workflows** - Visual drag-and-drop editor with 11 node types (LLM, HTTP, JS, branch, sub-agent, memory store/search/update/delete), undo/redo, ready-made templates, and `{{node:/secret:/var:}}` reference suggestions in text and JSON fields
 - **Agent Builder** - Chat with a builder agent that designs whole multi-agent systems with memory: it reads, adds, edits and removes nodes on the canvas, names the agent, assigns a workspace, saves and test-runs it. Any agent can be picked as the builder
 - **Composable Agents** - Agents can call other agents as sub-workflows or llm-tools
 - **Agent Relations Graph** - Agents list graph mode and an editor tab showing which agents call which

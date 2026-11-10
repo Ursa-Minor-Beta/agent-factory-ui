@@ -1,8 +1,9 @@
-import { useState, useCallback, useRef, useEffect, memo } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo, memo } from 'react';
 import { Box, Text, Group, ActionIcon, Modal, Tooltip, ThemeIcon } from '@mantine/core';
 import { IconArrowsMaximize, IconQuestionMark } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import { JsonEditor } from '../../JsonEditor';
+import { buildTemplateOptions, type NodeMetadata, type TemplateRefs } from './templateUtils';
 
 const MIN_HEIGHT = 100;
 const MAX_HEIGHT = 600;
@@ -16,11 +17,18 @@ interface EditorInputProps {
   nodeLabel?: string;
   value: unknown;
   mode: "javascript" | "json";
+  // When set, {{...}} references are suggested
+  nodes?: NodeMetadata[];
+  refs?: TemplateRefs;
   onChange: (value: unknown) => void;
 }
 
-export const JSONInput = memo(function JSONInput({ nodeId, name, description, nodeLabel, value, mode, onChange }: EditorInputProps) {
+export const JSONInput = memo(function JSONInput({ nodeId, name, description, nodeLabel, value, mode, nodes, refs, onChange }: EditorInputProps) {
   const storageKey = STORAGE_KEY_PREFIX + name;
+  const templateOptions = useMemo(
+    () => (nodes || refs ? buildTemplateOptions(nodes, refs) : undefined),
+    [nodes, refs]
+  );
   const [height, setHeight] = useState(() => {
     const saved = localStorage.getItem(storageKey);
     return saved ? parseInt(saved, 10) : MIN_HEIGHT;
@@ -145,6 +153,7 @@ export const JSONInput = memo(function JSONInput({ nodeId, name, description, no
           mode={mode}
           showLineNumbers={false}
           fontSize={12}
+          templateOptions={templateOptions}
           onChange={handleEditorChange}
         />
         {/* Resize handle */}
@@ -185,6 +194,7 @@ export const JSONInput = memo(function JSONInput({ nodeId, name, description, no
             value={value}
             height="calc(100vh - 100px)"
             mode={mode}
+            templateOptions={templateOptions}
             onChange={handleEditorChange}
           />
         </Box>}

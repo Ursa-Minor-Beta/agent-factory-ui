@@ -156,6 +156,8 @@ export const FieldInput = memo(function FieldInput({
         description={option?.description}
         nodeLabel={nodeLabel}
         value={value ?? (fieldType === 'array' ? [] : {})}
+        nodes={nodes}
+        refs={refs}
         onChange={handleChangeDebounced}
       />
     );

@@ -1,0 +1,30 @@
+/* Ace autocomplete popup styled like Mantine Combobox dropdown (template inputs) */
+/* Doubled class to beat Ace's .ace_dark.ace_editor.ace_autocomplete */
+.ace_editor.ace_autocomplete.ace_autocomplete {
+  background: var(--mantine-color-body);
+  color: var(--mantine-color-text);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-default);
+  box-shadow: var(--mantine-shadow-md);
+  font-family: var(--mantine-font-family-monospace);
+  font-size: var(--mantine-font-size-xs);
+  padding: 4px 0;
+}
+
+.ace_editor.ace_autocomplete.ace_autocomplete .ace_marker-layer .ace_active-line {
+  background-color: var(--mantine-primary-color-light);
+}
+
+.ace_editor.ace_autocomplete.ace_autocomplete .ace_line-hover {
+  border: none;
+  margin-top: 0;
+  background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-5));
+}
+
+.ace_editor.ace_autocomplete.ace_autocomplete .ace_completion-highlight {
+  color: inherit;
+}
+
+.ace_editor.ace_autocomplete.ace_autocomplete .ace_line {
+  padding: 0 8px;
+}
