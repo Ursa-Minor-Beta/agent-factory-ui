@@ -2,7 +2,7 @@ import { useMemo, type ReactNode } from 'react';
 import { Alert, Box, Card, Code, Group, Paper, ScrollArea, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { IconAlertCircle } from '@tabler/icons-react';
 import type { Run } from '../../types';
-import { formatDuration, formatTokens, getRunProviderNames, getRunUsage, resolveRunOutput } from '../../types';
+import { formatDuration, formatTokens, triggerLabels, getRunProviderNames, getRunUsage, resolveRunOutput } from '../../types';
 import { CopyIconButton, toJson } from './CopyIconButton';
 import { DataWithFileRefs } from './utils';
 
@@ -54,9 +54,10 @@ export function RunSummaryCard({ run }: { run: Run }) {
           {run.triggeredBy && (
             <Field label="Triggered by">
               <Stack gap={0} mt={4}>
-                <Code fz="xs">Parent Run Id: {run.parentRunId}</Code>
-                <Code fz="xs">Node Id: {run.triggeredBy.nodeId}</Code>
-                <Code fz="xs">Trigger Type: {run.triggeredBy.triggerType}</Code>
+                <Code fz="xs">Trigger Type: {triggerLabels[run.triggeredBy.triggerType] ?? run.triggeredBy.triggerType}</Code>
+                {run.parentRunId && <Code fz="xs">Parent Run Id: {run.parentRunId}</Code>}
+                {run.triggeredBy.nodeId && <Code fz="xs">Node Id: {run.triggeredBy.nodeId}</Code>}
+                {run.triggeredBy.webhookId && <Code fz="xs">Webhook Id: {run.triggeredBy.webhookId}</Code>}
                 {run.triggeredBy.toolName && <Code fz="xs">Tool Name: {run.triggeredBy.toolName}</Code>}
               </Stack>
             </Field>
