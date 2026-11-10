@@ -28,12 +28,18 @@ import { WorkspaceBadge } from '../Workspace';
 import { CopyIconButton } from '../RunDetailsModal/CopyIconButton';
 import { WebhookTestPanel } from './WebhookTestPanel';
 import { WebhookConfirmModal } from './WebhookConfirmModal';
-import { HANDLER_CONTRACT, HANDLER_SKELETON, hasHandler, maskWebhookUrl } from './utils';
+import { HANDLER_SKELETON, hasHandler, maskWebhookUrl } from './utils';
 
 const AGENT_SEARCH_LIMIT = 20;
-type HandlerMode = 'base' | 'custom';
+const HANDLER_MODE = { base: 'base', custom: 'custom' } as const;
+type HandlerMode = (typeof HANDLER_MODE)[keyof typeof HANDLER_MODE];
+const HANDLER_MODE_OPTIONS = [
+  { label: 'Default', value: HANDLER_MODE.base },
+  { label: 'Custom', value: HANDLER_MODE.custom },
+];
+const DEFAULT_TEMPLATE_ID = 'default';
 // Fixed tab panel height so the modal doesn't resize when switching tabs
-const PANEL_HEIGHT = '70vh';
+const PANEL_HEIGHT = '80vh';
 
 type AgentOption = { value: string; label: string; workspaceId: string | null; workspaceName?: string };
 
@@ -53,7 +59,7 @@ export function WebhookModal({ opened, onClose, webhook, agentId: fixedAgentId, 
   const [nameError, setNameError] = useState('');
   const [agentId, setAgentId] = useState<string | null>(null);
   const [agentWorkspaceId, setAgentWorkspaceId] = useState<string | null>(null);
-  const [mode, setMode] = useState<HandlerMode>('base');
+  const [mode, setMode] = useState<HandlerMode>(HANDLER_MODE.base);
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [handler, setHandler] = useState('');
   const [handlerError, setHandlerError] = useState('');
@@ -71,7 +77,7 @@ export function WebhookModal({ opened, onClose, webhook, agentId: fixedAgentId, 
     setName(webhook?.name ?? '');
     setUrl(webhook?.url ?? '');
     setHandler(webhook?.handler ?? '');
-    setMode(hasHandler(webhook?.handler) ? 'custom' : 'base');
+    setMode(hasHandler(webhook?.handler) ? HANDLER_MODE.custom : HANDLER_MODE.base);
     setTemplateId(null);
     setAgentId(fixedAgentId ?? webhook?.agentId ?? null);
     setAgentWorkspaceId(workspaceId ?? null);
@@ -86,7 +92,9 @@ export function WebhookModal({ opened, onClose, webhook, agentId: fixedAgentId, 
     webhooksApi.templates().then(setTemplates).catch((err) => console.error('Failed to load webhook templates:', err));
   }, [opened, templates.length]);
 
-  const template = mode === 'custom' ? templates.find((t) => t.id === templateId) : undefined;
+  // 'default' template = the documented base handler; also the starting code for Custom
+  const defaultTemplate = templates.find((t) => t.id === DEFAULT_TEMPLATE_ID);
+  const template = mode === HANDLER_MODE.custom ? templates.find((t) => t.id === templateId) : undefined;
 
   useEffect(() => {
     if (!template?.requiredSecrets.length || secrets) return;
@@ -101,7 +109,7 @@ export function WebhookModal({ opened, onClose, webhook, agentId: fixedAgentId, 
   const handleModeChange = (next: HandlerMode) => {
     setMode(next);
     setHandlerError('');
-    if (next === 'custom' && !hasHandler(handler)) setHandler(HANDLER_SKELETON);
+    if (next === HANDLER_MODE.custom && !hasHandler(handler)) setHandler(defaultTemplate?.code ?? HANDLER_SKELETON);
   };
 
   const applyTemplate = (picked: WebhookTemplate) => {
@@ -135,7 +143,7 @@ export function WebhookModal({ opened, onClose, webhook, agentId: fixedAgentId, 
     setSaving(true);
     setError('');
     setHandlerError('');
-    const handlerValue = mode === 'custom' && hasHandler(handler) ? handler : null;
+    const handlerValue = mode === HANDLER_MODE.custom && hasHandler(handler) ? handler : null;
     try {
       const saved = isNew
         ? await webhooksApi.create({ agentId: agentId!, name: name.trim(), ...(handlerValue && { handler: handlerValue }) })
@@ -152,7 +160,7 @@ export function WebhookModal({ opened, onClose, webhook, agentId: fixedAgentId, 
     }
   };
 
-  const unsavedHandler = !!webhook && (webhook.handler ?? '') !== (mode === 'custom' ? handler : '');
+  const unsavedHandler = !!webhook && (webhook.handler ?? '') !== (mode === HANDLER_MODE.custom ? handler : '');
 
   const settings = (
     <Stack gap="lg">
@@ -214,10 +222,10 @@ export function WebhookModal({ opened, onClose, webhook, agentId: fixedAgentId, 
               size="xs"
               value={mode}
               onChange={(v) => handleModeChange(v as HandlerMode)}
-              data={[{ label: 'Base', value: 'base' }, { label: 'Custom', value: 'custom' }]}
+              data={HANDLER_MODE_OPTIONS}
             />
           </Group>
-          {mode === 'custom' && (
+          {mode === HANDLER_MODE.custom && (
             <Menu position="bottom-end" withinPortal>
               <Menu.Target>
                 <Button size="compact-xs" variant="light" rightSection={<IconChevronDown size={12} />} disabled={templates.length === 0}>
@@ -235,7 +243,7 @@ export function WebhookModal({ opened, onClose, webhook, agentId: fixedAgentId, 
         </Group>
 
 
-        {mode === 'custom' ? (
+        {mode === HANDLER_MODE.custom ? (
           <Stack gap="xs">
             <JsonEditor
               value={null}
@@ -281,11 +289,7 @@ export function WebhookModal({ opened, onClose, webhook, agentId: fixedAgentId, 
           </Stack>
         ) : (
           <Stack gap="xs">
-            <Text size="sm" c="dimmed">
-              The agent receives <Code fz="xs">{'{ body, headers, query }'}</Code> and the caller gets <Code fz="xs">{'202 { runId }'}</Code>.
-              Switch to Custom to run JS on every request:
-            </Text>
-            <Code block fz="xs">{HANDLER_CONTRACT}</Code>
+            {defaultTemplate && <Code block fz="xs">{defaultTemplate.code}</Code>}
           </Stack>
         )}
 

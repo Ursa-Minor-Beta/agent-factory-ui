@@ -15,13 +15,3 @@ export const HANDLER_SKELETON = `async function handle(request, ctx) {
   };
 }
 `;
-
-export const HANDLER_CONTRACT = `// request: { method, headers (lower-case), query, body (parsed JSON/form/text), rawBody }
-// ctx: { secrets, vars, hmacSha256(secret, data), safeEqual(a, b), now() }
-async function handle(request, ctx) {
-  return {
-    run: { input: { ... } },                 // omit -> no run is started
-    response: { status, headers, body },     // default: 202 { runId }, or 200 if no run
-    dedupeKey: '...',                        // repeats within 10 minutes don't start runs
-  };
-}`;
