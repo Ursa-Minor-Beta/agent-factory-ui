@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Box, Text, useMantineColorScheme } from '@mantine/core';
 import AceEditor from 'react-ace';
 import ace from 'ace-builds';
@@ -9,6 +9,13 @@ import 'ace-builds/src-noconflict/theme-one_dark';
 import 'ace-builds/src-noconflict/theme-chrome';
 import 'ace-builds/src-noconflict/ext-language_tools';
 import 'ace-builds/src-noconflict/ext-searchbox';
+import './JsonEditor.css';
+import type { Ace } from 'ace-builds';
+import {
+  findTemplateStart,
+  filterTemplateOptions,
+  isTemplateKindOption,
+} from './AgentFlowEditor/inputs/templateUtils';
 
 // JavaScript built-in completions
 const jsBuiltins = [
@@ -139,8 +146,51 @@ const jsCompleter = {
   },
 };
 
-// Register the completer once
-let completerRegistered = false;
+// {{...}} reference completer - options are read from a ref so the list can change without re-creating the editor
+function createTemplateCompleter(optionsRef: { current: string[] }): Ace.Completer {
+  const insertMatch = (editor: Ace.Editor, data: Ace.Completion & { option?: string }) => {
+    if (!data.option) return;
+    const pos = editor.getCursorPosition();
+    const line = editor.session.getLine(pos.row);
+    const info = findTemplateStart(line, pos.column);
+    if (!info) return;
+
+    const isKind = isTemplateKindOption(data.option);
+    // Swallow closing braces auto-inserted by bracket pairing
+    const closing = isKind ? 0 : (line.slice(pos.column).match(/^\}{0,2}/)?.[0].length ?? 0);
+    const range = new (ace.require('ace/range').Range)(pos.row, info.start, pos.row, pos.column + closing);
+    editor.session.replace(range, isKind ? `{{${data.option}` : `{{${data.option}}}`);
+
+    // Kind shortcut only inserts the prefix - keep suggesting
+    if (isKind) setTimeout(() => editor.execCommand('startAutocomplete'), 0);
+  };
+
+  const completer: Ace.Completer = {
+    triggerCharacters: ['{', ':', '.'],
+    insertMatch,
+    getCompletions: (
+      _editor: Ace.Editor,
+      session: Ace.EditSession,
+      pos: Ace.Point,
+      _prefix: string,
+      callback: Ace.CompleterCallback
+    ) => {
+      const info = findTemplateStart(session.getLine(pos.row), pos.column);
+      if (!info || optionsRef.current.length === 0) return callback(null, []);
+
+      const completions = filterTemplateOptions(optionsRef.current, info.query).map((option, i) => ({
+        caption: option,
+        value: option,
+        option,
+        // Keep filterTemplateOptions order (kind shortcuts first)
+        score: 10000 - i,
+        completer,
+      }));
+      callback(null, completions);
+    },
+  };
+  return completer;
+}
 
 export interface JsonEditorProps {
   value: unknown;
@@ -155,20 +205,29 @@ export interface JsonEditorProps {
   // External text control (for split view sync)
   text?: string;
   onTextChange?: (text: string) => void;
+  // Reference options ("node:id.output", "secret:NAME", "var:NAME") suggested after {{
+  templateOptions?: string[];
 }
 
-export function JsonEditor({ value, onChange, readOnly = false, height = '100%', label, mode = 'json', showLineNumbers = true, fontSize = 13, fontFamily = '"Monaco", "Menlo", "Consolas", "Courier New", monospace', text, onTextChange }: JsonEditorProps) {
+export function JsonEditor({ value, onChange, readOnly = false, height = '100%', label, mode = 'json', showLineNumbers = true, fontSize = 13, fontFamily = '"Monaco", "Menlo", "Consolas", "Courier New", monospace', text, onTextChange, templateOptions }: JsonEditorProps) {
   const { colorScheme } = useMantineColorScheme();
   const isControlled = text !== undefined && onTextChange !== undefined;
 
-  // Register JavaScript completer once
-  useEffect(() => {
-    if (!completerRegistered && mode === 'javascript') {
-      const langTools = ace.require('ace/ext/language_tools');
-      langTools.addCompleter(jsCompleter);
-      completerRegistered = true;
+  const templateOptionsRef = useRef<string[]>([]);
+  templateOptionsRef.current = templateOptions ?? [];
+  const hasTemplates = templateOptions !== undefined;
+
+  const enableAutocompletion = mode === 'javascript' || hasTemplates;
+
+  // Per-editor completers instead of the global list
+  const handleLoad = useCallback((editor: Ace.Editor) => {
+    const langTools = ace.require('ace/ext/language_tools');
+    const completers: Ace.Completer[] = hasTemplates ? [createTemplateCompleter(templateOptionsRef)] : [];
+    if (mode === 'javascript') {
+      completers.push(jsCompleter as Ace.Completer, langTools.keyWordCompleter, langTools.snippetCompleter, langTools.textCompleter);
     }
-  }, [mode]);
+    editor.completers = completers;
+  }, [mode, hasTemplates]);
 
   // For javascript mode, show strings directly without JSON quotes
   const valueToString = useCallback((val: unknown): string => {
@@ -252,13 +311,14 @@ export function JsonEditor({ value, onChange, readOnly = false, height = '100%',
             useWorker: false,
             showLineNumbers: showLineNumbers,
             tabSize: 2,
-            enableBasicAutocompletion: mode === 'javascript',
-            enableLiveAutocompletion: mode === 'javascript',
+            enableBasicAutocompletion: enableAutocompletion,
+            enableLiveAutocompletion: enableAutocompletion,
             foldStyle: 'markbegin',
             wrap: true,
             fontFamily,
           }}
           editorProps={{ $blockScrolling: true }}
+          onLoad={handleLoad}
         />
       {!isValid && (
           <Text

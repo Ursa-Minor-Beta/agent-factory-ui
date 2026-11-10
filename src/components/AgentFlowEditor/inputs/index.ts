@@ -1,11 +1,10 @@
 export { StringInput } from './StringInput';
 export { TextInput } from './TextInput/TextInput';
-export { EditorInput } from './EditorInput';
+export { JSONInput } from './JsonInput';
 export { NumberInput } from './NumberInput';
 export { BooleanInput } from './BooleanInput';
 export { EnumInput } from './EnumInput';
 export { MultiEnumInput } from './MultiEnumInput';
-export { ObjectInput } from './ObjectInput';
 export { TemplateTextEditor } from './TextInput/TemplateTextEditor';
 export { TemplateTextEditorFull } from './TextInput/TemplateTextEditorFull';
 export { createTemplateMention, createTemplateHighlight } from './TextInput/templateMention';

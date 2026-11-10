@@ -1,0 +1,57 @@
+/* Ace autocomplete popup styled like Mantine Combobox dropdown (template inputs) */
+/* Doubled class to beat Ace's .ace_dark.ace_editor.ace_autocomplete */
+.ace_editor.ace_autocomplete.ace_autocomplete {
+  --tpl-border: var(--mantine-color-gray-2);
+  --tpl-bg: var(--mantine-color-white);
+  --tpl-hover: var(--mantine-color-gray-0);
+  background: var(--tpl-bg);
+  color: var(--mantine-color-text);
+  border: 1px solid var(--tpl-border);
+  border-radius: var(--mantine-radius-default);
+  box-shadow: none;
+  font-family: var(--mantine-font-family-monospace);
+  font-size: var(--mantine-font-size-xs);
+  /* Combobox option: 6px 10px padding around xs text */
+  line-height: 31px;
+  padding: 4px 0;
+}
+
+:where([data-mantine-color-scheme='dark']) .ace_editor.ace_autocomplete.ace_autocomplete {
+  --tpl-border: var(--mantine-color-dark-4);
+  --tpl-bg: var(--mantine-color-dark-6);
+  --tpl-hover: var(--mantine-color-dark-7);
+}
+
+.ace_editor.ace_autocomplete.ace_autocomplete .ace_text-layer {
+  width: 100%;
+}
+
+.ace_editor.ace_autocomplete.ace_autocomplete .ace_line {
+  margin: 0 4px;
+  padding: 0 10px;
+  border-radius: var(--mantine-radius-default);
+}
+
+/* Selected option - Ace marks the row with .ace_selected */
+.ace_editor.ace_autocomplete.ace_autocomplete .ace_line.ace_selected {
+  background-color: var(--mantine-primary-color-filled);
+  color: var(--mantine-color-white);
+}
+
+.ace_editor.ace_autocomplete.ace_autocomplete .ace_marker-layer .ace_active-line {
+  background-color: transparent;
+}
+
+.ace_editor.ace_autocomplete.ace_autocomplete .ace_line-hover {
+  border: none;
+  margin-top: 0;
+  left: 4px !important;
+  right: 4px !important;
+  width: auto !important;
+  border-radius: var(--mantine-radius-default);
+  background: var(--tpl-hover);
+}
+
+.ace_editor.ace_autocomplete.ace_autocomplete .ace_completion-highlight {
+  color: inherit;
+}

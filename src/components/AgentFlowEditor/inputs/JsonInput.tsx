@@ -1,38 +1,73 @@
-import { useState, useCallback, useRef, useEffect, memo } from 'react';
-import { Box, Text, Group, ActionIcon, Modal } from '@mantine/core';
-import { IconArrowsMaximize } from '@tabler/icons-react';
+import { useState, useCallback, useRef, useEffect, useMemo, memo } from 'react';
+import { Box, Text, Group, ActionIcon, Modal, Tooltip, ThemeIcon } from '@mantine/core';
+import { IconArrowsMaximize, IconQuestionMark } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import { JsonEditor } from '../../JsonEditor';
+import { buildTemplateOptions, type NodeMetadata, type TemplateRefs } from './templateUtils';
 
 const MIN_HEIGHT = 100;
-const MAX_HEIGHT = 400;
-const STORAGE_KEY_PREFIX = 'agent-editor-object-height-';
+const MAX_HEIGHT = 600;
+const STORAGE_KEY_PREFIX = 'agent-editor-editor-height-';
 const DEBOUNCE_MS = 300;
 
-interface ObjectInputProps {
+interface EditorInputProps {
+  nodeId: string;
   name: string;
+  description?: string;
   nodeLabel?: string;
   value: unknown;
+  mode: "javascript" | "json";
+  // When set, {{...}} references are suggested
+  nodes?: NodeMetadata[];
+  refs?: TemplateRefs;
   onChange: (value: unknown) => void;
 }
 
-export const ObjectInput = memo(function ObjectInput({ name, nodeLabel, value, onChange }: ObjectInputProps) {
+export const JSONInput = memo(function JSONInput({ nodeId, name, description, nodeLabel, value, mode, nodes, refs, onChange }: EditorInputProps) {
   const storageKey = STORAGE_KEY_PREFIX + name;
+  const templateOptions = useMemo(
+    () => (nodes || refs ? buildTemplateOptions(nodes, refs) : undefined),
+    [nodes, refs]
+  );
   const [height, setHeight] = useState(() => {
     const saved = localStorage.getItem(storageKey);
     return saved ? parseInt(saved, 10) : MIN_HEIGHT;
   });
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
+  const [editorKey, setEditorKey] = useState(0);
   const resizingRef = useRef(false);
   const startYRef = useRef(0);
   const startHeightRef = useRef(0);
+  const heightRef = useRef(height);
   const onChangeRef = useRef(onChange);
   const debounceRef = useRef<number | null>(null);
   const pendingValueRef = useRef<unknown>(null);
 
   onChangeRef.current = onChange;
 
+  // Flush pending changes when modal closes and remount inline editor
+  const handleCloseModal = useCallback(() => {
+    if (debounceRef.current !== null) {
+      clearTimeout(debounceRef.current);
+      if (pendingValueRef.current !== null) {
+        onChangeRef.current(pendingValueRef.current);
+        pendingValueRef.current = null;
+      }
+    }
+    closeModal();
+    // Force inline editor to remount after parent updates
+    setTimeout(() => {
+      setEditorKey((prev) => prev + 1);
+    }, 0);
+  }, [closeModal]);
+
   useEffect(() => {
+    setEditorKey((p) => p + 1);
+  }, [nodeId]);
+
+  // Keep heightRef in sync with height state
+  useEffect(() => {
+    heightRef.current = height;
     localStorage.setItem(storageKey, String(height));
   }, [height, storageKey]);
 
@@ -49,8 +84,8 @@ export const ObjectInput = memo(function ObjectInput({ name, nodeLabel, value, o
     };
   }, []);
 
-  const handleEditorChange = useCallback((newValue: unknown, isValid: boolean) => {
-    if (!isValid) return;
+  const handleEditorChange = useCallback((newValue: unknown, valid: boolean) => {
+    if (!valid) return;
 
     pendingValueRef.current = newValue;
 
@@ -65,11 +100,12 @@ export const ObjectInput = memo(function ObjectInput({ name, nodeLabel, value, o
     }, DEBOUNCE_MS);
   }, []);
 
+  // No dependencies - capture current height via heightRef
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     resizingRef.current = true;
     startYRef.current = e.clientY;
-    startHeightRef.current = height;
+    startHeightRef.current = heightRef.current;
     document.body.style.cursor = 'row-resize';
     document.body.style.userSelect = 'none';
 
@@ -90,20 +126,34 @@ export const ObjectInput = memo(function ObjectInput({ name, nodeLabel, value, o
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-  }, [height]);
+  }, []);
 
   return (
     <Box>
       <Group justify="space-between" mb={4}>
         <Text size="xs" c="dimmed">{name}</Text>
-        <ActionIcon size="xs" variant="subtle" onClick={openModal} title="Edit in modal">
-          <IconArrowsMaximize size={12} />
-        </ActionIcon>
+        <Group gap={4}>
+          {description && (
+            <Tooltip label={description} multiline maw={300}>
+              <ThemeIcon size={14} radius="xl" color="gray" variant="light">
+                <IconQuestionMark size={10} />
+              </ThemeIcon>
+            </Tooltip>
+          )}
+          <ActionIcon size="xs" variant="subtle" onClick={openModal} title="Edit in modal">
+            <IconArrowsMaximize size={12} />
+          </ActionIcon>
+        </Group>
       </Group>
       <Box style={{ position: 'relative' }}>
         <JsonEditor
+          key={editorKey}
           value={value}
           height={height}
+          mode={mode}
+          showLineNumbers={false}
+          fontSize={12}
+          templateOptions={templateOptions}
           onChange={handleEditorChange}
         />
         {/* Resize handle */}
@@ -132,12 +182,22 @@ export const ObjectInput = memo(function ObjectInput({ name, nodeLabel, value, o
         </Box>
       </Box>
 
-      <Modal opened={modalOpened} onClose={closeModal} title={`${nodeLabel || 'Node'} / ${name}`} size="xl" fullScreen centered>
-        {modalOpened && <JsonEditor
-          value={value}
-          height="calc(100vh - 100px)"
-          onChange={handleEditorChange}
-        />}
+      <Modal 
+        opened={modalOpened} 
+        onClose={handleCloseModal} 
+        title={`${nodeLabel || 'Node'} / ${name}`} size="xl" 
+        fullScreen 
+        centered
+        >
+        {modalOpened && <Box onKeyDown={(e) => e.stopPropagation()}>
+          <JsonEditor
+            value={value}
+            height="calc(100vh - 100px)"
+            mode={mode}
+            templateOptions={templateOptions}
+            onChange={handleEditorChange}
+          />
+        </Box>}
       </Modal>
     </Box>
   );
