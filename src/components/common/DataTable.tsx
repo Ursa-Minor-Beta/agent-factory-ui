@@ -69,11 +69,6 @@ export interface SortValue<S extends string = string> {
   sortOrder: SortOrder;
 }
 
-export interface DataTableSelection {
-  selectedIds: Set<string>;
-  onChange: (selectedIds: Set<string>) => void;
-}
-
 /** Everything the parent needs to build the list request */
 export interface DataTableQuery<V, S extends string = string> {
   filters: V;
@@ -102,6 +97,7 @@ export interface DataTableHandle<T> {
   getRows: () => T[];
   setRows: (update: (rows: T[]) => T[]) => void;
   setTotal: (update: (total: number) => number) => void;
+  clearSelection: () => void;
 }
 
 interface DataTableProps<T, V, S extends string> {
@@ -118,11 +114,10 @@ interface DataTableProps<T, V, S extends string> {
   noMatchMessage?: ReactNode;
   onRowClick?: (row: T) => void;
   rowStyle?: (row: T) => CSSProperties | undefined;
-  /** Adds a checkbox column; selection state is owned by the parent and cleared when the query changes */
-  selection?: DataTableSelection;
   /** Extra filter fields that don't belong to a column; rendered after the column filters */
   extraFilters?: FilterField<V>[];
-  /** Buttons for the bar that slides over the filters while rows are selected; requires `selection` */
+  /** Adds a checkbox column and a bar with these buttons that slides over the filters while rows are selected.
+   * Selection is cleared when the query changes. */
   bulkActions?: DataTableBulkAction<T>[];
   /** Starting sort; applies to columns marked `sortable` */
   initialSort?: SortValue<S>;
@@ -143,7 +138,6 @@ export function DataTable<T, V = unknown, S extends string = string>({
   noMatchMessage,
   onRowClick,
   rowStyle,
-  selection,
   extraFilters,
   bulkActions,
   initialSort,
@@ -168,9 +162,12 @@ export function DataTable<T, V = unknown, S extends string = string>({
   );
 
   // Latest callbacks, so loading only re-runs when the query changes
-  const latestRef = useRef({ loadData, clearSelection: selection?.onChange });
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const selectable = Boolean(bulkActions?.length);
+
+  const latestRef = useRef({ loadData });
   useEffect(() => {
-    latestRef.current = { loadData, clearSelection: selection?.onChange };
+    latestRef.current = { loadData };
   });
 
   const topRef = useRef<HTMLDivElement>(null);
@@ -194,7 +191,7 @@ export function DataTable<T, V = unknown, S extends string = string>({
   }, []);
 
   useEffect(() => {
-    latestRef.current.clearSelection?.(new Set());
+    setSelectedIds(new Set());
     load(query);
   }, [query, load]);
 
@@ -205,6 +202,7 @@ export function DataTable<T, V = unknown, S extends string = string>({
       getRows: () => data,
       setRows: setData,
       setTotal,
+      clearSelection: () => setSelectedIds(new Set()),
     }),
     [load, query, data]
   );
@@ -212,13 +210,12 @@ export function DataTable<T, V = unknown, S extends string = string>({
   const visibleColumns = columns.filter(
     (column) => !(typeof column.hidden === 'function' ? column.hidden(filters) : column.hidden)
   );
-  const selectedIds = selection?.selectedIds;
-  const allSelected = data.length > 0 && data.every((row) => selectedIds?.has(getRowId(row)));
+  const allSelected = data.length > 0 && data.every((row) => selectedIds.has(getRowId(row)));
   const totalPages = Math.ceil(total / pageSize);
-  const selectedCount = selectedIds?.size ?? 0;
+  const selectedCount = selectedIds.size;
 
   const handleToggleAll = () => {
-    selection?.onChange(allSelected ? new Set() : new Set(data.map(getRowId)));
+    setSelectedIds(allSelected ? new Set() : new Set(data.map(getRowId)));
   };
 
   const handleToggleRow = (id: string) => {
@@ -228,7 +225,7 @@ export function DataTable<T, V = unknown, S extends string = string>({
     } else {
       next.add(id);
     }
-    selection?.onChange(next);
+    setSelectedIds(next);
   };
 
   const handleSort = (key: string) => {
@@ -303,7 +300,7 @@ export function DataTable<T, V = unknown, S extends string = string>({
 
   return (
     <>
-      {selection && bulkActions && (
+      {selectable && bulkActions && (
         // Zero-height sticky anchor: the bar overlays the filters and stays visible while scrolling
         <Box
           style={{
@@ -347,7 +344,7 @@ export function DataTable<T, V = unknown, S extends string = string>({
                       variant="light"
                       color="gray"
                       size="sm"
-                      onClick={() => selection.onChange(new Set())}
+                      onClick={() => setSelectedIds(new Set())}
                     >
                       Clear
                     </Button>
@@ -359,7 +356,7 @@ export function DataTable<T, V = unknown, S extends string = string>({
                         size="sm"
                         leftSection={action.icon}
                         onClick={() =>
-                          action.onClick(data.filter((row) => selection.selectedIds.has(getRowId(row))))
+                          action.onClick(data.filter((row) => selectedIds.has(getRowId(row))))
                         }
                       >
                         {action.label}
@@ -416,12 +413,12 @@ export function DataTable<T, V = unknown, S extends string = string>({
           <Table striped={striped} highlightOnHover={highlightOnHover}>
             <Table.Thead>
               <Table.Tr>
-                {selection && (
+                {selectable && (
                   <Table.Th style={{ width: 40 }}>
                     <Checkbox
                       size="xs"
                       checked={allSelected}
-                      indeterminate={selection.selectedIds.size > 0 && !allSelected}
+                      indeterminate={selectedCount > 0 && !allSelected}
                       onChange={handleToggleAll}
                     />
                   </Table.Th>
@@ -452,11 +449,11 @@ export function DataTable<T, V = unknown, S extends string = string>({
                     style={{ cursor: onRowClick ? 'pointer' : undefined, ...rowStyle?.(row) }}
                     onClick={onRowClick ? () => onRowClick(row) : undefined}
                   >
-                    {selection && (
+                    {selectable && (
                       <Table.Td onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           size="xs"
-                          checked={selection.selectedIds.has(id)}
+                          checked={selectedIds.has(id)}
                           onChange={() => handleToggleRow(id)}
                         />
                       </Table.Td>
@@ -475,7 +472,7 @@ export function DataTable<T, V = unknown, S extends string = string>({
               })}
               {data.length === 0 && (
                 <Table.Tr>
-                  <Table.Td colSpan={visibleColumns.length + (selection ? 1 : 0)}>
+                  <Table.Td colSpan={visibleColumns.length + (selectable ? 1 : 0)}>
                     <Text ta="center" c="dimmed" py="md">
                       {noMatchMessage && hasActiveFilters(filterFields, filters) ? noMatchMessage : emptyMessage}
                     </Text>

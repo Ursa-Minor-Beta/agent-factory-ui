@@ -82,6 +82,11 @@ export interface CancelChatResponse {
   cancelledChildRunIds: string[];
 }
 
+export interface ListSessionsResponse {
+  items: Session[];
+  total: number;
+}
+
 export interface SessionsQueryParams {
   agentId?: string;
   status?: 'active' | 'archived';
@@ -124,7 +129,7 @@ export interface DeleteSessionsResponse {
 
 export const sessionsApi = {
   list: (params: SessionsQueryParams = {}) =>
-    api.get<Session[]>(`/api/sessions${buildQueryString(params)}`),
+    api.get<ListSessionsResponse>(`/api/sessions${buildQueryString(params)}`),
 
   getById: (id: string) =>
     api.get<Session>(`/api/sessions/${id}`),

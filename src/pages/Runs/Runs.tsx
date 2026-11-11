@@ -72,7 +72,8 @@ export function RunsPage() {
   const prevRunIdRef = useRef<string | null>(null);
 
   // Selection and deletion
-  const [selectedRunIds, setSelectedRunIds] = useState<Set<string>>(new Set());
+  // Rows the delete modal will act on (from a bulk action)
+  const [rowsToDelete, setRowsToDelete] = useState<string[]>([]);
   const [deleteModalOpened, setDeleteModalOpened] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [runToDelete, setRunToDelete] = useState<string | null>(null);
@@ -120,10 +121,9 @@ export function RunsPage() {
   }, [runId]);
 
   // Delete handlers
-  const handleDeleteClick = () => {
-    if (selectedRunIds.size > 0) {
-      setDeleteModalOpened(true);
-    }
+  const handleDeleteClick = (selected: RunSummary[]) => {
+    setRowsToDelete(selected.map((row) => row.id));
+    setDeleteModalOpened(true);
   };
 
   const handleDeleteAllForAgents = (selectedRuns: RunSummary[]) => {
@@ -155,7 +155,7 @@ export function RunsPage() {
         // Delete specific runs
         const idsToDelete = runToDelete
           ? [runToDelete]
-          : Array.from(selectedRunIds);
+          : rowsToDelete;
 
         await runsApi.deleteRuns({ id: idsToDelete });
 
@@ -166,7 +166,8 @@ export function RunsPage() {
       }
 
       // Clear states
-      setSelectedRunIds(new Set());
+      tableRef.current?.clearSelection();
+      setRowsToDelete([]);
       setRunToDelete(null);
       setDeleteByAgentIds([]);
       setDeleteModalOpened(false);
@@ -182,6 +183,7 @@ export function RunsPage() {
 
   const handleCloseDeleteModal = () => {
     setDeleteModalOpened(false);
+    setRowsToDelete([]);
     setRunToDelete(null);
     setDeleteByAgentIds([]);
   };
@@ -378,7 +380,6 @@ export function RunsPage() {
           backgroundColor: run.id === lastViewedRunId ? 'var(--mantine-color-cyan-light)' : undefined,
           transition: 'background-color 0.3s ease',
         })}
-        selection={{ selectedIds: selectedRunIds, onChange: setSelectedRunIds }}
         bulkActions={bulkActions}
         initialSort={INITIAL_SORT}
         itemLabel={['run', 'runs']}
@@ -389,7 +390,7 @@ export function RunsPage() {
         opened={deleteModalOpened}
         onClose={handleCloseDeleteModal}
         onConfirm={handleConfirmDelete}
-        count={runToDelete ? 1 : selectedRunIds.size}
+        count={runToDelete ? 1 : rowsToDelete.length}
         loading={deleting}
         agentIds={deleteByAgentIds}
       />
