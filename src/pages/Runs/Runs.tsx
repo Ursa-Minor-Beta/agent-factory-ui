@@ -1,46 +1,36 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Text,
-  Card,
   Group,
-  Loader,
-  Alert,
-  Table,
-  Center,
   Badge,
-  Select,
-  Button,
-  Pagination,
   ActionIcon,
   Tooltip,
-  TextInput,
-  Switch,
-  Checkbox,
-  Paper,
-  Transition,
   CopyButton,
 } from '@mantine/core';
-import { DatePickerInput } from '@mantine/dates';
 import {
-  IconAlertCircle,
   IconClock,
   IconCheck,
   IconX,
   IconPlayerPlay,
-  IconRefresh,
-  IconSortAscending,
-  IconSortDescending,
   IconRobot,
   IconPlayerStop,
   IconTrash,
-  IconSquareCheck,
   IconCopy,
 } from '@tabler/icons-react';
 import { runsApi, sessionsApi } from '../../api';
 import type { ListRunsParams } from '../../api/runs';
 import type { RunSummary, RunStatus } from '../../types';
 import { useRunDetailsModal } from '../../components/RunDetailsModal';
+import {
+  DataTable,
+  type DataTableBulkAction,
+  type DataTableColumn,
+  type DataTableHandle,
+  type DataTableQuery,
+  type SortValue,
+} from '../../components/common/DataTable';
+import type { FilterOption } from '../../components/common/TableFilters';
 import { statusColors, formatDuration } from '../../types';
 import { DeleteRunsModal } from './DeleteRunsModal';
 
@@ -53,13 +43,30 @@ const statusIcons: Record<RunStatus, React.ReactNode> = {
   cancelled: <IconPlayerStop size={14} />,
 };
 
-const PAGE_SIZE = 20;
+type RunsSortBy = 'startedAt';
+
+const INITIAL_SORT: SortValue<RunsSortBy> = { sortBy: 'startedAt', sortOrder: 'desc' };
+
+interface RunsFilters {
+  status: string | null;
+  agentId: string;
+  startedAfter: Date | null;
+  startedBefore: Date | null;
+  includeChildren: boolean;
+}
+
+const STATUS_OPTIONS: FilterOption[] = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'running', label: 'Running' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'failed', label: 'Failed' },
+  { value: 'cancelling', label: 'Cancelling' },
+  { value: 'cancelled', label: 'Cancelled' },
+];
 
 export function RunsPage() {
   const { runId, openRunDetails } = useRunDetailsModal();
-  const [runs, setRuns] = useState<RunSummary[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const tableRef = useRef<DataTableHandle<RunSummary>>(null);
   const [error, setError] = useState('');
   const [lastViewedRunId, setLastViewedRunId] = useState<string | null>(null);
   const prevRunIdRef = useRef<string | null>(null);
@@ -74,60 +81,27 @@ export function RunsPage() {
   // Cancel run
   const [cancellingRunId, setCancellingRunId] = useState<string | null>(null);
 
-  // Filters
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [agentFilter, setAgentFilter] = useState('');
-  const [startedAfter, setStartedAfter] = useState<Date | null>(null);
-  const [startedBefore, setStartedBefore] = useState<Date | null>(null);
-  const [sortBy, setSortBy] = useState<'startedAt' | 'completedAt'>('startedAt');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [page, setPage] = useState(1);
-  const [includeChildren, setIncludeChildren] = useState(() => {
-    const saved = localStorage.getItem('runs-includeChildren');
-    return saved !== null ? saved === 'true' : true;
-  });
+  const loadRuns = async ({ filters, sort, page, pageSize }: DataTableQuery<RunsFilters, RunsSortBy>) => {
+    const params: ListRunsParams = {
+      ...sort,
+      skip: (page - 1) * pageSize,
+      limit: pageSize,
+      includeChildren: filters.includeChildren,
+    };
+    if (filters.status) params.status = filters.status as RunStatus;
+    if (filters.agentId) params.agentId = filters.agentId;
+    if (filters.startedAfter) params.startedAfter = filters.startedAfter.toISOString();
+    if (filters.startedBefore) params.startedBefore = filters.startedBefore.toISOString();
 
-  const loadRuns = useCallback(async () => {
-    try {
-      setLoading(true);
-      const params: ListRunsParams = {
-        sortBy,
-        sortOrder,
-        skip: (page - 1) * PAGE_SIZE,
-        limit: PAGE_SIZE,
-        includeChildren,
-      };
-      if (statusFilter) params.status = statusFilter as RunStatus;
-      if (agentFilter.trim()) params.agentId = agentFilter.trim();
-      if (startedAfter) params.startedAfter = startedAfter.toISOString();
-      if (startedBefore) params.startedBefore = startedBefore.toISOString();
-
-      const response = await runsApi.listAll(params);
-      setRuns(response.runs.map( r => ({
+    const response = await runsApi.listAll(params);
+    return {
+      rows: response.runs.map((r) => ({
         ...r,
-        status: r.serviceStatus === 'active' ? 'running' : r.status
-      })));
-      setTotal(response.total);
-      setError('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load runs');
-    } finally {
-      setLoading(false);
-    }
-  }, [statusFilter, agentFilter, startedAfter, startedBefore, sortBy, sortOrder, page, includeChildren]);
-
-  useEffect(() => {
-    loadRuns();
-  }, [statusFilter, startedAfter, startedBefore, sortBy, sortOrder, page, includeChildren]);
-
-  useEffect(() => {
-    localStorage.setItem('runs-includeChildren', String(includeChildren));
-  }, [includeChildren]);
-
-  // Clear selection when runs list changes
-  useEffect(() => {
-    setSelectedRunIds(new Set());
-  }, [page, statusFilter, agentFilter, startedAfter, startedBefore, sortBy, sortOrder, includeChildren]);
+        status: r.serviceStatus === 'active' ? 'running' : r.status,
+      })),
+      total: response.total,
+    };
+  };
 
   // Track last viewed run when modal closes
   useEffect(() => {
@@ -145,39 +119,6 @@ export function RunsPage() {
     }
   }, [runId]);
 
-  const toggleSortOrder = () => {
-    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-  };
-
-  const handleClearFilters = () => {
-    setStatusFilter(null);
-    setAgentFilter('');
-    setStartedAfter(null);
-    setStartedBefore(null);
-    setPage(1);
-  };
-
-  // Selection handlers
-  const handleToggleAll = () => {
-    if (selectedRunIds.size === runs.length) {
-      setSelectedRunIds(new Set());
-    } else {
-      setSelectedRunIds(new Set(runs.map((run) => run.id)));
-    }
-  };
-
-  const handleToggleRun = (runId: string) => {
-    setSelectedRunIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(runId)) {
-        next.delete(runId);
-      } else {
-        next.add(runId);
-      }
-      return next;
-    });
-  };
-
   // Delete handlers
   const handleDeleteClick = () => {
     if (selectedRunIds.size > 0) {
@@ -185,17 +126,10 @@ export function RunsPage() {
     }
   };
 
-  const handleDeleteAllForAgents = () => {
-    if (selectedRunIds.size > 0) {
+  const handleDeleteAllForAgents = (selectedRuns: RunSummary[]) => {
+    if (selectedRuns.length > 0) {
       // Get unique agent IDs from selected runs
-      const agentIds = Array.from(
-        new Set(
-          runs
-            .filter((run) => selectedRunIds.has(run.id))
-            .map((run) => run.agentId)
-        )
-      );
-      setDeleteByAgentIds(agentIds);
+      setDeleteByAgentIds(Array.from(new Set(selectedRuns.map((run) => run.agentId))));
       setDeleteModalOpened(true);
     }
   };
@@ -215,8 +149,9 @@ export function RunsPage() {
         // Delete all runs for these agents
         await runsApi.deleteRuns({ agentId: deleteByAgentIds });
         // Reload runs since we don't know exact count deleted
-        await loadRuns();
-      } else {
+        await tableRef.current?.reload();
+      } 
+      else {
         // Delete specific runs
         const idsToDelete = runToDelete
           ? [runToDelete]
@@ -226,8 +161,8 @@ export function RunsPage() {
 
         // Optimistic update - remove deleted runs from the list
         const deletedSet = new Set(idsToDelete);
-        setRuns((prev) => prev.filter((run) => !deletedSet.has(run.id)));
-        setTotal((prev) => prev - idsToDelete.length);
+        tableRef.current?.setRows((prev) => prev.filter((run) => !deletedSet.has(run.id)));
+        tableRef.current?.setTotal((prev) => prev - idsToDelete.length);
       }
 
       // Clear states
@@ -236,9 +171,11 @@ export function RunsPage() {
       setDeleteByAgentIds([]);
       setDeleteModalOpened(false);
       setError('');
-    } catch (err) {
+    } 
+    catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete runs');
-    } finally {
+    } 
+    finally {
       setDeleting(false);
     }
   };
@@ -257,7 +194,7 @@ export function RunsPage() {
       // const response = await runsApi.cancel(runId);
       const response = await sessionsApi.cancelChat(agentId, runId);
       const ids = new Set([ runId, ...response.cancelledChildRunIds]);
-      setRuns((prev) =>
+      tableRef.current?.setRows((prev) =>
         prev.map((run) => 
           ids.has(run.id) ? { ...run, status: 'cancelled' } : run
         )
@@ -272,9 +209,154 @@ export function RunsPage() {
     }
   };
 
-  const hasFilters = statusFilter || agentFilter.trim() || startedAfter || startedBefore;
-  const totalPages = Math.ceil(total / PAGE_SIZE);
-  const allSelected = runs.length > 0 && selectedRunIds.size === runs.length;
+
+  const bulkActions: DataTableBulkAction<RunSummary>[] = [
+    {
+      label: 'Delete',
+      icon: <IconTrash size={16} />,
+      color: 'red',
+      onClick: handleDeleteClick,
+    },
+    {
+      label: 'Delete All for Agent(s)',
+      icon: <IconRobot size={16} />,
+      color: 'red',
+      variant: 'light',
+      onClick: handleDeleteAllForAgents,
+    },
+  ];
+
+  const columns: DataTableColumn<RunSummary, RunsFilters>[] = [
+    {
+      key: 'status',
+      header: 'Status',
+      filter: { 
+        type: 'select', 
+        key: 'status', 
+        placeholder: 'Status', 
+        options: STATUS_OPTIONS 
+      },
+      render: (run) => (
+        <Badge
+          color={statusColors[run.status]}
+          variant="light"
+          leftSection={statusIcons[run.status]}
+        >
+          {run.status}
+        </Badge>
+      ),
+    },
+    {
+      key: 'agent',
+      header: 'Agent',
+      filter: { type: 'text', key: 'agentId', placeholder: 'Agent ID', icon: <IconRobot size={16} /> },
+      render: (run) => (
+        <Group gap="xs">
+          <Text size="sm" ff="monospace">{run.agentName}</Text>
+          <CopyButton value={run.agentId}>
+            {({ copied, copy }) => (
+              <Tooltip label={copied ? 'Copied' : 'Copy Agent ID'}>
+                <ActionIcon
+                  size="xs"
+                  variant="subtle"
+                  color={copied ? 'teal' : 'gray'}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    copy();
+                  }}
+                >
+                  {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
+                </ActionIcon>
+              </Tooltip>
+            )}
+          </CopyButton>
+        </Group>
+      ),
+    },
+    {
+      key: 'startedAt',
+      header: 'Started',
+      sortable: true,
+      filter: [
+        { type: 'date', key: 'startedAfter', placeholder: 'Started after' },
+        { type: 'date', key: 'startedBefore', placeholder: 'Started before' },
+      ],
+      render: (run) => (
+        <Text size="sm" c="dimmed">
+          {new Date(run.startedAt).toLocaleString()}
+        </Text>
+      ),
+    },
+    {
+      key: 'duration',
+      header: 'Duration',
+      render: (run) => (
+        <Text size="sm" c="dimmed">
+          {run.completedAt ? formatDuration(run.startedAt, run.completedAt) : '~'}
+        </Text>
+      ),
+    },
+    {
+      key: 'childRuns',
+      header: 'Child Runs',
+      hidden: (filters) => !filters.includeChildren,
+      filter: {
+        type: 'switch',
+        key: 'includeChildren',
+        label: 'Collect by parent',
+        persistent: true,
+        defaultValue: true,
+        storageKey: 'runs-includeChildren',
+      },
+      render: (run) =>
+        run.childRunIds && run.childRunIds.length > 0 && (
+          <Badge size="sm" variant="light" color="cyan">
+            {run.childRunIds.length}
+          </Badge>
+        ),
+    },
+    {
+      key: 'triggeredBy',
+      header: 'Triggered by',
+      hidden: (filters) => filters.includeChildren,
+      render: (run) =>
+        run.triggeredBy && (
+          <Text size="sm" c="dimmed">
+            {run.triggeredBy.triggerType}
+          </Text>
+        ),
+    },
+    {
+      key: 'actions',
+      width: 60,
+      stopPropagation: true,
+      render: (run) => (
+        <Group gap={4} wrap="nowrap" justify="flex-end">
+          {(run.status === 'pending' || run.status === 'running') && (
+            <Tooltip label="Cancel run">
+              <ActionIcon
+                color="orange"
+                variant="subtle"
+                loading={cancellingRunId === run.id}
+                onClick={(e) => handleCancelRun(run.agentId, run.id, e)}
+              >
+                <IconPlayerStop size={16} />
+              </ActionIcon>
+            </Tooltip>
+          )}
+          <Tooltip label="Delete run">
+            <ActionIcon
+              color="red"
+              variant="subtle"
+              onClick={(e) => handleDeleteSingleRun(run.id, e)}
+            >
+              <IconTrash size={16} />
+            </ActionIcon>
+          </Tooltip>
+        </Group>
+      ),
+    },
+  ];
 
   return (
     <Box>
@@ -282,311 +364,25 @@ export function RunsPage() {
         View execution history and debug agent runs
       </Text>
 
-      {/* Filters Row */}
-      <Box style={{ position: 'relative' }}>
-        {/* Bulk actions bar - overlays filters */}
-        <Transition mounted={selectedRunIds.size > 0} transition="slide-down" duration={200}>
-          {(styles) => (
-            <Paper
-              withBorder
-              p="md"
-              mb="md"
-              radius="md"
-              // bg="cyan.0"
-              style={{
-                ...styles,
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                zIndex: 10,
-                borderColor: 'var(--mantine-color-cyan-6)',
-              }}
-            >
-              <Group justify="space-between" wrap="nowrap">
-                <Group gap="xs">
-                  <IconSquareCheck size={20} style={{ color: 'var(--mantine-color-cyan-6)' }} />
-                  <div>
-                    <Text size="sm" fw={600} c="cyan.9">
-                      {selectedRunIds.size} {selectedRunIds.size !== 1 ? 'runs' : 'run'} selected
-                    </Text>
-                    <Text size="xs" c="dimmed">
-                      Choose an action to perform on selected items
-                    </Text>
-                  </div>
-                </Group>
-                <Group gap="xs">
-                  <Button
-                    variant="light"
-                    color="gray"
-                    size="sm"
-                    onClick={() => setSelectedRunIds(new Set())}
-                  >
-                    Clear
-                  </Button>
-                  <Button
-                    color="red"
-                    size="sm"
-                    leftSection={<IconTrash size={16} />}
-                    onClick={handleDeleteClick}
-                  >
-                    Delete
-                  </Button>
-                  <Button
-                    color="red"
-                    variant="light"
-                    size="sm"
-                    leftSection={<IconRobot size={16} />}
-                    onClick={handleDeleteAllForAgents}
-                  >
-                    Delete All for Agent(s)
-                  </Button>
-                </Group>
-              </Group>
-            </Paper>
-          )}
-        </Transition>
-      <Group mb="md" gap="sm" wrap="wrap">
-        <Select
-          placeholder="Status"
-          value={statusFilter}
-          onChange={(val) => setStatusFilter(val)}
-          data={[
-            { value: 'pending', label: 'Pending' },
-            { value: 'running', label: 'Running' },
-            { value: 'completed', label: 'Completed' },
-            { value: 'failed', label: 'Failed' },
-            { value: 'cancelling', label: 'Cancelling' },
-            { value: 'cancelled', label: 'Cancelled' },
-          ]}
-          clearable
-          style={{ width: 140 }}
-        />
-        <TextInput
-          placeholder="Agent ID"
-          value={agentFilter}
-          onChange={(e) => setAgentFilter(e.currentTarget.value)}
-          onBlur={loadRuns}
-          onKeyDown={(e) => e.key === 'Enter' && loadRuns()}
-          leftSection={<IconRobot size={16} />}
-          style={{ width: 200 }}
-        />
-        <DatePickerInput
-          placeholder="Started after"
-          value={startedAfter}
-          onChange={(val) => setStartedAfter(val ? new Date(val) : null)}
-          clearable
-          style={{ width: 150 }}
-        />
-        <DatePickerInput
-          placeholder="Started before"
-          value={startedBefore}
-          onChange={(val) => setStartedBefore(val ? new Date(val) : null)}
-          clearable
-          style={{ width: 150 }}
-        />
-        <Select
-          value={sortBy}
-          onChange={(val) => setSortBy(val as 'startedAt' | 'completedAt')}
-          data={[
-            { value: 'startedAt', label: 'Started' },
-            { value: 'completedAt', label: 'Completed' },
-          ]}
-          style={{ width: 120 }}
-        />
-        <Tooltip label={sortOrder === 'desc' ? 'Newest first' : 'Oldest first'}>
-          <ActionIcon variant="light" onClick={toggleSortOrder}>
-            {sortOrder === 'desc' ? <IconSortDescending size={18} /> : <IconSortAscending size={18} />}
-          </ActionIcon>
-        </Tooltip>
-        <Switch
-          label="Collect by parent"
-          checked={includeChildren}
-          onChange={(e) => setIncludeChildren(e.currentTarget.checked)}
-          size="sm"
-        />
-        <Tooltip label="Refresh">
-          <ActionIcon variant="light" onClick={loadRuns} loading={loading}>
-            <IconRefresh size={18} />
-          </ActionIcon>
-        </Tooltip>
-        {hasFilters && (
-          <Button variant="subtle" size="xs" onClick={handleClearFilters}>
-            Clear filters
-          </Button>
-        )}
-      </Group>
-      </Box>
-
-      {error && (
-        <Alert
-          icon={<IconAlertCircle size={16} />}
-          color="red"
-          mb="md"
-          withCloseButton
-          onClose={() => setError('')}
-        >
-          {error}
-        </Alert>
-      )}
-
-      <Card withBorder>
-        {(loading && !runs?.length) ? (
-          <Center py="xl">
-            <Loader />
-          </Center>
-        ) : (
-          <Table striped highlightOnHover>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th style={{ width: 40 }}>
-                  <Checkbox
-                    size='xs'
-                    checked={allSelected}
-                    indeterminate={selectedRunIds.size > 0 && !allSelected}
-                    onChange={handleToggleAll}
-                  />
-                </Table.Th>
-                <Table.Th>Status</Table.Th>
-                <Table.Th>Agent</Table.Th>
-                <Table.Th>Started</Table.Th>
-                <Table.Th>Duration</Table.Th>
-                {includeChildren && <Table.Th>Child Runs</Table.Th>}
-                {!includeChildren && <Table.Th>Triggered by</Table.Th>}
-                <Table.Th style={{ width: 60 }}></Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {runs.map((run) => {
-                const isLastViewed = run.id === lastViewedRunId;
-                const isSelected = selectedRunIds.has(run.id);
-                return (
-                  <Table.Tr
-                    key={run.id}
-                    style={{
-                      cursor: 'pointer',
-                      backgroundColor: isLastViewed ? 'var(--mantine-color-cyan-light)' : undefined,
-                      transition: 'background-color 0.3s ease',
-                    }}
-                    onClick={() => openRunDetails(run.id)}
-                  >
-                  <Table.Td onClick={(e) => e.stopPropagation()}>
-                    <Checkbox
-                      size='xs'
-                      checked={isSelected}
-                      onChange={() => handleToggleRun(run.id)}
-                    />
-                  </Table.Td>
-                  <Table.Td>
-                    <Badge
-                      color={statusColors[run.status]}
-                      variant="light"
-                      leftSection={statusIcons[run.status]}
-                    >
-                      {run.status}
-                    </Badge>
-                  </Table.Td>
-                  <Table.Td>
-                    <Group gap="xs">
-                      <Text size="sm" ff="monospace">{run.agentName}</Text>
-                      <CopyButton value={run.agentId}>
-                        {({ copied, copy }) => (
-                          <Tooltip label={copied ? 'Copied' : 'Copy Agent ID'}>
-                            <ActionIcon
-                              size="xs"
-                              variant="subtle"
-                              color={copied ? 'teal' : 'gray'}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                copy();
-                              }}
-                            >
-                              {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
-                            </ActionIcon>
-                          </Tooltip>
-                        )}
-                      </CopyButton>
-                    </Group>
-                  </Table.Td>
-                  <Table.Td>
-                    <Text size="sm" c="dimmed">
-                      {new Date(run.startedAt).toLocaleString()}
-                    </Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Text size="sm" c="dimmed">
-                      { run.completedAt ? formatDuration(run.startedAt, run.completedAt) : '~'}
-                    </Text>
-                  </Table.Td>
-                  {includeChildren && (
-                    <Table.Td>
-                      {run.childRunIds && run.childRunIds.length > 0 && (
-                        <Badge size="sm" variant="light" color="cyan">
-                          {run.childRunIds.length}
-                        </Badge>
-                      )}
-                    </Table.Td>
-                  )}
-                  {!includeChildren && (
-                    <Table.Td>
-                      {run.triggeredBy && (
-                        <Text size="sm" c="dimmed">
-                          {run.triggeredBy.triggerType}
-                        </Text>
-                      )}
-                    </Table.Td>
-                  )}
-                  <Table.Td onClick={(e) => e.stopPropagation()}>
-                    <Group gap={4} wrap="nowrap" justify="flex-end">
-                      {(run.status === 'pending' || run.status === 'running') && (
-                        <Tooltip label="Cancel run">
-                          <ActionIcon
-                            color="orange"
-                            variant="subtle"
-                            loading={cancellingRunId === run.id}
-                            onClick={(e) => handleCancelRun(run.agentId, run.id, e)}
-                          >
-                            <IconPlayerStop size={16} />
-                          </ActionIcon>
-                        </Tooltip>
-                      )}
-                      <Tooltip label="Delete run">
-                        <ActionIcon
-                          color="red"
-                          variant="subtle"
-                          onClick={(e) => handleDeleteSingleRun(run.id, e)}
-                        >
-                          <IconTrash size={16} />
-                        </ActionIcon>
-                      </Tooltip>
-                    </Group>
-                  </Table.Td>
-                </Table.Tr>
-                );
-              })}
-              {runs.length === 0 && (
-                <Table.Tr>
-                  <Table.Td colSpan={7}>
-                    <Text ta="center" c="dimmed" py="md">
-                      {total === 0 ? 'No runs yet' : 'No runs match your filters'}
-                    </Text>
-                  </Table.Td>
-                </Table.Tr>
-              )}
-            </Table.Tbody>
-          </Table>
-        )}
-      </Card>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <Group justify="space-between" mt="md">
-          <Text size="sm" c="dimmed">
-            Showing {(page - 1) * PAGE_SIZE + 1}-{Math.min(page * PAGE_SIZE, total)} of {total} runs
-          </Text>
-          <Pagination value={page} onChange={setPage} total={totalPages} />
-        </Group>
-      )}
+      <DataTable
+        ref={tableRef}
+        columns={columns}
+        getRowId={(run) => run.id}
+        loadData={loadRuns}
+        error={error}
+        onErrorClose={() => setError('')}
+        emptyMessage="No runs yet"
+        noMatchMessage="No runs match your filters"
+        onRowClick={(run) => openRunDetails(run.id)}
+        rowStyle={(run) => ({
+          backgroundColor: run.id === lastViewedRunId ? 'var(--mantine-color-cyan-light)' : undefined,
+          transition: 'background-color 0.3s ease',
+        })}
+        selection={{ selectedIds: selectedRunIds, onChange: setSelectedRunIds }}
+        bulkActions={bulkActions}
+        initialSort={INITIAL_SORT}
+        itemLabel={['run', 'runs']}
+      />
 
       {/* Delete confirmation modal */}
       <DeleteRunsModal

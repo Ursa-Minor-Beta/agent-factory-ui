@@ -22,9 +22,13 @@ function parseTrail(value: string | null): RunTrailItem[] {
  * Build a query string for opening a run with the given breadcrumb trail.
  */
 export function buildRunDetailsSearch(id: string, trail: RunTrailItem[]) {
-  const params = new URLSearchParams({ [RUN_PARAM]: id });
+  // Start from the current query string so other params (e.g. table filters) are kept
+  const params = new URLSearchParams(window.location.search);
+  params.set(RUN_PARAM, id);
   if (trail.length > 0) {
     params.set(TRAIL_PARAM, JSON.stringify(trail));
+  } else {
+    params.delete(TRAIL_PARAM);
   }
   return `?${params.toString()}`;
 }
@@ -60,7 +64,12 @@ export function useRunDetailsModal() {
    * Adds ?run=<id> to URL, enabling deep linking and browser navigation.
    */
   const openRunDetails = (id: string) => {
-    setSearchParams({ [RUN_PARAM]: id });
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set(RUN_PARAM, id);
+      next.delete(TRAIL_PARAM);
+      return next;
+    });
   };
 
   /**
@@ -68,7 +77,12 @@ export function useRunDetailsModal() {
    * Removes the run query parameter from URL.
    */
   const closeRunDetails = () => {
-    setSearchParams({});
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete(RUN_PARAM);
+      next.delete(TRAIL_PARAM);
+      return next;
+    });
   };
 
   /**

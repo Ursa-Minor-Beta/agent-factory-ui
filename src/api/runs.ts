@@ -35,9 +35,6 @@ export interface DeleteRunsResponse {
 }
 
 export const runsApi = {
-  listByAgent: (agentId: string, limit?: number) =>
-    api.get<RunSummary[]>(`/api/agents/${agentId}/runs${limit ? `?limit=${limit}` : ''}`),
-
   getById: (id: string, includeChildren?: boolean) =>
     api.get<Run>(`/api/runs/${id}${includeChildren ? '?includeChildren=true' : ''}`),
 
