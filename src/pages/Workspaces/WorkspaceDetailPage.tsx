@@ -279,7 +279,7 @@ export function WorkspaceDetailPage() {
             <SchedulesList
               workspaceId={workspaceId}
               description="Schedules of this workspace's agents"
-              columns={['name', 'status', 'schedule', 'nextRun', 'lastRun', 'enabled', 'actions']}
+              excludeColumns={['workspace', 'agent']}
               onCreate={loadWorkspace}
               onDelete={loadWorkspace}
             />

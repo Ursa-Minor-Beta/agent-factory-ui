@@ -1,17 +1,32 @@
 import { api } from './client';
 import type {
   AgentSchedule,
+  ScheduleLastStatus,
   ScheduleOverlapPolicy,
   ScheduleSessionMode,
   ScheduleTrigger,
+  ScheduleTriggerType,
 } from '../types';
 
 export interface ListSchedulesOptions {
   agentId?: string;
   workspaceId?: string | null; // string = specific workspace, null = global only, undefined = all
   enabled?: boolean;
-  sortBy?: 'name' | 'nextRunAt' | 'createdAt' | 'updatedAt';
+  name?: string; // Contains, case-insensitive
+  description?: string; // Contains, case-insensitive
+  triggerType?: ScheduleTriggerType;
+  lastStatus?: ScheduleLastStatus;
+  sessionMode?: ScheduleSessionMode;
+  nextRunAfter?: string;
+  nextRunBefore?: string;
+  createdAfter?: string;
+  createdBefore?: string;
+  updatedAfter?: string;
+  updatedBefore?: string;
+  sortBy?: 'name' | 'nextRunAt' | 'lastRunAt' | 'runCount' | 'createdAt' | 'updatedAt';
   sortOrder?: 'asc' | 'desc';
+  skip?: number;
+  limit?: number; // backend max 100; omit to return all
 }
 
 export interface CreateScheduleInput {
@@ -42,15 +57,13 @@ export interface PreviewScheduleResponse {
 }
 
 export const schedulesApi = {
-  list: async (options?: ListSchedulesOptions): Promise<AgentSchedule[]> => {
+  list: async (options: ListSchedulesOptions = {}): Promise<AgentSchedule[]> => {
     const params = new URLSearchParams();
-    if (options?.agentId) params.append('agentId', options.agentId);
-    if (options?.workspaceId !== undefined) {
-      params.append('workspaceId', options.workspaceId === null ? 'null' : options.workspaceId);
+    for (const [key, value] of Object.entries(options)) {
+      if (value === undefined || value === '') continue;
+      // workspaceId: null = global only
+      params.append(key, value === null ? 'null' : String(value));
     }
-    if (options?.enabled !== undefined) params.append('enabled', String(options.enabled));
-    if (options?.sortBy) params.append('sortBy', options.sortBy);
-    if (options?.sortOrder) params.append('sortOrder', options.sortOrder);
     const query = params.toString();
     return api.get<AgentSchedule[]>(`/api/schedules${query ? `?${query}` : ''}`);
   },
