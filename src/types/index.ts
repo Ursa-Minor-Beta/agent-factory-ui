@@ -22,6 +22,9 @@ export * from './secret';
 // Variable types
 export * from './variable';
 
+// Webhook types
+export * from './webhook';
+
 // API Response types
 export * from './api';
 
@@ -36,3 +39,6 @@ export * from './workspace';
 
 // GitHub sync types
 export * from './github';
+
+// Schedule types
+export * from './schedule';

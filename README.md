@@ -11,6 +11,7 @@ Visual platform for building and managing AI agents through a no-code/low-code i
 - **Node Graph Workflows** - Visual drag-and-drop editor with 11 node types (LLM, HTTP, JS, branch, sub-agent, memory store/search/update/delete), undo/redo, ready-made templates, and `{{node:/secret:/var:}}` reference suggestions in text and JSON fields
 - **Agent Builder** - Chat with a builder agent that designs whole multi-agent systems with memory: it reads, adds, edits and removes nodes on the canvas, names the agent, assigns a workspace, saves and test-runs it. Any agent can be picked as the builder
 - **Composable Agents** - Agents can call other agents as sub-workflows or llm-tools
+- **Webhooks** - Start agent runs from external HTTP POSTs, with optional JS handlers (Slack, GitHub, Telegram templates) to verify, filter and reshape requests and a built-in test panel; manage them from the agent editor, a Webhooks page and workspace pages
 - **Agent Relations Graph** - Agents list graph mode and an editor tab showing which agents call which
 - **Run in Editor** - Run the agent from the editor with saved inputs, live node status and an animated step-by-step replay on the canvas
 - **Multi-Provider LLM** - Provider presets loaded from the backend (OpenAI, Anthropic, Ollama, and any OpenAI-compatible endpoint), global or per-workspace, with a default per provider type
@@ -18,7 +19,8 @@ Visual platform for building and managing AI agents through a no-code/low-code i
 - **Streaming Chat** - Real-time SSE streaming with session management, tool call display, and message queueing while a run is active
 - **GitHub Sync** - Clone/Link agents to repos with push/pull support via a GitHub provider
 - **Export/Import** - Export agents to JSON packages with dependencies
-- **Execution Monitoring** - Run tracking with node-level timing, logs, tool calls, LLM token usage, and child run tree; filter, sort and page the run list
+- **Schedules** - Run agents automatically on a repeating calendar (down to every 10 seconds), once at a set time, or every N minutes/hours/days, with next-run preview, run now, pause, failure auto-stop, incognito or chat-session runs, and per-schedule run history; manage them on the Schedules page, in the agent editor, and in workspaces
+- **Execution Monitoring** - Run tracking with node-level timing, logs, tool calls, LLM token usage, child run tree, and what triggered each run (chat, API, schedule, webhook, agent node, tool call) with filtering by trigger; filter, sort and page the run list
 - **Encrypted Secrets** - Secure credential storage (AES-256-GCM)
 - **Variables** - Plain-text global/workspace variables referenced via `{{var:NAME}}`
 - **File Storage** - Built-in file management for agent artifacts; search by name, filter by created date and sort the list

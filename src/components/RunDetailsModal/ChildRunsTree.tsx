@@ -2,7 +2,7 @@ import { Anchor, Box, Group, Text } from '@mantine/core';
 import { IconCheck, IconClock, IconPlayerPlay, IconX } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import type { Run } from '../../types';
-import { formatDuration } from '../../types';
+import { formatDuration, getTriggerNodeId, getTriggerToolName } from '../../types';
 import { buildRunDetailsSearch } from './useRunDetailsModal';
 
 type Trail = Parameters<typeof buildRunDetailsSearch>[1];
@@ -15,7 +15,7 @@ const statusIcon = (status: Run['status']) =>
 
 /** Child runs started by a node (sub-agent node or agent tool call) */
 export function getNodeChildRuns(run: Run, nodeId: string): Run[] {
-  return run.childRuns?.filter((child) => child.triggeredBy?.nodeId === nodeId) ?? [];
+  return run.childRuns?.filter((child) => getTriggerNodeId(child.triggeredBy) === nodeId) ?? [];
 }
 
 /** Compact tree of child runs, shown in the folded node header; a row opens the child run */
@@ -38,8 +38,8 @@ export function ChildRunsTree({ runs, trail, depth = 0 }: { runs: Run[]; trail: 
               >
                 {child.agentName || child.agentId}
               </Anchor>
-              {child.triggeredBy?.toolName && (
-                <Text size="xs" c="dimmed" ff="monospace" truncate>{child.triggeredBy.toolName}</Text>
+              {getTriggerToolName(child.triggeredBy) && (
+                <Text size="xs" c="dimmed" ff="monospace" truncate>{getTriggerToolName(child.triggeredBy)}</Text>
               )}
               {statusIcon(child.status)}
               <Text size="xs" c="dimmed">{formatDuration(child.startedAt, child.completedAt)}</Text>

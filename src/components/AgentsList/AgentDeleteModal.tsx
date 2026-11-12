@@ -36,6 +36,7 @@ export function AgentDeleteModal({ agent, onClose, onDeleted }: AgentDeleteModal
       deleting={deleting}
       title="Delete Agent"
       entityName={agent?.name}
+      subtitle="The agent's schedules will be deleted too."
       error={error}
     />
   );

@@ -22,12 +22,20 @@ export const routes = {
   providers: () => '/configurations/providers',
   secrets: () => '/configurations/secrets',
   variables: () => '/configurations/variables',
+  webhooks: () => '/configurations/webhooks',
   collections: () => '/configurations/collections',
+  schedules: () => '/configurations/schedules',
   collectionRecords: (collectionId: string) => `/configurations/collections/${collectionId}/records`,
 
   monitoring: () => '/monitoring',
   sessions: () => '/monitoring/sessions',
-  runs: () => '/monitoring/runs',
+  runs: (filters?: { scheduleId?: string; triggerType?: string }) => {
+    const params = new URLSearchParams();
+    if (filters?.scheduleId) params.set('scheduleId', filters.scheduleId);
+    if (filters?.triggerType) params.set('triggerType', filters.triggerType);
+    const query = params.toString();
+    return query ? `/monitoring/runs?${query}` : '/monitoring/runs';
+  },
   files: () => '/monitoring/files',
 
   settings: () => '/settings',

@@ -8,6 +8,7 @@ export { sessionsApi } from './sessions';
 export { secretsApi } from './secrets';
 export { variablesApi } from './variables';
 export { runsApi } from './runs';
+export { webhooksApi } from './webhooks';
 export { filesApi } from './files';
 export type { FileData, FileListItem } from './files';
 export { systemApi } from './system';
@@ -26,3 +27,11 @@ export type {
 } from './memory';
 export { workspacesApi } from './workspaces';
 export { githubApi } from './github';
+export { schedulesApi } from './schedules';
+export type {
+  ListSchedulesOptions,
+  CreateScheduleInput,
+  UpdateScheduleInput,
+  PreviewScheduleInput,
+  PreviewScheduleResponse,
+} from './schedules';

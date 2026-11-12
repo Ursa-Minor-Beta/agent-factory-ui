@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { Run, RunSummary, RunStatus } from '../types';
+import type { Run, RunSummary, RunStatus, RunTriggerType } from '../types';
 
 export interface CancelRunResponse {
   id: string;
@@ -19,6 +19,8 @@ export interface ListRunsParams {
   skip?: number;
   limit?: number;
   includeChildren?: boolean;
+  triggerType?: RunTriggerType;
+  scheduleId?: string;
 }
 
 export interface ListRunsResponse {
@@ -59,6 +61,8 @@ export const runsApi = {
     if (params?.skip !== undefined) searchParams.set('skip', String(params.skip));
     if (params?.limit !== undefined) searchParams.set('limit', String(params.limit));
     if (params?.includeChildren) searchParams.set('includeChildren', 'true');
+    if (params?.triggerType) searchParams.set('triggerType', params.triggerType);
+    if (params?.scheduleId) searchParams.set('scheduleId', params.scheduleId);
     const query = searchParams.toString();
     return api.get<ListRunsResponse>(`/api/executions${query ? `?${query}` : ''}`);
   },

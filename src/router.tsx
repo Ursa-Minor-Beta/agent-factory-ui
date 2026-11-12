@@ -13,8 +13,10 @@ const ChatPage = lazy(() => import('./pages/Chat/Chat').then(m => ({ default: m.
 const ProvidersPage = lazy(() => import('./pages/Providers').then(m => ({ default: m.ProvidersPage })));
 const SecretsPage = lazy(() => import('./pages/Secrets').then(m => ({ default: m.SecretsPage })));
 const VariablesPage = lazy(() => import('./pages/Variables').then(m => ({ default: m.VariablesPage })));
+const WebhooksPage = lazy(() => import('./pages/Webhooks').then(m => ({ default: m.WebhooksPage })));
 const FilesPage = lazy(() => import('./pages/Files').then(m => ({ default: m.FilesPage })));
 const RunsPage = lazy(() => import('./pages/Runs/index').then(m => ({ default: m.RunsPage })));
+const SchedulesPage = lazy(() => import('./pages/Schedules').then(m => ({ default: m.SchedulesPage })));
 const SessionsPage = lazy(() => import('./pages/Sessions/index').then(m => ({ default: m.SessionsPage })));
 const SystemSettings = lazy(() => import('./pages/Settings').then(m => ({ default: m.SystemSettings })));
 const UsersSettings = lazy(() => import('./pages/Settings').then(m => ({ default: m.UsersSettings })));
@@ -107,12 +109,20 @@ export const router = createBrowserRouter([
             element: <VariablesPage />,
           },
           {
+            path: 'webhooks',
+            element: <WebhooksPage />,
+          },
+          {
             path: 'collections',
             element: <CollectionsPage />,
           },
           {
             path: 'collections/:collectionId/records',
             element: <CollectionRecordsPage />,
+          },
+          {
+            path: 'schedules',
+            element: <SchedulesPage />,
           },
         ],
       },

@@ -3,12 +3,14 @@ import { ActionIcon, Box, Tabs, Tooltip } from '@mantine/core';
 import {
   IconHierarchy2,
   IconBrandGithub,
+  IconCalendarTime,
   IconComponents,
   IconPlayerPlay,
   IconPlus,
   IconSettings,
   IconSparkles,
   IconTemplate,
+  IconWebhook,
   type Icon,
 } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
@@ -23,8 +25,10 @@ import { SettingsTab } from './SettingsTab';
 import { RunTab, type AgentRunner } from './RunTab';
 import { TemplatesTab } from './TemplatesTab';
 import { GitTab } from './GitTab';
+import { WebhooksTab } from './WebhooksTab';
 import { AssistantTab, type AssistantEditor } from './AssistantTab';
 import { AgentsNavigatorGraph } from '../../AgentsGraph';
+import { SchedulesList } from '../../Schedules';
 
 const MIN_WIDTH = 120;
 const MAX_WIDTH_RATIO = 0.7; // 40% of viewport
@@ -89,8 +93,12 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
   // Use external tab if provided, otherwise internal
   const workspaceId = agent?.workspaceId;
   const requestedTab = externalActiveTab ?? internalActiveTab;
-  // Relations tab only exists for agents in a workspace
-  const activeTab = requestedTab === 'relations' && !workspaceId ? 'nodes' : requestedTab;
+  // Relations tab only exists for agents in a workspace, Schedules - for saved agents
+  // Webhooks tab only exists for saved agents
+  const activeTab = ((requestedTab === 'relations' && !workspaceId) || (requestedTab === 'schedules' && !agent?.id)
+   ) || (requestedTab === 'webhooks' && !agent?.id) 
+      ? 'nodes'
+      : requestedTab;
   const setActiveTab = (tab: string | null) => {
     if (onActiveTabChange) {
       onActiveTabChange(tab);
@@ -200,6 +208,8 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
               {workspaceId && <IconTab value="relations" label="Relations" icon={IconHierarchy2} />}
               <IconTab value="nodes" label="Nodes" icon={IconComponents} />
               <IconTab value="templates" label="Templates" icon={IconTemplate} />
+              {agent?.id && <IconTab value="schedules" label="Schedules" icon={IconCalendarTime} />}
+              {agent?.id && <IconTab value="webhooks" label="Webhooks" icon={IconWebhook} />}
               <IconTab value="git" label="Git" icon={IconBrandGithub} />
               <IconTab value="settings" label="Settings" icon={IconSettings} />
             </Tabs.List>
@@ -280,6 +290,18 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
                     </ActionIcon>
                   </Tooltip>
                 )}
+              </Tabs.Panel>
+            )}
+
+            {agent?.id && (
+              <Tabs.Panel value="schedules" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }} p="xs">
+                {activeTab === 'schedules' && <SchedulesList agentId={agent.id} compact />}
+              </Tabs.Panel>
+            )}
+
+            {agent?.id && (
+              <Tabs.Panel value="webhooks" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }} p="xs">
+                <WebhooksTab agentId={agent.id} workspaceId={workspaceId} />
               </Tabs.Panel>
             )}
 

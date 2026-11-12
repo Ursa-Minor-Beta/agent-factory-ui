@@ -1,10 +1,12 @@
 import { RouterProvider } from 'react-router-dom';
 import { MantineProvider, createTheme } from '@mantine/core';
 import { DatesProvider } from '@mantine/dates';
+import { Notifications } from '@mantine/notifications';
 import { AuthProvider } from './contexts/AuthContext';
 import { router } from './router';
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
+import '@mantine/notifications/styles.css';
 
 const theme = createTheme({
   primaryColor: 'cyan',
@@ -80,6 +82,7 @@ const theme = createTheme({
 function App() {
   return (
     <MantineProvider theme={theme} defaultColorScheme="dark">
+      <Notifications position="top-right" />
       <DatesProvider settings={{ firstDayOfWeek: 1 }}>
         <AuthProvider>
           <RouterProvider router={router} />

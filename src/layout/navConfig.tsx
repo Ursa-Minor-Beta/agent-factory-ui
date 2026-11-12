@@ -4,6 +4,7 @@ import {
   IconKey,
   IconLock,
   IconHistory,
+  IconCalendarTime,
   IconMessages,
   IconUsers,
   IconFiles,
@@ -12,6 +13,7 @@ import {
   IconFolders,
   IconCloud,
   IconVariable,
+  IconWebhook,
 } from '@tabler/icons-react';
 import type { NavItem } from './types';
 import { routes } from '../config/routes';
@@ -30,7 +32,9 @@ export const getBaseNavItems = (): NavItem[] => [
       { label: 'Providers', path: routes.providers(), icon: <IconCloud size={18} /> },
       { label: 'Secrets', path: routes.secrets(), icon: <IconLock size={18} /> },
       { label: 'Variables', path: routes.variables(), icon: <IconVariable size={18} /> },
+      { label: 'Webhooks', path: routes.webhooks(), icon: <IconWebhook size={18} /> },
       { label: 'Collections', path: routes.collections(), icon: <IconDatabase size={18} /> },
+      { label: 'Schedules', path: routes.schedules(), icon: <IconCalendarTime size={18} /> },
     ],
   },
   

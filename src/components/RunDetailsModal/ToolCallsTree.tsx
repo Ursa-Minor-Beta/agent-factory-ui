@@ -2,7 +2,7 @@ import { Anchor, Box, Group, Text } from '@mantine/core';
 import { IconCheck, IconX } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import type { Run } from '../../types';
-import { formatDuration } from '../../types';
+import { formatDuration, getTriggerToolName } from '../../types';
 import { buildRunDetailsSearch } from './useRunDetailsModal';
 import { ChildRunsTree } from './ChildRunsTree';
 
@@ -35,7 +35,7 @@ function isFailed(result: unknown): boolean {
 export function matchToolCallRuns(calls: ToolCallEntry[], runs: Run[]) {
   const remaining = [...runs];
   const matched = calls.map((call) => {
-    const idx = remaining.findIndex((r) => r.triggeredBy?.toolName === call.name);
+    const idx = remaining.findIndex((r) => getTriggerToolName(r.triggeredBy) === call.name);
     return idx === -1 ? undefined : remaining.splice(idx, 1)[0];
   });
   return { matched, unmatched: remaining };
