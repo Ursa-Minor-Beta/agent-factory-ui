@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
   Text,
@@ -26,6 +26,7 @@ import {
   IconBrandGithub,
   IconHierarchy2,
   IconLayoutGrid,
+  IconList,
 } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { agentsApi } from '../../api';
@@ -33,6 +34,8 @@ import { workspacesApi } from '../../api/workspaces';
 import type { Agent, AgentQueryParams } from '../../types';
 import type { Workspace } from '../../types/workspace';
 import { AgentCard } from './AgentCard';
+import { AgentsTable } from './AgentsTable';
+import type { DataTableHandle } from '../common/DataTable';
 import { AgentsRelationsGraph } from '../AgentsGraph';
 import { AgentFilters, GLOBAL_WORKSPACE_FILTER } from './AgentFilters';
 import { AgentDeleteModal } from './AgentDeleteModal';
@@ -47,7 +50,8 @@ const SORT_STORAGE_KEY = 'agents-sort';
 
 const VIEW_MODE_STORAGE_KEY = 'agents-view-mode';
 
-type ViewMode = 'list' | 'graph';
+// 'list' is the card grid (name kept for the stored preference)
+type ViewMode = 'list' | 'table' | 'graph';
 
 function downloadJson(data: unknown, filename: string) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -112,14 +116,16 @@ export function AgentsList({
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [workspacesLoading, setWorkspacesLoading] = useState(false);
 
-  // Graph view is only offered inside a workspace
+  // Graph view is only offered inside a workspace; the table view anywhere
   // Last chosen view is remembered across reloads
   const [selectedViewMode, setViewMode] = useLocalStorage<ViewMode>({
     key: VIEW_MODE_STORAGE_KEY,
     defaultValue: 'list',
     getInitialValueInEffect: false,
   });
-  const viewMode: ViewMode = workspaceId && selectedViewMode === 'graph' ? 'graph' : 'list';
+  const viewMode: ViewMode =
+    selectedViewMode === 'graph' ? (workspaceId ? 'graph' : 'list') : selectedViewMode;
+  const tableRef = useRef<DataTableHandle<Agent>>(null);
 
   // Persist sort value
   const handleSortChange = (val: string | null) => {
@@ -175,6 +181,8 @@ export function AgentsList({
   }, [descriptionFilter]);
 
   const loadAgents = useCallback(async () => {
+    // The table view loads on its own; the graph view loads its own data
+    if (viewMode !== 'list') return;
     try {
       setLoading(true);
       const params: AgentQueryParams = {
@@ -223,6 +231,7 @@ export function AgentsList({
     sortOrder,
     page,
     limit,
+    viewMode,
   ]);
 
   useEffect(() => {
@@ -233,6 +242,7 @@ export function AgentsList({
   const [graphVersion, setGraphVersion] = useState(0);
   const reloadAgents = useCallback(() => {
     loadAgents();
+    tableRef.current?.reload();
     setGraphVersion((v) => v + 1);
   }, [loadAgents]);
 
@@ -294,16 +304,17 @@ export function AgentsList({
         wrap="wrap"
         style={viewMode === 'graph' ? { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 } : undefined}
       >
-        {workspaceId && (
-          <SegmentedControl
-            value={viewMode}
-            onChange={(value) => setViewMode(value as ViewMode)}
-            data={[
-              { value: 'list', label: <Center><IconLayoutGrid size={16} /></Center> },
-              { value: 'graph', label: <Center><IconHierarchy2 size={16} /></Center> },
-            ]}
-          />
-        )}
+        <SegmentedControl
+          value={viewMode}
+          onChange={(value) => setViewMode(value as ViewMode)}
+          data={[
+            { value: 'list', label: <Tooltip label="Cards"><Center><IconLayoutGrid size={16} /></Center></Tooltip> },
+            { value: 'table', label: <Tooltip label="Table"><Center><IconList size={16} /></Center></Tooltip> },
+            ...(workspaceId
+              ? [{ value: 'graph', label: <Tooltip label="Graph"><Center><IconHierarchy2 size={16} /></Center></Tooltip> }]
+              : []),
+          ]}
+        />
         {viewMode === 'list' && (<>
             <Select
               value={sortValue}
@@ -449,6 +460,16 @@ export function AgentsList({
           workspaceId={workspaceId}
           topInset={48}
           refreshKey={graphVersion}
+          onEdit={handleOpenEditModal}
+          onDelete={setAgentToDelete}
+          onClone={handleClone}
+          onWorkspace={setAgentForWorkspace}
+          onExport={handleExport}
+        />
+      ) : viewMode === 'table' ? (
+        <AgentsTable
+          ref={tableRef}
+          workspaceId={workspaceId}
           onEdit={handleOpenEditModal}
           onDelete={setAgentToDelete}
           onClone={handleClone}

@@ -1,18 +1,8 @@
 import { Link } from 'react-router-dom';
-import { Card, Text, Group, Stack, ActionIcon, Tooltip, Menu, Box, Button, Badge, Flex } from '@mantine/core';
-import {
-  IconTrash,
-  IconMessageCircle,
-  IconChevronRight,
-  IconCopy,
-  IconSchema,
-  IconCode,
-  IconFolder,
-  IconDotsVertical,
-  IconUpload,
-  IconBrandGithub,
-} from '@tabler/icons-react';
+import { Card, Text, Group, Stack, ActionIcon, Tooltip, Box, Button, Badge, Flex } from '@mantine/core';
+import { IconMessageCircle, IconChevronRight, IconSchema, IconBrandGithub } from '@tabler/icons-react';
 import type { AgentCardProps } from './types';
+import { AgentActionsMenu } from './AgentActionsMenu';
 import { WorkspaceBadge } from '../Workspace';
 import { routes } from '../../config/routes';
 
@@ -144,31 +134,14 @@ export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExp
               <IconSchema size={16} stroke={1} />
             </ActionIcon>
           </Tooltip>
-          <Menu position="bottom-end" withinPortal>
-            <Menu.Target>
-              <ActionIcon variant="subtle">
-                <IconDotsVertical size={18} />
-              </ActionIcon>
-            </Menu.Target>
-            <Menu.Dropdown>
-              <Menu.Item leftSection={<IconCode size={16} />} onClick={() => onEdit(agent)}>
-                JSON Editor
-              </Menu.Item>
-              <Menu.Item leftSection={<IconCopy size={16} />} onClick={() => onClone(agent)}>
-                Clone
-              </Menu.Item>
-              <Menu.Item leftSection={<IconUpload size={16} />} onClick={() => onExport(agent)}>
-                Export
-              </Menu.Item>
-              <Menu.Item leftSection={<IconFolder size={16} />} onClick={() => onWorkspace(agent)}>
-                Manage workspace
-              </Menu.Item>
-              <Menu.Divider />
-              <Menu.Item leftSection={<IconTrash size={16} />} color="red" onClick={() => onDelete(agent)}>
-                Delete
-              </Menu.Item>
-            </Menu.Dropdown>
-          </Menu>
+          <AgentActionsMenu
+            agent={agent}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onClone={onClone}
+            onWorkspace={onWorkspace}
+            onExport={onExport}
+          />
         </Group>
       </Group>
 
