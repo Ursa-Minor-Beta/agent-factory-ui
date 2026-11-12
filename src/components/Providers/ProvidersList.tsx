@@ -20,7 +20,7 @@ import {
 } from '../common/DataTable';
 import { ProviderModal } from './ProviderModal';
 import { DeleteConfirmModal } from '../DeleteConfirmModal';
-import { WorkspaceBadge } from '../Workspace';
+import { WorkspaceBadge, useWorkspaceFilterOptions, GLOBAL_WORKSPACE } from '../Workspace';
 
 export type ProviderColumn =
   | 'workspace'
@@ -33,18 +33,8 @@ export type ProviderColumn =
   | 'updatedAt'
   | 'actions';
 
-const DEFAULT_COLUMNS: ProviderColumn[] = [
-  'workspace',
-  'name',
-  'provider',
-  'apiKey',
-  'baseUrl',
-  'default',
-  'updatedAt',
-  'actions',
-];
-
 interface ProvidersFilters {
+  workspaceId: string | null;
   provider: string | null;
   name: string;
 }
@@ -54,7 +44,8 @@ interface ProvidersListProps {
   description?: string;
   /** Show the name search and provider type filter */
   showSearch?: boolean;
-  columns?: ProviderColumn[];
+  /** Columns to leave out; all are shown by default */
+  excludeColumns?: ProviderColumn[];
   onCreate?: () => void;
   onDelete?: () => void;
 }
@@ -63,11 +54,11 @@ export function ProvidersList({
   workspaceId,
   description = '',
   showSearch = true,
-  columns = DEFAULT_COLUMNS,
+  excludeColumns = [],
   onCreate,
   onDelete,
 }: ProvidersListProps) {
-  const showColumn = (col: ProviderColumn) => columns.includes(col);
+  const showColumn = (col: ProviderColumn) => !excludeColumns.includes(col);
   const tableRef = useRef<DataTableHandle<ProviderConfig>>(null);
   const [error, setError] = useState('');
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
@@ -75,6 +66,7 @@ export function ProvidersList({
   const [deleting, setDeleting] = useState(false);
   const [deletingProvider, setDeletingProvider] = useState<ProviderConfig | null>(null);
   const [editingProvider, setEditingProvider] = useState<ProviderConfig | null>(null);
+  const workspaceOptions = useWorkspaceFilterOptions(workspaceId === undefined);
   // Provider type filter options come from the backend presets
   const [presets, setPresets] = useState<ProviderPreset[]>([]);
 
@@ -84,7 +76,8 @@ export function ProvidersList({
 
   const loadProviders = async ({ filters, sort }: DataTableQuery<ProvidersFilters, ProvidersSortBy>) => {
     const options: ListProvidersOptions = { ...sort };
-    if (workspaceId !== undefined) options.workspaceId = workspaceId;
+    const workspace = workspaceId ?? filters.workspaceId;
+    if (workspace) options.workspaceId = workspace === GLOBAL_WORKSPACE ? null : workspace;
     if (filters.provider) options.provider = filters.provider as ProviderType;
     if (filters.name) options.name = filters.name;
 
@@ -157,6 +150,11 @@ export function ProvidersList({
       key: 'workspace',
       header: 'Workspace',
       hidden: !showColumn('workspace'),
+      // Only when the list isn't already scoped to one workspace
+      filter:
+        workspaceId === undefined
+          ? { type: 'select', key: 'workspaceId', placeholder: 'Workspace', options: workspaceOptions }
+          : undefined,
       render: (provider) => <WorkspaceBadge workspaceName={provider.workspaceName} />,
     },
     {

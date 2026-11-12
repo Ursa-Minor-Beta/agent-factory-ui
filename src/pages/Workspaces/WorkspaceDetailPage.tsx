@@ -230,8 +230,7 @@ export function WorkspaceDetailPage() {
           <ProvidersList
             workspaceId={workspaceId}
             description="Workspace-scoped LLM providers. Falls back to global if not configured."
-            showSearch={false}
-            columns={['name', 'provider', 'apiKey', 'baseUrl', 'default', 'actions']}
+            excludeColumns={['workspace', 'createdAt', 'updatedAt']}
             onCreate={loadWorkspace}
             onDelete={loadWorkspace}
           />
@@ -241,8 +240,7 @@ export function WorkspaceDetailPage() {
           <SecretsList
             workspaceId={workspaceId}
             description="Workspace-scoped secrets for {{secret:NAME}} syntax. Falls back to global if not found."
-            showSearch={false}
-            columns={['name', 'value', 'description', 'created', 'actions']}
+            excludeColumns={['workspace', 'updated']}
             onCreate={loadWorkspace}
             onDelete={loadWorkspace}
           />

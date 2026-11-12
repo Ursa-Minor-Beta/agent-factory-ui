@@ -1,9 +1,12 @@
 import { api } from './client';
 import type { Secret } from '../types';
 
+export type SecretsSortBy = 'name' | 'createdAt' | 'updatedAt';
+
 export interface ListSecretsOptions {
   workspaceId?: string | null; // string = specific workspace, null = global only, undefined = all
-  sortBy?: 'name' | 'createdAt' | 'updatedAt';
+  name?: string; // Contains, case-insensitive
+  sortBy?: SecretsSortBy;
   sortOrder?: 'asc' | 'desc';
 }
 
@@ -27,6 +30,7 @@ export const secretsApi = {
     if (options?.workspaceId !== undefined) {
       params.append('workspaceId', options.workspaceId === null ? 'null' : options.workspaceId);
     }
+    if (options?.name) params.append('name', options.name);
     if (options?.sortBy) params.append('sortBy', options.sortBy);
     if (options?.sortOrder) params.append('sortOrder', options.sortOrder);
     const query = params.toString();
