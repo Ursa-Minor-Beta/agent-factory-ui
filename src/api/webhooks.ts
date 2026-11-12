@@ -1,9 +1,15 @@
 import { api } from './client';
 import type { Webhook, WebhookTemplate, WebhookTestInput, WebhookTestResult } from '../types';
 
+export type WebhooksSortBy = 'name' | 'createdAt' | 'updatedAt' | 'lastTriggeredAt';
+
 export interface ListWebhooksOptions {
   agentId?: string;
   workspaceId?: string | null; // null = agents not in any workspace (sent as 'null')
+  name?: string; // Contains, case-insensitive
+  enabled?: boolean;
+  sortBy?: WebhooksSortBy;
+  sortOrder?: 'asc' | 'desc';
   skip?: number;
   limit?: number; // backend max 100
 }
@@ -31,6 +37,10 @@ export const webhooksApi = {
     const params = new URLSearchParams();
     if (options.agentId) params.append('agentId', options.agentId);
     if (options.workspaceId !== undefined) params.append('workspaceId', options.workspaceId ?? 'null');
+    if (options.name) params.append('name', options.name);
+    if (options.enabled !== undefined) params.append('enabled', String(options.enabled));
+    if (options.sortBy) params.append('sortBy', options.sortBy);
+    if (options.sortOrder) params.append('sortOrder', options.sortOrder);
     if (options.skip) params.append('skip', String(options.skip));
     if (options.limit) params.append('limit', String(options.limit));
     const query = params.toString();

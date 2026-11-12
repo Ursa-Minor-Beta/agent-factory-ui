@@ -208,7 +208,7 @@ export function WorkspaceDetailPage() {
             Variables{workspace.variableCount !== undefined && ` (${workspace.variableCount})`}
           </Tabs.Tab>
           <Tabs.Tab value="webhooks" leftSection={<IconWebhook size={16} />}>
-            Webhooks
+            Webhooks {workspace.webhookCount !== undefined && ` (${workspace.webhookCount})`}
           </Tabs.Tab>
           <Tabs.Tab value="collections" leftSection={<IconDatabase size={16} />}>
             Collections{workspace.collectionCount !== undefined && ` (${workspace.collectionCount})`}
@@ -260,7 +260,7 @@ export function WorkspaceDetailPage() {
           <WebhooksList
             workspaceId={workspaceId}
             description="Webhooks of this workspace's agents. POST to a URL to start the agent."
-            columns={['agent', 'name', 'url', 'enabled', 'lastTriggered', 'actions']}
+            excludeColumns={['workspace', 'created']}
           />
         </Tabs.Panel>
 

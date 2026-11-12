@@ -1,39 +1,40 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  ActionIcon,
-  Alert,
-  Anchor,
-  Badge,
-  Box,
-  Button,
-  Card,
-  Center,
-  Code,
-  Group,
-  Loader,
-  Pagination,
-  Switch,
-  Table,
-  Text,
-  Tooltip,
-} from '@mantine/core';
-import { IconAlertCircle, IconPencil, IconPlus, IconRefresh, IconTrash } from '@tabler/icons-react';
+import { ActionIcon, Anchor, Badge, Box, Button, Code, Group, Switch, Text, Tooltip } from '@mantine/core';
+import { IconPencil, IconPlus, IconRefresh, IconRobot, IconSearch, IconTrash } from '@tabler/icons-react';
 import { webhooksApi } from '../../api';
+import type { ListWebhooksOptions, WebhooksSortBy } from '../../api/webhooks';
 import type { Webhook } from '../../types';
 import { routes } from '../../config/routes';
 import { formatRelativeTime } from '../../pages/Sessions/types';
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableHandle,
+  type DataTableQuery,
+  type SortValue,
+} from '../common/DataTable';
 import { CopyIconButton } from '../RunDetailsModal/CopyIconButton';
-import { WorkspaceBadge } from '../Workspace';
+import { WorkspaceBadge, useWorkspaceFilterOptions, GLOBAL_WORKSPACE } from '../Workspace';
 import { WebhookModal } from './WebhookModal';
 import { WebhookConfirmModal } from './WebhookConfirmModal';
 import { maskWebhookUrl, hasHandler } from './utils';
 
 export type WebhookColumn = 'workspace' | 'agent' | 'name' | 'url' | 'enabled' | 'lastTriggered' | 'created' | 'actions';
 
-const PAGE_SIZE = 50;
+interface WebhooksFilters {
+  workspaceId: string | null;
+  agentId: string;
+  name: string;
+  enabled: string | null;
+}
 
-const DEFAULT_COLUMNS: WebhookColumn[] = ['workspace', 'agent', 'name', 'url', 'enabled', 'lastTriggered', 'created', 'actions'];
+const INITIAL_SORT: SortValue<WebhooksSortBy> = { sortBy: 'createdAt', sortOrder: 'desc' };
+
+const ENABLED_OPTIONS = [
+  { value: 'true', label: 'Enabled' },
+  { value: 'false', label: 'Disabled' },
+];
 
 type Dialog =
   | { kind: 'create' }
@@ -43,35 +44,36 @@ type Dialog =
 interface WebhooksListProps {
   workspaceId?: string;
   description?: string;
-  columns?: WebhookColumn[];
+  /** Columns to leave out; all are shown by default */
+  excludeColumns?: WebhookColumn[];
 }
 
-export function WebhooksList({ workspaceId, description = '', columns = DEFAULT_COLUMNS }: WebhooksListProps) {
-  const showColumn = (col: WebhookColumn) => columns.includes(col);
-  const [webhooks, setWebhooks] = useState<Webhook[]>([]);
-  const [loading, setLoading] = useState(true);
+export function WebhooksList({ workspaceId, description = '', excludeColumns = [] }: WebhooksListProps) {
+  const showColumn = (col: WebhookColumn) => !excludeColumns.includes(col);
+  const tableRef = useRef<DataTableHandle<Webhook>>(null);
   const [error, setError] = useState('');
   const [dialog, setDialog] = useState<Dialog>(null);
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
+  const workspaceOptions = useWorkspaceFilterOptions(workspaceId === undefined);
 
-  const loadWebhooks = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await webhooksApi.list({ workspaceId, skip: (page - 1) * PAGE_SIZE, limit: PAGE_SIZE });
-      setWebhooks(data.webhooks);
-      setTotal(data.total);
-      setError('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load webhooks');
-    } finally {
-      setLoading(false);
-    }
-  }, [workspaceId, page]);
+  const loadWebhooks = async ({
+    filters,
+    sort,
+    page,
+    pageSize,
+  }: DataTableQuery<WebhooksFilters, WebhooksSortBy>) => {
+    const options: ListWebhooksOptions = { ...sort, skip: (page - 1) * pageSize, limit: pageSize };
+    const workspace = workspaceId ?? filters.workspaceId;
+    if (workspace) options.workspaceId = workspace === GLOBAL_WORKSPACE ? null : workspace;
+    if (filters.agentId) options.agentId = filters.agentId;
+    if (filters.name) options.name = filters.name;
+    if (filters.enabled) options.enabled = filters.enabled === 'true';
 
-  useEffect(() => {
-    loadWebhooks();
-  }, [loadWebhooks]);
+    const data = await webhooksApi.list(options);
+    return { rows: data.webhooks, total: data.total };
+  };
+
+  const setWebhooks = (update: (rows: Webhook[]) => Webhook[]) => tableRef.current?.setRows(update);
+  const setTotal = (update: (total: number) => number) => tableRef.current?.setTotal(update);
 
   const replace = (updated: Webhook) =>
     setWebhooks((prev) => prev.map((w) => (w.id === updated.id ? { ...w, ...updated } : w)));
@@ -109,13 +111,117 @@ export function WebhooksList({ workspaceId, description = '', columns = DEFAULT_
     }).catch(() => replace(webhook));
   };
 
-  if (loading) {
-    return (
-      <Center py="xl">
-        <Loader />
-      </Center>
-    );
-  }
+  const columns: DataTableColumn<Webhook, WebhooksFilters>[] = [
+    {
+      key: 'name',
+      header: 'Name',
+      hidden: !showColumn('name'),
+      sortable: true,
+      filter: { type: 'text', key: 'name', placeholder: 'Search by name', icon: <IconSearch size={16} /> },
+      render: (webhook) => (
+        <Group gap="xs" wrap="nowrap">
+          <Text size="sm">{webhook.name}</Text>
+          {hasHandler(webhook.handler) && <Badge size="xs" variant="light" color="violet">Custom handler</Badge>}
+        </Group>
+      ),
+    },
+    {
+      key: 'agent',
+      header: 'Agent',
+      hidden: !showColumn('agent'),
+      filter: { type: 'text', key: 'agentId', placeholder: 'Agent ID', icon: <IconRobot size={16} /> },
+      render: (webhook) => (
+        <Anchor component={Link} to={routes.agentEditor(webhook.agentId)} size="sm">
+          {webhook.agentName || webhook.agentId}
+        </Anchor>
+      ),
+    },
+    {
+      key: 'workspace',
+      header: 'Workspace',
+      hidden: !showColumn('workspace'),
+      // Only when the list isn't already scoped to one workspace
+      filter:
+        workspaceId === undefined
+          ? { type: 'select', key: 'workspaceId', placeholder: 'Workspace', options: workspaceOptions }
+          : undefined,
+      render: (webhook) => (
+        <WorkspaceBadge workspaceId={webhook.workspaceId} workspaceName={webhook.workspaceName} />
+      ),
+    },
+    {
+      key: 'url',
+      header: 'URL',
+      hidden: !showColumn('url'),
+      render: (webhook) => (
+        <Group gap={4} wrap="nowrap">
+          <Code fz="xs">{maskWebhookUrl(webhook.url)}</Code>
+          <CopyIconButton value={webhook.url} label="Copy URL" />
+        </Group>
+      ),
+    },
+    {
+      key: 'enabled',
+      header: 'Enabled',
+      hidden: !showColumn('enabled'),
+      filter: { type: 'select', key: 'enabled', placeholder: 'Status', options: ENABLED_OPTIONS },
+      render: (webhook) => (
+        <Switch
+          size="xs"
+          checked={webhook.enabled}
+          onChange={(e) => handleToggle(webhook, e.currentTarget.checked)}
+          aria-label="Enabled"
+        />
+      ),
+    },
+    {
+      key: 'lastTriggeredAt',
+      header: 'Last Triggered',
+      sortable: true,
+      hidden: !showColumn('lastTriggered'),
+      render: (webhook) => (
+        <Text size="sm" c="dimmed">
+          {webhook.lastTriggeredAt ? formatRelativeTime(webhook.lastTriggeredAt) : 'Never'}
+        </Text>
+      ),
+    },
+    {
+      key: 'createdAt',
+      header: 'Created',
+      sortable: true,
+      hidden: !showColumn('created'),
+      render: (webhook) => (
+        <Text size="sm" c="dimmed">
+          {new Date(webhook.createdAt).toLocaleDateString()}
+        </Text>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      hidden: !showColumn('actions'),
+      render: (webhook) => (
+        <Group gap="xs" justify="flex-end" wrap="nowrap">
+          <Tooltip label="Edit">
+            <ActionIcon variant="subtle" onClick={() => setDialog({ kind: 'edit', webhook })}>
+              <IconPencil size={18} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Rotate URL">
+            <ActionIcon variant="subtle" color="orange" onClick={() => setDialog({ kind: 'rotate', webhook })}>
+              <IconRefresh size={18} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Delete">
+            <ActionIcon variant="subtle" color="red" onClick={() => setDialog({ kind: 'delete', webhook })}>
+              <IconTrash size={18} />
+            </ActionIcon>
+          </Tooltip>
+        </Group>
+      ),
+    },
+  ];
 
   return (
     <Box>
@@ -128,122 +234,20 @@ export function WebhooksList({ workspaceId, description = '', columns = DEFAULT_
         </Button>
       </Group>
 
-      {error && (
-        <Alert icon={<IconAlertCircle size={16} />} color="red" mb="md" withCloseButton onClose={() => setError('')}>
-          {error}
-        </Alert>
-      )}
-
-      <Card withBorder>
-        <Table striped highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              {showColumn('name') && <Table.Th>Name</Table.Th>}
-              {showColumn('agent') && <Table.Th>Agent</Table.Th>}
-              {showColumn('workspace') && <Table.Th>Workspace</Table.Th>}
-              {showColumn('url') && <Table.Th>URL</Table.Th>}
-              {showColumn('enabled') && <Table.Th>Enabled</Table.Th>}
-              {showColumn('lastTriggered') && <Table.Th>Last Triggered</Table.Th>}
-              {showColumn('created') && <Table.Th>Created</Table.Th>}
-              {showColumn('actions') && <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>}
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {webhooks.map((webhook) => (
-              <Table.Tr key={webhook.id}>
-                {showColumn('name') && (
-                  <Table.Td>
-                    <Group gap="xs" wrap="nowrap">
-                      <Text size="sm">{webhook.name}</Text>
-                      {hasHandler(webhook.handler) && <Badge size="xs" variant="light" color="violet">Custom handler</Badge>}
-                    </Group>
-                  </Table.Td>
-                )}
-                {showColumn('agent') && (
-                  <Table.Td>
-                    <Anchor component={Link} to={routes.agentEditor(webhook.agentId)} size="sm">
-                      {webhook.agentName || webhook.agentId}
-                    </Anchor>
-                  </Table.Td>
-                )}
-                {showColumn('workspace') && (
-                  <Table.Td>
-                    <WorkspaceBadge workspaceId={webhook.workspaceId} workspaceName={webhook.workspaceName} />
-                  </Table.Td>
-                )}
-                {showColumn('url') && (
-                  <Table.Td>
-                    <Group gap={4} wrap="nowrap">
-                      <Code fz="xs">{maskWebhookUrl(webhook.url)}</Code>
-                      <CopyIconButton value={webhook.url} label="Copy URL" />
-                    </Group>
-                  </Table.Td>
-                )}
-                {showColumn('enabled') && (
-                  <Table.Td>
-                    <Switch
-                      size="xs"
-                      checked={webhook.enabled}
-                      onChange={(e) => handleToggle(webhook, e.currentTarget.checked)}
-                      aria-label="Enabled"
-                    />
-                  </Table.Td>
-                )}
-                {showColumn('lastTriggered') && (
-                  <Table.Td>
-                    <Text size="sm" c="dimmed">
-                      {webhook.lastTriggeredAt ? formatRelativeTime(webhook.lastTriggeredAt) : 'Never'}
-                    </Text>
-                  </Table.Td>
-                )}
-                {showColumn('created') && (
-                  <Table.Td>
-                    <Text size="sm" c="dimmed">
-                      {new Date(webhook.createdAt).toLocaleDateString()}
-                    </Text>
-                  </Table.Td>
-                )}
-                {showColumn('actions') && (
-                  <Table.Td style={{ textAlign: 'right' }}>
-                    <Group gap="xs" justify="flex-end" wrap="nowrap">
-                      <Tooltip label="Edit">
-                        <ActionIcon variant="subtle" onClick={() => setDialog({ kind: 'edit', webhook })}>
-                          <IconPencil size={18} />
-                        </ActionIcon>
-                      </Tooltip>
-                      <Tooltip label="Rotate URL">
-                        <ActionIcon variant="subtle" color="orange" onClick={() => setDialog({ kind: 'rotate', webhook })}>
-                          <IconRefresh size={18} />
-                        </ActionIcon>
-                      </Tooltip>
-                      <Tooltip label="Delete">
-                        <ActionIcon variant="subtle" color="red" onClick={() => setDialog({ kind: 'delete', webhook })}>
-                          <IconTrash size={18} />
-                        </ActionIcon>
-                      </Tooltip>
-                    </Group>
-                  </Table.Td>
-                )}
-              </Table.Tr>
-            ))}
-            {webhooks.length === 0 && (
-              <Table.Tr>
-                <Table.Td colSpan={columns.length}>
-                  <Text ta="center" c="dimmed" py="md" size="sm">
-                    No webhooks configured
-                  </Text>
-                </Table.Td>
-              </Table.Tr>
-            )}
-          </Table.Tbody>
-        </Table>
-      </Card>
-
-      {total > PAGE_SIZE && (
-        <Group justify="center" mt="md">
-          <Pagination total={Math.ceil(total / PAGE_SIZE)} value={page} onChange={setPage} />
-        </Group>
-      )}
+      <DataTable
+        // Remount on workspace change so the list reloads for the new workspace
+        key={workspaceId ?? 'all'}
+        ref={tableRef}
+        columns={columns}
+        getRowId={(webhook) => webhook.id}
+        loadData={loadWebhooks}
+        error={error}
+        onErrorClose={() => setError('')}
+        emptyMessage="No webhooks configured"
+        noMatchMessage="No webhooks match your filters"
+        initialSort={INITIAL_SORT}
+        itemLabel={['webhook', 'webhooks']}
+      />
 
       <WebhookModal
         opened={dialog?.kind === 'create' || dialog?.kind === 'edit'}
