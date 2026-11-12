@@ -1,18 +1,5 @@
-import { useState, useEffect } from 'react';
-import {
-  Box,
-  Text,
-  Button,
-  Card,
-  Group,
-  ActionIcon,
-  Loader,
-  Alert,
-  Badge,
-  Table,
-  Center,
-  TextInput,
-} from '@mantine/core';
+import { useState, useRef, useEffect } from 'react';
+import { Box, Text, Button, Group, ActionIcon, Badge } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
   IconPlus,
@@ -21,21 +8,51 @@ import {
   IconStar,
   IconStarFilled,
   IconSearch,
-  IconAlertCircle,
 } from '@tabler/icons-react';
 import { providersApi } from '../../api';
-import type { ProviderConfig } from '../../types';
+import type { ListProvidersOptions, ProvidersSortBy } from '../../api/providers';
+import type { ProviderConfig, ProviderPreset, ProviderType } from '../../types';
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableHandle,
+  type DataTableQuery,
+} from '../common/DataTable';
 import { ProviderModal } from './ProviderModal';
 import { DeleteConfirmModal } from '../DeleteConfirmModal';
 import { WorkspaceBadge } from '../Workspace';
 
-export type ProviderColumn = 'workspace' | 'name' | 'provider' | 'apiKey' | 'baseUrl' | 'default' | 'actions';
+export type ProviderColumn =
+  | 'workspace'
+  | 'name'
+  | 'provider'
+  | 'apiKey'
+  | 'baseUrl'
+  | 'default'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'actions';
 
-const DEFAULT_COLUMNS: ProviderColumn[] = ['workspace', 'name', 'provider', 'apiKey', 'baseUrl', 'default', 'actions'];
+const DEFAULT_COLUMNS: ProviderColumn[] = [
+  'workspace',
+  'name',
+  'provider',
+  'apiKey',
+  'baseUrl',
+  'default',
+  'updatedAt',
+  'actions',
+];
+
+interface ProvidersFilters {
+  provider: string | null;
+  name: string;
+}
 
 interface ProvidersListProps {
   workspaceId?: string;
   description?: string;
+  /** Show the name search and provider type filter */
   showSearch?: boolean;
   columns?: ProviderColumn[];
   onCreate?: () => void;
@@ -51,32 +68,31 @@ export function ProvidersList({
   onDelete,
 }: ProvidersListProps) {
   const showColumn = (col: ProviderColumn) => columns.includes(col);
-  const [providers, setProviders] = useState<ProviderConfig[]>([]);
-  const [loading, setLoading] = useState(true);
+  const tableRef = useRef<DataTableHandle<ProviderConfig>>(null);
   const [error, setError] = useState('');
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
   const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
   const [deleting, setDeleting] = useState(false);
   const [deletingProvider, setDeletingProvider] = useState<ProviderConfig | null>(null);
   const [editingProvider, setEditingProvider] = useState<ProviderConfig | null>(null);
-  const [search, setSearch] = useState('');
-
-  const loadProviders = async () => {
-    try {
-      setLoading(true);
-      const data = await providersApi.list(workspaceId !== undefined ? { workspaceId } : undefined);
-      setProviders(data);
-      setError('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load providers');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Provider type filter options come from the backend presets
+  const [presets, setPresets] = useState<ProviderPreset[]>([]);
 
   useEffect(() => {
-    loadProviders();
-  }, [workspaceId]);
+    providersApi.getPresets().then(setPresets).catch(() => setPresets([]));
+  }, []);
+
+  const loadProviders = async ({ filters, sort }: DataTableQuery<ProvidersFilters, ProvidersSortBy>) => {
+    const options: ListProvidersOptions = { ...sort };
+    if (workspaceId !== undefined) options.workspaceId = workspaceId;
+    if (filters.provider) options.provider = filters.provider as ProviderType;
+    if (filters.name) options.name = filters.name;
+
+    const rows = await providersApi.list(options);
+    return { rows, total: rows.length };
+  };
+
+  const reload = () => tableRef.current?.reload();
 
   const handleOpenDeleteModal = (provider: ProviderConfig) => {
     setDeletingProvider(provider);
@@ -99,8 +115,10 @@ export function ProvidersList({
     try {
       await providersApi.delete(deletingProvider.id);
       closeDeleteModal();
+      const deletedId = deletingProvider.id;
       setDeletingProvider(null);
-      loadProviders();
+      tableRef.current?.setRows((prev) => prev.filter((p) => p.id !== deletedId));
+      tableRef.current?.setTotal((prev) => prev - 1);
       onDelete?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete provider');
@@ -112,19 +130,118 @@ export function ProvidersList({
   const handleSetDefault = async (id: string) => {
     try {
       await providersApi.setDefault(id);
-      loadProviders();
+      // Default can move between providers, so refetch rather than patch one row
+      reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to set default');
     }
   };
 
-  if (loading) {
-    return (
-      <Center py="xl">
-        <Loader />
-      </Center>
-    );
-  }
+  const tableColumns: DataTableColumn<ProviderConfig, ProvidersFilters>[] = [
+    {
+      key: 'provider',
+      header: 'Provider',
+      hidden: !showColumn('provider'),
+      sortable: true,
+      filter: showSearch
+        ? {
+            type: 'select',
+            key: 'provider',
+            placeholder: 'Provider type',
+            options: presets.map((preset) => ({ value: preset.provider, label: preset.label })),
+          }
+        : undefined,
+      render: (provider) => <Badge variant="light">{provider.provider}</Badge>,
+    },
+    {
+      key: 'workspace',
+      header: 'Workspace',
+      hidden: !showColumn('workspace'),
+      render: (provider) => <WorkspaceBadge workspaceName={provider.workspaceName} />,
+    },
+    {
+      key: 'default',
+      header: 'Default',
+      hidden: !showColumn('default'),
+      render: (provider) => (
+        <ActionIcon
+          variant="subtle"
+          color={provider.isDefault ? 'yellow' : 'gray'}
+          onClick={() => handleSetDefault(provider.id)}
+        >
+          {provider.isDefault ? <IconStarFilled size={18} /> : <IconStar size={18} />}
+        </ActionIcon>
+      ),
+    },
+    {
+      key: 'name',
+      header: 'Name',
+      hidden: !showColumn('name'),
+      sortable: true,
+      filter: showSearch
+        ? { type: 'text', key: 'name', placeholder: 'Search by name', icon: <IconSearch size={16} /> }
+        : undefined,
+      render: (provider) => provider.name,
+    },
+    {
+      key: 'apiKey',
+      header: 'API Key',
+      hidden: !showColumn('apiKey'),
+      render: (provider) => (
+        <Text size="sm" c="dimmed">
+          {provider.config.apiKey ? '••••••••' : '-'}
+        </Text>
+      ),
+    },
+    {
+      key: 'baseUrl',
+      header: 'Base URL',
+      hidden: !showColumn('baseUrl'),
+      render: (provider) => (
+        <Text size="sm" c="dimmed">
+          {provider.config.baseUrl || '-'}
+        </Text>
+      ),
+    },
+    {
+      key: 'createdAt',
+      header: 'Created',
+      hidden: !showColumn('createdAt'),
+      sortable: true,
+      render: (provider) => (
+        <Text size="sm" c="dimmed">
+          {new Date(provider.createdAt).toLocaleDateString()}
+        </Text>
+      ),
+    },
+    {
+      key: 'updatedAt',
+      header: 'Updated',
+      hidden: !showColumn('updatedAt'),
+      sortable: true,
+      render: (provider) => (
+        <Text size="sm" c="dimmed">
+          {new Date(provider.updatedAt).toLocaleDateString()}
+        </Text>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      hidden: !showColumn('actions'),
+      render: (provider) => (
+        <Group gap="xs" justify="flex-end">
+          <ActionIcon variant="subtle" onClick={() => handleEdit(provider)}>
+            <IconPencil size={18} />
+          </ActionIcon>
+          <ActionIcon variant="subtle" color="red" onClick={() => handleOpenDeleteModal(provider)}>
+            <IconTrash size={18} />
+          </ActionIcon>
+        </Group>
+      ),
+    },
+  ];
 
   return (
     <Box>
@@ -132,125 +249,31 @@ export function ProvidersList({
         <Text c="dimmed" size="sm">
           {description}
         </Text>
-        {showSearch && (
-          <TextInput
-            placeholder="Search providers..."
-            value={search}
-            onChange={(e) => setSearch(e.currentTarget.value)}
-            leftSection={<IconSearch size={16} />}
-            style={{ flex: 1, maxWidth: 300 }}
-          />
-        )}
         <Button leftSection={<IconPlus size={16} />} onClick={openModal}>
           Add Provider
         </Button>
       </Group>
 
-      {error && (
-        <Alert
-          icon={<IconAlertCircle size={16} />}
-          color="red"
-          mb="md"
-          withCloseButton
-          onClose={() => setError('')}
-        >
-          {error}
-        </Alert>
-      )}
-
-      <Card withBorder>
-        <Table striped highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              {showColumn('provider') && <Table.Th>Provider</Table.Th>}
-              {showColumn('workspace') && <Table.Th>Workspace</Table.Th>}
-              {showColumn('default') && <Table.Th>Default</Table.Th>}
-              {showColumn('name') && <Table.Th>Name</Table.Th>}
-              {showColumn('apiKey') && <Table.Th>API Key</Table.Th>}
-              {showColumn('baseUrl') && <Table.Th>Base URL</Table.Th>}
-              {showColumn('actions') && <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>}
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {providers.map((provider) => (
-              <Table.Tr key={provider.id}>
-                {showColumn('provider') && (
-                  <Table.Td>
-                    <Badge variant="light">{provider.provider}</Badge>
-                  </Table.Td>
-                )}
-                {showColumn('workspace') && (
-                  <Table.Td>
-                    <WorkspaceBadge workspaceName={provider.workspaceName} />
-                  </Table.Td>
-                )}
-                {showColumn('default') && (
-                  <Table.Td>
-                    <ActionIcon
-                      variant="subtle"
-                      color={provider.isDefault ? 'yellow' : 'gray'}
-                      onClick={() => handleSetDefault(provider.id)}
-                    >
-                      {provider.isDefault ? <IconStarFilled size={18} /> : <IconStar size={18} />}
-                    </ActionIcon>
-                  </Table.Td>
-                )}
-                {showColumn('name') && <Table.Td>{provider.name}</Table.Td>}
-                {showColumn('apiKey') && (
-                  <Table.Td>
-                    <Text size="sm" c="dimmed">
-                      {provider.config.apiKey ? '••••••••' : '-'}
-                    </Text>
-                  </Table.Td>
-                )}
-                {showColumn('baseUrl') && (
-                  <Table.Td>
-                    <Text size="sm" c="dimmed">
-                      {provider.config.baseUrl || '-'}
-                    </Text>
-                  </Table.Td>
-                )}
-                {showColumn('actions') && (
-                  <Table.Td style={{ textAlign: 'right' }}>
-                    <Group gap="xs" justify="flex-end">
-                      <ActionIcon
-                        variant="subtle"
-                        onClick={() => handleEdit(provider)}
-                      >
-                        <IconPencil size={18} />
-                      </ActionIcon>
-                      <ActionIcon
-                        variant="subtle"
-                        color="red"
-                        onClick={() => handleOpenDeleteModal(provider)}
-                      >
-                        <IconTrash size={18} />
-                      </ActionIcon>
-                    </Group>
-                  </Table.Td>
-                )}
-              </Table.Tr>
-            ))}
-            {providers.length === 0 && (
-              <Table.Tr>
-                <Table.Td colSpan={columns.filter((c) => showColumn(c)).length}>
-                  <Text ta="center" c="dimmed" py="md" size="sm">
-                    {providers.length === 0
-                      ? 'No providers configured'
-                      : 'No providers match your search'}
-                  </Text>
-                </Table.Td>
-              </Table.Tr>
-            )}
-          </Table.Tbody>
-        </Table>
-      </Card>
+      <DataTable
+        // Remount on workspace change so the list reloads for the new workspace
+        key={workspaceId ?? 'all'}
+        ref={tableRef}
+        columns={tableColumns}
+        getRowId={(provider) => provider.id}
+        loadData={loadProviders}
+        error={error}
+        onErrorClose={() => setError('')}
+        emptyMessage="No providers configured"
+        noMatchMessage="No providers match your filters"
+        paginated={false}
+        itemLabel={['provider', 'providers']}
+      />
 
       <ProviderModal
         opened={modalOpened}
         onClose={handleModalClose}
         workspaceId={workspaceId}
-        onSuccess={() => { loadProviders(); onCreate?.(); }}
+        onSuccess={() => { reload(); onCreate?.(); }}
         provider={editingProvider ?? undefined}
       />
 

@@ -121,6 +121,8 @@ interface DataTableProps<T, V, S extends string> {
   bulkActions?: DataTableBulkAction<T>[];
   /** Starting sort; applies to columns marked `sortable` */
   initialSort?: SortValue<S>;
+  /** Set to false for APIs that return the whole list; hides the pager and records-per-page select */
+  paginated?: boolean;
   /** `[singular, plural]` noun for the "Showing 1-20 of 45 runs" and "1 run selected" labels */
   itemLabel?: [string, string];
   striped?: boolean;
@@ -141,6 +143,7 @@ export function DataTable<T, V = unknown, S extends string = string>({
   extraFilters,
   bulkActions,
   initialSort,
+  paginated = true,
   itemLabel = ['item', 'items'],
   striped = true,
   highlightOnHover = true,
@@ -271,7 +274,7 @@ export function DataTable<T, V = unknown, S extends string = string>({
 
   // Rendered both above and below the table
   const renderPagination = (position: 'top' | 'bottom') =>
-    total > 0 && (
+    paginated && total > 0 && (
       <Group justify="space-between" {...(position === 'top' ? { mb: 'md' } : { mt: 'md' })}>
         <Text size="sm" c="dimmed">
           Showing {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, total)} of {total}{' '}
