@@ -1,6 +1,6 @@
-import { type Ref } from 'react';
+import { type ReactNode, type Ref } from 'react';
 import { Link } from 'react-router-dom';
-import { ActionIcon, Anchor, Badge, Group, Text, Tooltip } from '@mantine/core';
+import { ActionIcon, Anchor, Badge, Group, SimpleGrid, Text, Tooltip } from '@mantine/core';
 import { IconBrandGithub, IconMessageCircle, IconSchema, IconSearch } from '@tabler/icons-react';
 import { agentsApi } from '../../api';
 import type { Agent, AgentQueryParams } from '../../types';
@@ -14,6 +14,7 @@ import {
 import { WorkspaceBadge, useWorkspaceFilterOptions, GLOBAL_WORKSPACE } from '../Workspace';
 import { routes } from '../../config/routes';
 import { AgentActionsMenu } from './AgentActionsMenu';
+import { AgentCard } from './AgentCard';
 import type { AgentCardProps } from './types';
 
 type AgentsSortBy = NonNullable<AgentQueryParams['sortBy']>;
@@ -32,10 +33,26 @@ type AgentsTableProps = Pick<AgentCardProps, 'onEdit' | 'onDelete' | 'onClone' |
   ref?: Ref<DataTableHandle<Agent>>;
   /** Scope to one workspace; otherwise a workspace filter is shown */
   workspaceId?: string;
+  error?: string;
+  onErrorClose?: () => void;
+  /** Card grid or table; both share filters, sort and paging */
+  view?: 'cards' | 'table';
+  /** Shown before / after the filters in the same row */
+  toolbarLeft?: ReactNode;
+  toolbarRight?: ReactNode;
 };
 
 // Table view of the agents list; loads, filters and sorts on the server through DataTable
-export function AgentsTable({ ref, workspaceId, ...handlers }: AgentsTableProps) {
+export function AgentsTable({
+  ref,
+  workspaceId,
+  view = 'table',
+  error,
+  onErrorClose,
+  toolbarLeft,
+  toolbarRight,
+  ...handlers
+}: AgentsTableProps) {
   const workspaceOptions = useWorkspaceFilterOptions(workspaceId === undefined);
 
   const loadAgents = async ({
@@ -180,6 +197,21 @@ export function AgentsTable({ ref, workspaceId, ...handlers }: AgentsTableProps)
       noMatchMessage="No agents match your filters."
       initialSort={INITIAL_SORT}
       itemLabel={['agent', 'agents']}
+      error={error}
+      onErrorClose={onErrorClose}
+      toolbarLeft={toolbarLeft}
+      toolbarRight={toolbarRight}
+      renderContent={
+        view === 'cards'
+          ? (agents) => (
+              <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
+                {agents.map((agent) => (
+                  <AgentCard key={agent.id} agent={agent} currentWorkspaceId={workspaceId} {...handlers} />
+                ))}
+              </SimpleGrid>
+            )
+          : undefined
+      }
     />
   );
 }

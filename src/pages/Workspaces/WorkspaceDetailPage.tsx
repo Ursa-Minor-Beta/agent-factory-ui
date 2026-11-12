@@ -218,9 +218,6 @@ export function WorkspaceDetailPage() {
         <Tabs.Panel value="agents">
           <AgentsList
             workspaceId={workspaceId}
-            showFilters={false}
-            showPagination={false}
-            // showCreateButton={false}
             onCreate={loadWorkspace}
             onDelete={loadWorkspace}
           />

@@ -1,4 +1,4 @@
-import { ActionIcon, Autocomplete, Button, Group, Select, Switch, TextInput, Tooltip } from '@mantine/core';
+import { ActionIcon, Autocomplete, Box, Button, Group, Select, Switch, TextInput, Tooltip } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { IconRefresh } from '@tabler/icons-react';
 import { type ReactNode, useEffect, useState } from 'react';
@@ -60,6 +60,10 @@ interface TableFiltersProps<V> {
   values: V;
   onChange: (values: V) => void;
   onRefresh?: () => void;
+  /** Rendered before the filter fields (e.g. a view switcher) */
+  leftSection?: ReactNode;
+  /** Rendered at the far right of the bar (e.g. create buttons) */
+  rightSection?: ReactNode;
   loading?: boolean;
 }
 
@@ -163,6 +167,8 @@ export function TableFilters<V>({
   onChange,
   onRefresh,
   loading = false,
+  leftSection,
+  rightSection,
 }: TableFiltersProps<V>) {
   const setValue = (key: keyof V, value: unknown) => {
     onChange({ ...values, [key]: value });
@@ -234,6 +240,7 @@ export function TableFilters<V>({
 
   return (
     <Group mb="md" gap="sm" wrap="wrap">
+      {leftSection}
       {fields.map(renderField)}
       {onRefresh && (
         <Tooltip label="Refresh">
@@ -246,6 +253,12 @@ export function TableFilters<V>({
         <Button variant="subtle" size="xs" onClick={handleClear}>
           Clear filters
         </Button>
+      )}
+      {rightSection && (
+        <>
+          <Box style={{ flex: 1 }} />
+          {rightSection}
+        </>
       )}
     </Group>
   );

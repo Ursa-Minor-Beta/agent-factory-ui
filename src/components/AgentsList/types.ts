@@ -13,14 +13,3 @@ export interface AgentCardProps {
   compact?: boolean; // graph mode: no description, tighter spacing
   currentWorkspaceId?: string; // workspace being viewed - its agents don't repeat the workspace badge
 }
-
-export interface AgentFiltersProps {
-  descriptionFilter: string;
-  onDescriptionChange: (value: string) => void;
-  createdAfter: string;
-  onCreatedAfterChange: (value: string) => void;
-  createdBefore: string;
-  onCreatedBeforeChange: (value: string) => void;
-  activeFilterCount: number;
-  onClearFilters: () => void;
-}

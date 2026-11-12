@@ -125,6 +125,12 @@ interface DataTableProps<T, V, S extends string> {
   /** Adds a checkbox column and a bar with these buttons that slides over the filters while rows are selected.
    * Selection is cleared when the query changes. */
   bulkActions?: DataTableBulkAction<T>[];
+  /** Extra content at the start / end of the filter bar */
+  toolbarLeft?: ReactNode;
+  toolbarRight?: ReactNode;
+  /** Render rows yourself (e.g. a card grid) instead of the table; filters, sort and paging still apply.
+   * Sorting then uses a select built from the `sortable` columns. */
+  renderContent?: (rows: T[]) => ReactNode;
   /** Starting sort; applies to columns marked `sortable` */
   initialSort?: SortValue<S>;
   /** Set to false for APIs that return the whole list; hides the pager and records-per-page select */
@@ -150,6 +156,9 @@ export function DataTable<T, V = unknown, S extends string = string>({
   rowStyle,
   extraFilters,
   bulkActions,
+  toolbarLeft,
+  toolbarRight,
+  renderContent,
   initialSort,
   paginated = true,
   itemLabel = ['item', 'items'],
@@ -271,6 +280,30 @@ export function DataTable<T, V = unknown, S extends string = string>({
     setPageSize(next);
     setPage(1);
   };
+
+  // Without headers to click, sorting is one select with both directions of every sortable column
+  const sortableColumns = columns.filter((column) => column.sortable);
+  const sortControls = renderContent && sortableColumns.length > 0 && (
+    <Select
+      value={sort ? `${sort.sortBy}:${sort.sortOrder}` : null}
+      onChange={(value) => {
+        if (!value) return;
+        const [sortBy, sortOrder] = value.split(':') as [S, SortOrder];
+        setSort({ sortBy, sortOrder });
+        setPage(1);
+      }}
+      data={sortableColumns.flatMap((column) => {
+        const label = typeof column.header === 'string' ? column.header : column.key;
+        return [
+          { value: `${column.key}:asc`, label: `${label} ↑` },
+          { value: `${column.key}:desc`, label: `${label} ↓` },
+        ];
+      })}
+      placeholder="Sort by"
+      allowDeselect={false}
+      style={{ width: 150 }}
+    />
+  );
 
   const renderHeader = (column: DataTableColumn<T, V>) => {
     if (!column.sortable) return column.header;
@@ -401,6 +434,15 @@ export function DataTable<T, V = unknown, S extends string = string>({
           onChange={handleFiltersChange}
           onRefresh={() => load(query)}
           loading={loading}
+          leftSection={
+            (toolbarLeft || sortControls) && (
+              <>
+                {toolbarLeft}
+                {sortControls}
+              </>
+            )
+          }
+          rightSection={toolbarRight}
         />
       </Box>
 
@@ -421,98 +463,112 @@ export function DataTable<T, V = unknown, S extends string = string>({
 
       {renderPagination('top')}
 
-      <Card withBorder>
-        {loading && data.length === 0 ? (
+      {renderContent ? (
+        loading && data.length === 0 ? (
           <Center py="xl">
             <Loader />
           </Center>
+        ) : data.length === 0 ? (
+          <Text ta="center" c="dimmed" py="xl">
+            {noMatchMessage && hasActiveFilters(filterFields, filters) ? noMatchMessage : emptyMessage}
+          </Text>
         ) : (
-          <Table.ScrollContainer
-            minWidth={minWidth ?? (visibleColumns.length + (selectable ? 1 : 0)) * MIN_COLUMN_WIDTH}
-            type="native"
-          >
-            <Table
-              striped={striped}
-              highlightOnHover={highlightOnHover}
-              className={[classes.table, striped && classes.striped, highlightOnHover && classes.hoverable]
-                .filter(Boolean)
-                .join(' ')}
+          renderContent(data)
+        )
+      ) : (
+        <Card withBorder>
+          {loading && data.length === 0 ? (
+            <Center py="xl">
+              <Loader />
+            </Center>
+          ) : (
+            <Table.ScrollContainer
+              minWidth={minWidth ?? (visibleColumns.length + (selectable ? 1 : 0)) * MIN_COLUMN_WIDTH}
+              type="native"
             >
-              <Table.Thead>
-                <Table.Tr>
-                  {selectable && (
-                    <Table.Th style={{ width: 40 }}>
-                      <Checkbox
-                        size="xs"
-                        checked={allSelected}
-                        indeterminate={selectedCount > 0 && !allSelected}
-                        onChange={handleToggleAll}
-                      />
-                    </Table.Th>
-                  )}
-                  {visibleColumns.map((column) => (
-                    <Table.Th
-                      key={column.key}
-                      className={column.pinned ? classes.pinned : undefined}
-                      style={{ width: column.width, textAlign: column.align, whiteSpace: 'nowrap' }}
-                      aria-sort={
-                        column.sortable && sort?.sortBy === column.key
-                          ? sort.sortOrder === 'asc'
-                            ? 'ascending'
-                            : 'descending'
-                          : undefined
-                      }
-                    >
-                      {renderHeader(column)}
-                    </Table.Th>
-                  ))}
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {data.map((row) => {
-                  const id = getRowId(row);
-                  return (
-                    <Table.Tr
-                      key={id}
-                      style={{ cursor: onRowClick ? 'pointer' : undefined, ...rowStyle?.(row) }}
-                      onClick={onRowClick ? () => onRowClick(row) : undefined}
-                    >
-                      {selectable && (
-                        <Table.Td onClick={(e) => e.stopPropagation()}>
-                          <Checkbox
-                            size="xs"
-                            checked={selectedIds.has(id)}
-                            onChange={() => handleToggleRow(id)}
-                          />
-                        </Table.Td>
-                      )}
-                      {visibleColumns.map((column) => (
-                        <Table.Td
-                          key={column.key}
-                          className={column.pinned ? classes.pinned : undefined}
-                          style={{ textAlign: column.align }}
-                          onClick={column.stopPropagation ? (e) => e.stopPropagation() : undefined}
-                        >
-                          {column.render(row)}
-                        </Table.Td>
-                      ))}
-                    </Table.Tr>
-                  );
-                })}
-                {data.length === 0 && (
+              <Table
+                striped={striped}
+                highlightOnHover={highlightOnHover}
+                className={[classes.table, striped && classes.striped, highlightOnHover && classes.hoverable]
+                  .filter(Boolean)
+                  .join(' ')}
+              >
+                <Table.Thead>
                   <Table.Tr>
-                    <Table.Td colSpan={visibleColumns.length + (selectable ? 1 : 0)}>
-                      <Text ta="center" c="dimmed" py="md">
-                        {noMatchMessage && hasActiveFilters(filterFields, filters) ? noMatchMessage : emptyMessage}
-                      </Text>
-                    </Table.Td>
+                    {selectable && (
+                      <Table.Th style={{ width: 40 }}>
+                        <Checkbox
+                          size="xs"
+                          checked={allSelected}
+                          indeterminate={selectedCount > 0 && !allSelected}
+                          onChange={handleToggleAll}
+                        />
+                      </Table.Th>
+                    )}
+                    {visibleColumns.map((column) => (
+                      <Table.Th
+                        key={column.key}
+                        className={column.pinned ? classes.pinned : undefined}
+                        style={{ width: column.width, textAlign: column.align, whiteSpace: 'nowrap' }}
+                        aria-sort={
+                          column.sortable && sort?.sortBy === column.key
+                            ? sort.sortOrder === 'asc'
+                              ? 'ascending'
+                              : 'descending'
+                            : undefined
+                        }
+                      >
+                        {renderHeader(column)}
+                      </Table.Th>
+                    ))}
                   </Table.Tr>
-                )}
-              </Table.Tbody>
-            </Table>
-          </Table.ScrollContainer>
-        )}
-      </Card>
+                </Table.Thead>
+                <Table.Tbody>
+                  {data.map((row) => {
+                    const id = getRowId(row);
+                    return (
+                      <Table.Tr
+                        key={id}
+                        style={{ cursor: onRowClick ? 'pointer' : undefined, ...rowStyle?.(row) }}
+                        onClick={onRowClick ? () => onRowClick(row) : undefined}
+                      >
+                        {selectable && (
+                          <Table.Td onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              size="xs"
+                              checked={selectedIds.has(id)}
+                              onChange={() => handleToggleRow(id)}
+                            />
+                          </Table.Td>
+                        )}
+                        {visibleColumns.map((column) => (
+                          <Table.Td
+                            key={column.key}
+                            className={column.pinned ? classes.pinned : undefined}
+                            style={{ textAlign: column.align }}
+                            onClick={column.stopPropagation ? (e) => e.stopPropagation() : undefined}
+                          >
+                            {column.render(row)}
+                          </Table.Td>
+                        ))}
+                      </Table.Tr>
+                    );
+                  })}
+                  {data.length === 0 && (
+                    <Table.Tr>
+                      <Table.Td colSpan={visibleColumns.length + (selectable ? 1 : 0)}>
+                        <Text ta="center" c="dimmed" py="md">
+                          {noMatchMessage && hasActiveFilters(filterFields, filters) ? noMatchMessage : emptyMessage}
+                        </Text>
+                      </Table.Td>
+                    </Table.Tr>
+                  )}
+                </Table.Tbody>
+              </Table>
+            </Table.ScrollContainer>
+          )}
+        </Card>
+      )}
 
       {renderPagination('bottom')}
     </>
