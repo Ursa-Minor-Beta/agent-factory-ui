@@ -22,6 +22,21 @@ export interface FileListResponse {
   total: number;
 }
 
+export type FilesSortBy = 'name' | 'size' | 'mimeType' | 'createdAt';
+
+export interface ListFilesParams {
+  limit?: number;
+  offset?: number;
+  /** Contains, case-insensitive */
+  name?: string;
+  /** MIME type prefix, case-insensitive (e.g. 'image' or 'application/pdf') */
+  mimeType?: string;
+  createdAfter?: string;
+  createdBefore?: string;
+  sortBy?: FilesSortBy;
+  sortOrder?: 'asc' | 'desc';
+}
+
 export interface DeleteFilesParams {
   id: string | string[];
 }
@@ -31,10 +46,11 @@ export interface DeleteFilesResponse {
 }
 
 export const filesApi = {
-  list: (params?: { limit?: number; offset?: number }) => {
+  list: (params: ListFilesParams = {}) => {
     const searchParams = new URLSearchParams();
-    if (params?.limit) searchParams.set('limit', String(params.limit));
-    if (params?.offset) searchParams.set('offset', String(params.offset));
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') searchParams.set(key, String(value));
+    });
     const query = searchParams.toString();
     return api.get<FileListResponse>(`/api/files${query ? `?${query}` : ''}`);
   },

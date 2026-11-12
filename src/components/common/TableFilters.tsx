@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Group, Select, Switch, TextInput, Tooltip } from '@mantine/core';
+import { ActionIcon, Autocomplete, Button, Group, Select, Switch, TextInput, Tooltip } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { IconRefresh } from '@tabler/icons-react';
 import { type ReactNode, useEffect, useState } from 'react';
@@ -31,6 +31,8 @@ export interface TextFilterField<V> extends FilterFieldBase<V> {
   type: 'text';
   placeholder?: string;
   icon?: ReactNode;
+  /** Dropdown hints while typing; any other text can still be entered */
+  suggestions?: string[];
 }
 
 /** Value: `Date | null` */
@@ -95,26 +97,46 @@ interface TextFilterProps {
   placeholder?: string;
   icon?: ReactNode;
   width: number | string;
+  suggestions?: string[];
 }
 
-function TextFilter({ value, onCommit, placeholder, icon, width }: TextFilterProps) {
+function TextFilter({ value, onCommit, placeholder, icon, width, suggestions }: TextFilterProps) {
   const [draft, setDraft] = useState(value);
 
   useEffect(() => {
     setDraft(value);
   }, [value]);
 
-  const commit = () => {
-    const next = draft.trim();
+  const commit = (text = draft) => {
+    const next = text.trim();
     if (next !== value) onCommit(next);
   };
+
+  if (suggestions) {
+    return (
+      <Autocomplete
+        placeholder={placeholder}
+        value={draft}
+        onChange={setDraft}
+        // Picking a suggestion applies it right away
+        onOptionSubmit={commit}
+        onBlur={() => commit()}
+        onKeyDown={(e) => e.key === 'Enter' && commit()}
+        data={suggestions}
+        leftSection={icon}
+        clearable
+        onClear={() => commit('')}
+        style={{ width }}
+      />
+    );
+  }
 
   return (
     <TextInput
       placeholder={placeholder}
       value={draft}
       onChange={(e) => setDraft(e.currentTarget.value)}
-      onBlur={commit}
+      onBlur={() => commit()}
       onKeyDown={(e) => e.key === 'Enter' && commit()}
       leftSection={icon}
       style={{ width }}
@@ -169,6 +191,7 @@ export function TableFilters<V>({
             onCommit={(val) => setValue(field.key, val)}
             icon={field.icon}
             width={field.width ?? 200}
+            suggestions={field.suggestions}
           />
         );
       case 'date':
