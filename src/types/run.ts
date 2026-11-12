@@ -4,6 +4,47 @@ import type { ProviderType } from './provider';
 export type NodeStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
 export type RunStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelling' | 'cancelled';
 
+export type RunTrigger =
+  | { triggerType: 'agent_node'; nodeId: string }
+  | { triggerType: 'tool_call'; nodeId: string; toolName?: string }
+  | { triggerType: 'chat'; sessionId?: string }
+  | { triggerType: 'api' }
+  | { triggerType: 'schedule'; scheduleId: string; scheduledFor: string }
+  | { triggerType: 'webhook'; webhookId: string };
+
+export type RunTriggerType = RunTrigger['triggerType'];
+
+export const triggerLabels: Record<RunTriggerType, string> = {
+  chat: 'Chat',
+  api: 'API',
+  schedule: 'Schedule',
+  agent_node: 'Agent node',
+  tool_call: 'Tool call',
+  webhook: 'Webhook',
+};
+
+export const triggerColors: Record<RunTriggerType, string> = {
+  chat: 'cyan',
+  api: 'grape',
+  schedule: 'teal',
+  agent_node: 'gray',
+  tool_call: 'gray',
+  webhook: 'orange',
+};
+
+// Child-run triggers (agent_node / tool_call) carry the parent node id
+export function getTriggerNodeId(trigger?: RunTrigger): string | undefined {
+  return trigger && 'nodeId' in trigger ? trigger.nodeId : undefined;
+}
+
+export function getTriggerWebhookId(trigger?: RunTrigger): string | undefined {
+  return trigger?.triggerType === 'webhook' ? trigger.webhookId : undefined;
+}
+
+export function getTriggerToolName(trigger?: RunTrigger): string | undefined {
+  return trigger?.triggerType === 'tool_call' ? trigger.toolName : undefined;
+}
+
 export interface NodeState {
   nodeType: NodeTypeName;
   status: NodeStatus;
@@ -15,27 +56,6 @@ export interface NodeState {
   startedAt?: string | null;
   completedAt?: string | null;
 }
-
-export type RunTriggerType = 'agent_node' | 'tool_call' | 'webhook';
-
-export interface RunTrigger {
-  triggerType: RunTriggerType;
-  nodeId?: string; // agent_node / tool_call
-  toolName?: string; // tool_call
-  webhookId?: string; // webhook
-}
-
-export const triggerLabels: Record<RunTriggerType, string> = {
-  agent_node: 'Agent Node',
-  tool_call: 'Tool Call',
-  webhook: 'Webhook',
-};
-
-export const triggerColors: Record<RunTriggerType, string> = {
-  agent_node: 'gray',
-  tool_call: 'gray',
-  webhook: 'orange',
-};
 
 export interface Run {
   id: string;
@@ -50,7 +70,7 @@ export interface Run {
   startedAt: string;
   completedAt?: string | null;
   parentRunId?: string;
-  triggeredBy?: RunTrigger;
+  triggeredBy?: RunTrigger; // Old runs may have none
   childRuns?: Run[]; // Only when includeChildren=true
 }
 
@@ -66,7 +86,7 @@ export interface RunSummary {
   startedAt: string;
   completedAt: string | null;
   parentRunId?: string;
-  triggeredBy?: RunTrigger;
+  triggeredBy?: RunTrigger; // Old runs may have none
   childRunIds?: string[]; // Only when includeChildren=true
 }
 

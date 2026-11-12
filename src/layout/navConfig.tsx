@@ -4,6 +4,7 @@ import {
   IconKey,
   IconLock,
   IconHistory,
+  IconCalendarTime,
   IconMessages,
   IconUsers,
   IconFiles,
@@ -33,6 +34,7 @@ export const getBaseNavItems = (): NavItem[] => [
       { label: 'Variables', path: routes.variables(), icon: <IconVariable size={18} /> },
       { label: 'Webhooks', path: routes.webhooks(), icon: <IconWebhook size={18} /> },
       { label: 'Collections', path: routes.collections(), icon: <IconDatabase size={18} /> },
+      { label: 'Schedules', path: routes.schedules(), icon: <IconCalendarTime size={18} /> },
     ],
   },
   

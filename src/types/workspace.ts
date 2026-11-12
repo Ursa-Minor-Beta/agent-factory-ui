@@ -10,6 +10,7 @@ export interface Workspace {
   variableCount?: number;
   providerCount?: number;
   collectionCount?: number;
+  scheduleCount?: number;
 }
 
 export interface WorkspaceQueryOptions {

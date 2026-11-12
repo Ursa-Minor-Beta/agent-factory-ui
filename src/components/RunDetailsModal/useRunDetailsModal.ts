@@ -60,7 +60,12 @@ export function useRunDetailsModal() {
    * Adds ?run=<id> to URL, enabling deep linking and browser navigation.
    */
   const openRunDetails = (id: string) => {
-    setSearchParams({ [RUN_PARAM]: id });
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set(RUN_PARAM, id);
+      next.delete(TRAIL_PARAM);
+      return next;
+    });
   };
 
   /**
@@ -68,7 +73,12 @@ export function useRunDetailsModal() {
    * Removes the run query parameter from URL.
    */
   const closeRunDetails = () => {
-    setSearchParams({});
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete(RUN_PARAM);
+      next.delete(TRAIL_PARAM);
+      return next;
+    });
   };
 
   /**

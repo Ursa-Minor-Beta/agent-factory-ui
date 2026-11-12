@@ -27,3 +27,11 @@ export type {
 } from './memory';
 export { workspacesApi } from './workspaces';
 export { githubApi } from './github';
+export { schedulesApi } from './schedules';
+export type {
+  ListSchedulesOptions,
+  CreateScheduleInput,
+  UpdateScheduleInput,
+  PreviewScheduleInput,
+  PreviewScheduleResponse,
+} from './schedules';

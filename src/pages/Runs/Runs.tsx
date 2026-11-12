@@ -22,6 +22,7 @@ import {
   CopyButton,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
+import { useSearchParams } from 'react-router';
 import {
   IconAlertCircle,
   IconClock,
@@ -36,12 +37,15 @@ import {
   IconTrash,
   IconSquareCheck,
   IconCopy,
+  IconCalendarTime,
 } from '@tabler/icons-react';
 import { runsApi, sessionsApi } from '../../api';
 import type { ListRunsParams } from '../../api/runs';
-import type { RunSummary, RunStatus } from '../../types';
+import type { RunSummary, RunStatus, RunTriggerType } from '../../types';
 import { useRunDetailsModal } from '../../components/RunDetailsModal';
-import { statusColors, formatDuration, triggerColors, triggerLabels } from '../../types';
+import { statusColors, formatDuration, triggerLabels } from '../../types';
+import { TriggerBadge } from '../../components/RunDetailsModal';
+import { useScheduleModal } from '../../components/Schedules';
 import { DeleteRunsModal } from './DeleteRunsModal';
 
 const statusIcons: Record<RunStatus, React.ReactNode> = {
@@ -55,8 +59,27 @@ const statusIcons: Record<RunStatus, React.ReactNode> = {
 
 const PAGE_SIZE = 20;
 
+const TRIGGER_OPTIONS = (Object.keys(triggerLabels) as RunTriggerType[]).map((value) => ({
+  value,
+  label: triggerLabels[value],
+}));
+
 export function RunsPage() {
   const { runId, openRunDetails } = useRunDetailsModal();
+  const { openSchedule } = useScheduleModal();
+  // Trigger and schedule filters live in the URL - links from schedules land here filtered
+  const [searchParams, setSearchParams] = useSearchParams();
+  const triggerFilter = searchParams.get('triggerType') as RunTriggerType | null;
+  const scheduleFilter = searchParams.get('scheduleId');
+  const setUrlFilter = (key: 'triggerType' | 'scheduleId', value: string | null) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (value) next.set(key, value);
+      else next.delete(key);
+      return next;
+    });
+    setPage(1);
+  };
   const [runs, setRuns] = useState<RunSummary[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -101,6 +124,8 @@ export function RunsPage() {
       if (agentFilter.trim()) params.agentId = agentFilter.trim();
       if (startedAfter) params.startedAfter = startedAfter.toISOString();
       if (startedBefore) params.startedBefore = startedBefore.toISOString();
+      if (triggerFilter) params.triggerType = triggerFilter;
+      if (scheduleFilter) params.scheduleId = scheduleFilter;
 
       const response = await runsApi.listAll(params);
       setRuns(response.runs.map( r => ({
@@ -114,11 +139,11 @@ export function RunsPage() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, agentFilter, startedAfter, startedBefore, sortBy, sortOrder, page, includeChildren]);
+  }, [statusFilter, agentFilter, startedAfter, startedBefore, sortBy, sortOrder, page, includeChildren, triggerFilter, scheduleFilter]);
 
   useEffect(() => {
     loadRuns();
-  }, [statusFilter, startedAfter, startedBefore, sortBy, sortOrder, page, includeChildren]);
+  }, [statusFilter, startedAfter, startedBefore, sortBy, sortOrder, page, includeChildren, triggerFilter, scheduleFilter]);
 
   useEffect(() => {
     localStorage.setItem('runs-includeChildren', String(includeChildren));
@@ -127,7 +152,7 @@ export function RunsPage() {
   // Clear selection when runs list changes
   useEffect(() => {
     setSelectedRunIds(new Set());
-  }, [page, statusFilter, agentFilter, startedAfter, startedBefore, sortBy, sortOrder, includeChildren]);
+  }, [page, statusFilter, agentFilter, startedAfter, startedBefore, sortBy, sortOrder, includeChildren, triggerFilter, scheduleFilter]);
 
   // Track last viewed run when modal closes
   useEffect(() => {
@@ -154,6 +179,12 @@ export function RunsPage() {
     setAgentFilter('');
     setStartedAfter(null);
     setStartedBefore(null);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('triggerType');
+      next.delete('scheduleId');
+      return next;
+    });
     setPage(1);
   };
 
@@ -272,7 +303,7 @@ export function RunsPage() {
     }
   };
 
-  const hasFilters = statusFilter || agentFilter.trim() || startedAfter || startedBefore;
+  const hasFilters = statusFilter || agentFilter.trim() || startedAfter || startedBefore || triggerFilter || scheduleFilter;
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const allSelected = runs.length > 0 && selectedRunIds.size === runs.length;
 
@@ -362,6 +393,34 @@ export function RunsPage() {
           clearable
           style={{ width: 140 }}
         />
+        <Select
+          placeholder="Trigger"
+          value={triggerFilter}
+          onChange={(val) => setUrlFilter('triggerType', val)}
+          data={TRIGGER_OPTIONS}
+          clearable
+          style={{ width: 140 }}
+        />
+        {scheduleFilter && (
+          <Badge
+            size="lg"
+            variant="light"
+            color="teal"
+            leftSection={<IconCalendarTime size={14} />}
+            rightSection={
+              <ActionIcon size="xs" variant="transparent" color="teal" onClick={(e) => {
+                  e.stopPropagation();
+                  setUrlFilter('scheduleId', null);
+                }}>
+                <IconX size={12} />
+              </ActionIcon>
+            }
+            style={{ cursor: 'pointer', textTransform: 'none' }}
+            onClick={() => openSchedule(scheduleFilter)}
+          >
+            Schedule
+          </Badge>
+        )}
         <TextInput
           placeholder="Agent ID"
           value={agentFilter}
@@ -451,8 +510,8 @@ export function RunsPage() {
                 <Table.Th>Agent</Table.Th>
                 <Table.Th>Started</Table.Th>
                 <Table.Th>Duration</Table.Th>
+                <Table.Th>Trigger</Table.Th>
                 {includeChildren && <Table.Th>Child Runs</Table.Th>}
-                {!includeChildren && <Table.Th>Triggered by</Table.Th>}
                 <Table.Th style={{ width: 60 }}></Table.Th>
               </Table.Tr>
             </Table.Thead>
@@ -518,20 +577,14 @@ export function RunsPage() {
                       { run.completedAt ? formatDuration(run.startedAt, run.completedAt) : '~'}
                     </Text>
                   </Table.Td>
+                  <Table.Td>
+                    <TriggerBadge trigger={run.triggeredBy} />
+                  </Table.Td>
                   {includeChildren && (
                     <Table.Td>
                       {run.childRunIds && run.childRunIds.length > 0 && (
                         <Badge size="sm" variant="light" color="cyan">
                           {run.childRunIds.length}
-                        </Badge>
-                      )}
-                    </Table.Td>
-                  )}
-                  {!includeChildren && (
-                    <Table.Td>
-                      {run.triggeredBy && (
-                        <Badge size="sm" variant="light" color={triggerColors[run.triggeredBy.triggerType] ?? 'gray'}>
-                          {triggerLabels[run.triggeredBy.triggerType] ?? run.triggeredBy.triggerType}
                         </Badge>
                       )}
                     </Table.Td>
@@ -566,7 +619,7 @@ export function RunsPage() {
               })}
               {runs.length === 0 && (
                 <Table.Tr>
-                  <Table.Td colSpan={7}>
+                  <Table.Td colSpan={includeChildren ? 8 : 7}>
                     <Text ta="center" c="dimmed" py="md">
                       {total === 0 ? 'No runs yet' : 'No runs match your filters'}
                     </Text>
