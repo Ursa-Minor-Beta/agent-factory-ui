@@ -22,6 +22,9 @@ export * from './secret';
 // Variable types
 export * from './variable';
 
+// Webhook types
+export * from './webhook';
+
 // API Response types
 export * from './api';
 

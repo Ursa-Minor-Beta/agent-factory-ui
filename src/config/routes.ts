@@ -22,6 +22,7 @@ export const routes = {
   providers: () => '/configurations/providers',
   secrets: () => '/configurations/secrets',
   variables: () => '/configurations/variables',
+  webhooks: () => '/configurations/webhooks',
   collections: () => '/configurations/collections',
   collectionRecords: (collectionId: string) => `/configurations/collections/${collectionId}/records`,
 

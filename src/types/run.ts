@@ -16,6 +16,27 @@ export interface NodeState {
   completedAt?: string | null;
 }
 
+export type RunTriggerType = 'agent_node' | 'tool_call' | 'webhook';
+
+export interface RunTrigger {
+  triggerType: RunTriggerType;
+  nodeId?: string; // agent_node / tool_call
+  toolName?: string; // tool_call
+  webhookId?: string; // webhook
+}
+
+export const triggerLabels: Record<RunTriggerType, string> = {
+  agent_node: 'Agent Node',
+  tool_call: 'Tool Call',
+  webhook: 'Webhook',
+};
+
+export const triggerColors: Record<RunTriggerType, string> = {
+  agent_node: 'gray',
+  tool_call: 'gray',
+  webhook: 'orange',
+};
+
 export interface Run {
   id: string;
   agentId: string;
@@ -29,7 +50,7 @@ export interface Run {
   startedAt: string;
   completedAt?: string | null;
   parentRunId?: string;
-  triggeredBy?: { triggerType: 'agent_node' | 'tool_call'; nodeId: string; toolName?: string };
+  triggeredBy?: RunTrigger;
   childRuns?: Run[]; // Only when includeChildren=true
 }
 
@@ -45,7 +66,7 @@ export interface RunSummary {
   startedAt: string;
   completedAt: string | null;
   parentRunId?: string;
-  triggeredBy?: { triggerType: 'agent_node' | 'tool_call'; nodeId: string; toolName?: string };
+  triggeredBy?: RunTrigger;
   childRunIds?: string[]; // Only when includeChildren=true
 }
 

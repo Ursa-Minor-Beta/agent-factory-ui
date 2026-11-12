@@ -41,7 +41,7 @@ import { runsApi, sessionsApi } from '../../api';
 import type { ListRunsParams } from '../../api/runs';
 import type { RunSummary, RunStatus } from '../../types';
 import { useRunDetailsModal } from '../../components/RunDetailsModal';
-import { statusColors, formatDuration } from '../../types';
+import { statusColors, formatDuration, triggerColors, triggerLabels } from '../../types';
 import { DeleteRunsModal } from './DeleteRunsModal';
 
 const statusIcons: Record<RunStatus, React.ReactNode> = {
@@ -530,9 +530,9 @@ export function RunsPage() {
                   {!includeChildren && (
                     <Table.Td>
                       {run.triggeredBy && (
-                        <Text size="sm" c="dimmed">
-                          {run.triggeredBy.triggerType}
-                        </Text>
+                        <Badge size="sm" variant="light" color={triggerColors[run.triggeredBy.triggerType] ?? 'gray'}>
+                          {triggerLabels[run.triggeredBy.triggerType] ?? run.triggeredBy.triggerType}
+                        </Badge>
                       )}
                     </Table.Td>
                   )}
