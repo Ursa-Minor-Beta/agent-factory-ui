@@ -195,9 +195,6 @@ export function WorkspaceDetailPage() {
           <Tabs.Tab value="agents" leftSection={<IconRobot size={16} />}>
             Agents{workspace.agentCount !== undefined && ` (${workspace.agentCount})`}
           </Tabs.Tab>
-          <Tabs.Tab value="schedules" leftSection={<IconCalendarTime size={16} />}>
-            Schedules{workspace.scheduleCount !== undefined && ` (${workspace.scheduleCount})`}
-          </Tabs.Tab>
           <Tabs.Tab value="providers" leftSection={<IconCloud size={16} />}>
             Providers{workspace.providerCount !== undefined && ` (${workspace.providerCount})`}
           </Tabs.Tab>
@@ -207,11 +204,14 @@ export function WorkspaceDetailPage() {
           <Tabs.Tab value="variables" leftSection={<IconVariable size={16} />}>
             Variables{workspace.variableCount !== undefined && ` (${workspace.variableCount})`}
           </Tabs.Tab>
-          <Tabs.Tab value="webhooks" leftSection={<IconWebhook size={16} />}>
-            Webhooks {workspace.webhookCount !== undefined && ` (${workspace.webhookCount})`}
-          </Tabs.Tab>
           <Tabs.Tab value="collections" leftSection={<IconDatabase size={16} />}>
             Collections{workspace.collectionCount !== undefined && ` (${workspace.collectionCount})`}
+          </Tabs.Tab>
+          <Tabs.Tab value="schedules" leftSection={<IconCalendarTime size={16} />}>
+            Schedules{workspace.scheduleCount !== undefined && ` (${workspace.scheduleCount})`}
+          </Tabs.Tab>
+          <Tabs.Tab value="webhooks" leftSection={<IconWebhook size={16} />}>
+            Webhooks {workspace.webhookCount !== undefined && ` (${workspace.webhookCount})`}
           </Tabs.Tab>
         </Tabs.List>
 
