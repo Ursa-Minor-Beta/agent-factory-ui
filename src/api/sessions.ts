@@ -108,6 +108,11 @@ function buildQueryString(params: SessionsQueryParams): string {
   return qs ? `?${qs}` : '';
 }
 
+export interface SessionListResponse {
+  items: Session[];
+  total: number;
+}
+
 export interface SessionUpdate {
   title?: string | null;
   status?: 'active' | 'archived';
@@ -124,7 +129,7 @@ export interface DeleteSessionsResponse {
 
 export const sessionsApi = {
   list: (params: SessionsQueryParams = {}) =>
-    api.get<Session[]>(`/api/sessions${buildQueryString(params)}`),
+    api.get<SessionListResponse>(`/api/sessions${buildQueryString(params)}`),
 
   getById: (id: string) =>
     api.get<Session>(`/api/sessions/${id}`),
