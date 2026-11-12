@@ -9,7 +9,8 @@ export type RunTrigger =
   | { triggerType: 'tool_call'; nodeId: string; toolName?: string }
   | { triggerType: 'chat'; sessionId?: string }
   | { triggerType: 'api' }
-  | { triggerType: 'schedule'; scheduleId: string; scheduledFor: string };
+  | { triggerType: 'schedule'; scheduleId: string; scheduledFor: string }
+  | { triggerType: 'webhook'; webhookId: string };
 
 export type RunTriggerType = RunTrigger['triggerType'];
 
@@ -19,11 +20,25 @@ export const triggerLabels: Record<RunTriggerType, string> = {
   schedule: 'Schedule',
   agent_node: 'Agent node',
   tool_call: 'Tool call',
+  webhook: 'Webhook',
+};
+
+export const triggerColors: Record<RunTriggerType, string> = {
+  chat: 'cyan',
+  api: 'grape',
+  schedule: 'teal',
+  agent_node: 'gray',
+  tool_call: 'gray',
+  webhook: 'orange',
 };
 
 // Child-run triggers (agent_node / tool_call) carry the parent node id
 export function getTriggerNodeId(trigger?: RunTrigger): string | undefined {
   return trigger && 'nodeId' in trigger ? trigger.nodeId : undefined;
+}
+
+export function getTriggerWebhookId(trigger?: RunTrigger): string | undefined {
+  return trigger?.triggerType === 'webhook' ? trigger.webhookId : undefined;
 }
 
 export function getTriggerToolName(trigger?: RunTrigger): string | undefined {

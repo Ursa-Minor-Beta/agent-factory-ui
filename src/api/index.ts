@@ -8,6 +8,7 @@ export { sessionsApi } from './sessions';
 export { secretsApi } from './secrets';
 export { variablesApi } from './variables';
 export { runsApi } from './runs';
+export { webhooksApi } from './webhooks';
 export { filesApi } from './files';
 export type { FileData, FileListItem } from './files';
 export { systemApi } from './system';

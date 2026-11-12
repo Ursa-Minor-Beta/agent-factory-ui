@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Accordion, ActionIcon, Alert, Badge, Card, Group, SimpleGrid, Stack, Text, Title, Tooltip } from '@mantine/core';
 import { IconAlertCircle, IconExternalLink, IconSubtask } from '@tabler/icons-react';
 import type { Run } from '../../types';
-import { formatDuration, getTriggerNodeId, triggerLabels } from '../../types';
+import { formatDuration, getTriggerNodeId, triggerColors, triggerLabels } from '../../types';
 import { buildRunDetailsSearch, type RunTrailItem } from './useRunDetailsModal';
 import { RunStatusBadge } from './RunStatusBadge';
 import { JsonPanel } from './JsonPanel';
@@ -26,8 +26,10 @@ function ChildRunItem({ childRun, childTrail }: { childRun: Run; childTrail: Run
           <RunStatusBadge status={childRun.status} />
           <Text size="sm" fw={500} ff="monospace">{childRun.agentId}</Text>
           {childRun.triggeredBy && (
-            <Badge size="xs" variant="outline" color="gray">
-              {triggerLabels[childRun.triggeredBy.triggerType]}
+            <Badge size="xs" variant="outline" 
+              color={triggerColors[childRun.triggeredBy.triggerType] ?? 'gray'}
+              >
+              {triggerLabels[childRun.triggeredBy.triggerType] ?? childRun.triggeredBy.triggerType}
               {getTriggerNodeId(childRun.triggeredBy) && `: ${getTriggerNodeId(childRun.triggeredBy)}`}
             </Badge>
           )}

@@ -1,14 +1,6 @@
 import { Badge, Text } from '@mantine/core';
-import type { RunTrigger, RunTriggerType } from '../../types';
-import { triggerLabels } from '../../types';
-
-const triggerColors: Record<RunTriggerType, string> = {
-  chat: 'cyan',
-  api: 'grape',
-  schedule: 'teal',
-  agent_node: 'gray',
-  tool_call: 'gray',
-};
+import type { RunTrigger } from '../../types';
+import { triggerColors, triggerLabels } from '../../types';
 
 // What started a run; old runs have no trigger
 export function TriggerBadge({ trigger }: { trigger?: RunTrigger }) {

@@ -31,7 +31,7 @@ export function SessionSection({ control, agentId, savedSessionId, onStartNewSes
     if (!pickSession || !agentId) return;
     sessionsApi
       .list({ agentId, status: 'active', limit: 100 })
-      .then((list) => setSessions(list.filter((s) => !s.incognito)))
+      .then(({ items }) => setSessions(items.filter((s) => !s.incognito)))
       .catch(() => setSessions([]));
   }, [pickSession, agentId]);
 

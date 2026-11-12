@@ -22,6 +22,7 @@ import {
   IconDatabase,
   IconVariable,
   IconCalendarTime,
+  IconWebhook,
 } from '@tabler/icons-react';
 import { workspacesApi } from '../../api/workspaces';
 import type { Workspace } from '../../types/workspace';
@@ -33,9 +34,10 @@ import { SecretsList } from '../../components/Secrets';
 import { VariablesList } from '../../components/Variables';
 import { CollectionsList } from '../../components/Collections';
 import { SchedulesList } from '../../components/Schedules';
+import { WebhooksList } from '../../components/Webhooks';
 import { routes } from '../../config/routes';
 
-const VALID_TABS = ['agents', 'providers', 'secrets', 'variables', 'schedules', 'collections'] as const;
+const VALID_TABS = ['agents', 'providers', 'secrets', 'variables', 'schedules', 'webhooks', 'collections'] as const;
 
 export function WorkspaceDetailPage() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
@@ -205,6 +207,9 @@ export function WorkspaceDetailPage() {
           <Tabs.Tab value="variables" leftSection={<IconVariable size={16} />}>
             Variables{workspace.variableCount !== undefined && ` (${workspace.variableCount})`}
           </Tabs.Tab>
+          <Tabs.Tab value="webhooks" leftSection={<IconWebhook size={16} />}>
+            Webhooks
+          </Tabs.Tab>
           <Tabs.Tab value="collections" leftSection={<IconDatabase size={16} />}>
             Collections{workspace.collectionCount !== undefined && ` (${workspace.collectionCount})`}
           </Tabs.Tab>
@@ -251,6 +256,14 @@ export function WorkspaceDetailPage() {
             columns={['name', 'value', 'description', 'created', 'actions']}
             onCreate={loadWorkspace}
             onDelete={loadWorkspace}
+          />
+        </Tabs.Panel>
+
+        <Tabs.Panel value="webhooks">
+          <WebhooksList
+            workspaceId={workspaceId}
+            description="Webhooks of this workspace's agents. POST to a URL to start the agent."
+            columns={['agent', 'name', 'url', 'enabled', 'lastTriggered', 'actions']}
           />
         </Tabs.Panel>
 

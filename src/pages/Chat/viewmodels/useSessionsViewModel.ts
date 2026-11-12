@@ -65,7 +65,7 @@ export function useSessionsViewModel(
 
     try {
       setLoading(true);
-      const data = await sessionsApi.list({ agentId, status: 'active', limit: 50 });
+      const { items: data } = await sessionsApi.list({ agentId, status: 'active', limit: 50 });
       setSessions(data);
       return data;
     } catch (err) {
@@ -83,7 +83,7 @@ export function useSessionsViewModel(
     const initSessions = async () => {
       try {
         setLoading(true);
-        const data = await sessionsApi.list({ agentId, status: 'active', limit: 50 });
+        const { items: data } = await sessionsApi.list({ agentId, status: 'active', limit: 50 });
         setSessions(data);
 
         // Auto-select most recent session only on initial load
