@@ -17,6 +17,7 @@ import {
   Transition,
   CopyButton,
   Badge,
+  Pagination,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
@@ -30,6 +31,7 @@ import {
   IconEyeOff,
 } from '@tabler/icons-react';
 import { sessionsApi } from '../../api';
+import type { SessionsQueryParams } from '../../api/sessions';
 import type { Session } from '../../types';
 import { SessionDetailsModal } from './SessionDetailsModal';
 import { DeleteSessionsModal } from './DeleteSessionsModal';
@@ -44,6 +46,8 @@ export function SessionsPage() {
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [detailsOpened, { open: openDetails, close: closeDetails }] = useDisclosure(false);
   const [deleting, setDeleting] = useState(false);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
 
   // Selection and deletion
   const [selectedSessionIds, setSelectedSessionIds] = useState<Set<string>>(new Set());
@@ -58,29 +62,32 @@ export function SessionsPage() {
   const loadSessions = useCallback(async () => {
     try {
       setLoading(true);
-      const params: { agentId?: string; status?: 'active' | 'archived'; limit: number } = {
+      const params: SessionsQueryParams = {
         limit: PAGE_SIZE,
+        offset: (page - 1) * PAGE_SIZE,
       };
       if (statusFilter) params.status = statusFilter as 'active' | 'archived';
       if (agentFilter.trim()) params.agentId = agentFilter.trim();
 
-      const data = await sessionsApi.list(params);
-      setSessions(data);
+      const response = await sessionsApi.list(params);
+      setSessions(response.items);
+      setTotal(response.total);
       setError('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load sessions');
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, agentFilter]);
+  }, [statusFilter, agentFilter, page]);
 
   useEffect(() => {
     loadSessions();
-  }, [statusFilter]);
+  }, [statusFilter, page]);
 
-  // Clear selection when filters change
+  // Clear selection and reset page when filters change
   useEffect(() => {
     setSelectedSessionIds(new Set());
+    setPage(1);
   }, [statusFilter, agentFilter]);
 
   const handleViewDetails = (session: Session) => {
@@ -152,6 +159,7 @@ export function SessionsPage() {
 
         const deletedSet = new Set(idsToDelete);
         setSessions((prev) => prev.filter((s) => !deletedSet.has(s.id)));
+        setTotal((prev) => Math.max(0, prev - deletedSet.size));
       }
 
       setSelectedSessionIds(new Set());
@@ -178,6 +186,7 @@ export function SessionsPage() {
   };
 
   const hasFilters = statusFilter || agentFilter.trim();
+  const totalPages = Math.ceil(total / PAGE_SIZE);
   const allSelected = sessions.length > 0 && selectedSessionIds.size === sessions.length;
 
   return (
@@ -394,6 +403,16 @@ export function SessionsPage() {
           </Table>
         )}
       </Card>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Group justify="space-between" mt="md">
+          <Text size="sm" c="dimmed">
+            Showing {(page - 1) * PAGE_SIZE + 1}-{Math.min(page * PAGE_SIZE, total)} of {total} sessions
+          </Text>
+          <Pagination value={page} onChange={setPage} total={totalPages} />
+        </Group>
+      )}
 
       <SessionDetailsModal
         session={selectedSession}
