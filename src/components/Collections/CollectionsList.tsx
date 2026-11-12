@@ -233,6 +233,7 @@ export function CollectionsList({
     },
     {
       key: 'actions',
+      pinned: true,
       header: 'Actions',
       align: 'right',
       hidden: !showColumn('actions'),

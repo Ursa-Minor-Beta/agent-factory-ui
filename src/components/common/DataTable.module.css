@@ -1,0 +1,26 @@
+/* Matches the Card the table sits on */
+.table {
+  --data-table-bg: var(--mantine-color-white);
+}
+
+:global([data-mantine-color-scheme='dark']) .table {
+  --data-table-bg: var(--mantine-color-dark-6);
+}
+
+/* Column pinned to the right edge while the table scrolls sideways.
+   Opaque so scrolled cells don't show through; stripe and hover colors are layered on top. */
+.pinned {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  background-color: var(--data-table-bg);
+  box-shadow: inset 1px 0 0 var(--table-border-color);
+}
+
+.striped tbody tr:nth-of-type(odd) > .pinned {
+  background-image: linear-gradient(var(--table-striped-color), var(--table-striped-color));
+}
+
+.hoverable tbody tr:hover > .pinned {
+  background-image: linear-gradient(var(--table-hover-color), var(--table-hover-color));
+}

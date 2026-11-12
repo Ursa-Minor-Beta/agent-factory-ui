@@ -259,6 +259,7 @@ export function FilesPage() {
     },
     {
       key: 'actions',
+      pinned: true,
       header: 'Actions',
       align: 'right',
       render: (file) => (

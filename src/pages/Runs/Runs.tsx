@@ -323,6 +323,7 @@ export function RunsPage() {
     },
     {
       key: 'actions',
+      pinned: true,
       width: 60,
       stopPropagation: true,
       render: (run) => (

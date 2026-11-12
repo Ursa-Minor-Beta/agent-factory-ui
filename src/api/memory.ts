@@ -55,9 +55,10 @@ export interface ListSchemasOptions {
 export interface ListRecordsOptions {
   limit?: number;
   offset?: number;
-  sortField?: string;
+  sortField?: string; // 'createdAt', 'updatedAt' or a schema field name
   sortDirection?: 'asc' | 'desc';
-  search?: string;
+  field?: string; // Schema field to search in (used with value)
+  value?: string; // Text the field must contain, case-insensitive
 }
 
 // Paginated records response
@@ -102,7 +103,8 @@ export const memoryApi = {
     if (options?.offset) params.append('offset', String(options.offset));
     if (options?.sortField) params.append('sortField', options.sortField);
     if (options?.sortDirection) params.append('sortDirection', options.sortDirection);
-    if (options?.search) params.append('search', options.search);
+    if (options?.field) params.append('field', options.field);
+    if (options?.value) params.append('value', options.value);
     const query = params.toString();
     return api.get<ListRecordsResponse>(`/api/memory/${collectionId}/records${query ? `?${query}` : ''}`);
   },

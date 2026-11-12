@@ -34,7 +34,11 @@ import {
   useRef,
   useState,
 } from 'react';
+import classes from './DataTable.module.css';
 import { TableFilters, getInitialFilters, hasActiveFilters, type FilterField } from './TableFilters';
+
+// Used for the default scroll threshold
+const MIN_COLUMN_WIDTH = 140;
 
 const PAGE_SIZES = [10, 20, 50, 100];
 const DEFAULT_PAGE_SIZE = 20;
@@ -59,6 +63,8 @@ export interface DataTableColumn<T, V = unknown> {
   filter?: FilterField<V> | FilterField<V>[];
   /** Clicks inside the cell don't trigger `onRowClick` (e.g. action buttons) */
   stopPropagation?: boolean;
+  /** Keep the column visible at the right edge while the table scrolls sideways (e.g. actions) */
+  pinned?: boolean;
   render: (row: T) => ReactNode;
 }
 
@@ -127,6 +133,8 @@ interface DataTableProps<T, V, S extends string> {
   itemLabel?: [string, string];
   striped?: boolean;
   highlightOnHover?: boolean;
+  /** Width below which the table scrolls sideways; defaults to ~140px per visible column */
+  minWidth?: number;
 }
 
 export function DataTable<T, V = unknown, S extends string = string>({
@@ -145,8 +153,9 @@ export function DataTable<T, V = unknown, S extends string = string>({
   initialSort,
   paginated = true,
   itemLabel = ['item', 'items'],
-  striped = true,
+  striped = false,
   highlightOnHover = true,
+  minWidth,
 }: DataTableProps<T, V, S>) {
   const filterFields = [...columns.flatMap((column) => column.filter ?? []), ...(extraFilters ?? [])];
 
@@ -182,6 +191,11 @@ export function DataTable<T, V = unknown, S extends string = string>({
       const result = await latestRef.current.loadData(q);
       // Ignore responses that were superseded by a newer request
       if (requestId !== requestIdRef.current) return;
+      // Page emptied (e.g. its last row was deleted) - step back to the last page that has rows
+      if (result.rows.length === 0 && q.page > 1 && result.total > 0) {
+        setPage(Math.ceil(result.total / q.pageSize));
+        return;
+      }
       setData(result.rows);
       setTotal(result.total);
       setLoadError('');
@@ -413,77 +427,90 @@ export function DataTable<T, V = unknown, S extends string = string>({
             <Loader />
           </Center>
         ) : (
-          <Table striped={striped} highlightOnHover={highlightOnHover}>
-            <Table.Thead>
-              <Table.Tr>
-                {selectable && (
-                  <Table.Th style={{ width: 40 }}>
-                    <Checkbox
-                      size="xs"
-                      checked={allSelected}
-                      indeterminate={selectedCount > 0 && !allSelected}
-                      onChange={handleToggleAll}
-                    />
-                  </Table.Th>
-                )}
-                {visibleColumns.map((column) => (
-                  <Table.Th
-                    key={column.key}
-                    style={{ width: column.width, textAlign: column.align }}
-                    aria-sort={
-                      column.sortable && sort?.sortBy === column.key
-                        ? sort.sortOrder === 'asc'
-                          ? 'ascending'
-                          : 'descending'
-                        : undefined
-                    }
-                  >
-                    {renderHeader(column)}
-                  </Table.Th>
-                ))}
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {data.map((row) => {
-                const id = getRowId(row);
-                return (
-                  <Table.Tr
-                    key={id}
-                    style={{ cursor: onRowClick ? 'pointer' : undefined, ...rowStyle?.(row) }}
-                    onClick={onRowClick ? () => onRowClick(row) : undefined}
-                  >
-                    {selectable && (
-                      <Table.Td onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
-                          size="xs"
-                          checked={selectedIds.has(id)}
-                          onChange={() => handleToggleRow(id)}
-                        />
-                      </Table.Td>
-                    )}
-                    {visibleColumns.map((column) => (
-                      <Table.Td
-                        key={column.key}
-                        style={{ textAlign: column.align }}
-                        onClick={column.stopPropagation ? (e) => e.stopPropagation() : undefined}
-                      >
-                        {column.render(row)}
-                      </Table.Td>
-                    ))}
-                  </Table.Tr>
-                );
-              })}
-              {data.length === 0 && (
+          <Table.ScrollContainer
+            minWidth={minWidth ?? (visibleColumns.length + (selectable ? 1 : 0)) * MIN_COLUMN_WIDTH}
+            type="native"
+          >
+            <Table
+              striped={striped}
+              highlightOnHover={highlightOnHover}
+              className={[classes.table, striped && classes.striped, highlightOnHover && classes.hoverable]
+                .filter(Boolean)
+                .join(' ')}
+            >
+              <Table.Thead>
                 <Table.Tr>
-                  <Table.Td colSpan={visibleColumns.length + (selectable ? 1 : 0)}>
-                    <Text ta="center" c="dimmed" py="md">
-                      {noMatchMessage && hasActiveFilters(filterFields, filters) ? noMatchMessage : emptyMessage}
-                    </Text>
-                  </Table.Td>
+                  {selectable && (
+                    <Table.Th style={{ width: 40 }}>
+                      <Checkbox
+                        size="xs"
+                        checked={allSelected}
+                        indeterminate={selectedCount > 0 && !allSelected}
+                        onChange={handleToggleAll}
+                      />
+                    </Table.Th>
+                  )}
+                  {visibleColumns.map((column) => (
+                    <Table.Th
+                      key={column.key}
+                      className={column.pinned ? classes.pinned : undefined}
+                      style={{ width: column.width, textAlign: column.align, whiteSpace: 'nowrap' }}
+                      aria-sort={
+                        column.sortable && sort?.sortBy === column.key
+                          ? sort.sortOrder === 'asc'
+                            ? 'ascending'
+                            : 'descending'
+                          : undefined
+                      }
+                    >
+                      {renderHeader(column)}
+                    </Table.Th>
+                  ))}
                 </Table.Tr>
-              )}
-            </Table.Tbody>
-          </Table>
+              </Table.Thead>
+              <Table.Tbody>
+                {data.map((row) => {
+                  const id = getRowId(row);
+                  return (
+                    <Table.Tr
+                      key={id}
+                      style={{ cursor: onRowClick ? 'pointer' : undefined, ...rowStyle?.(row) }}
+                      onClick={onRowClick ? () => onRowClick(row) : undefined}
+                    >
+                      {selectable && (
+                        <Table.Td onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            size="xs"
+                            checked={selectedIds.has(id)}
+                            onChange={() => handleToggleRow(id)}
+                          />
+                        </Table.Td>
+                      )}
+                      {visibleColumns.map((column) => (
+                        <Table.Td
+                          key={column.key}
+                          className={column.pinned ? classes.pinned : undefined}
+                          style={{ textAlign: column.align }}
+                          onClick={column.stopPropagation ? (e) => e.stopPropagation() : undefined}
+                        >
+                          {column.render(row)}
+                        </Table.Td>
+                      ))}
+                    </Table.Tr>
+                  );
+                })}
+                {data.length === 0 && (
+                  <Table.Tr>
+                    <Table.Td colSpan={visibleColumns.length + (selectable ? 1 : 0)}>
+                      <Text ta="center" c="dimmed" py="md">
+                        {noMatchMessage && hasActiveFilters(filterFields, filters) ? noMatchMessage : emptyMessage}
+                      </Text>
+                    </Table.Td>
+                  </Table.Tr>
+                )}
+              </Table.Tbody>
+            </Table>
+          </Table.ScrollContainer>
         )}
       </Card>
 

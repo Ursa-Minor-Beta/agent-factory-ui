@@ -198,6 +198,7 @@ export function WebhooksList({ workspaceId, description = '', excludeColumns = [
     },
     {
       key: 'actions',
+      pinned: true,
       header: 'Actions',
       align: 'right',
       hidden: !showColumn('actions'),

@@ -175,6 +175,7 @@ export function VariablesList({
     },
     {
       key: 'actions',
+      pinned: true,
       header: 'Actions',
       align: 'right',
       hidden: !showColumn('actions'),

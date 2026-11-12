@@ -203,6 +203,7 @@ export function SessionsPage() {
     },
     {
       key: 'actions',
+      pinned: true,
       width: 60,
       stopPropagation: true,
       render: (session) => (
