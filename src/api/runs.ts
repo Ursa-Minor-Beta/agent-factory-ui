@@ -10,6 +10,7 @@ export interface CancelRunResponse {
 export interface ListRunsParams {
   userId?: string;
   agentId?: string;
+  sessionId?: string;
   status?: RunStatus;
   startedAfter?: string;
   startedBefore?: string;
@@ -49,6 +50,7 @@ export const runsApi = {
     const searchParams = new URLSearchParams();
     if (params?.userId) searchParams.set('userId', params.userId);
     if (params?.agentId) searchParams.set('agentId', params.agentId);
+    if (params?.sessionId) searchParams.set('sessionId', params.sessionId);
     if (params?.status) searchParams.set('status', params.status);
     if (params?.startedAfter) searchParams.set('startedAfter', params.startedAfter);
     if (params?.startedBefore) searchParams.set('startedBefore', params.startedBefore);

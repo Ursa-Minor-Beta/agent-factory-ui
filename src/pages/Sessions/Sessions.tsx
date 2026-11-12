@@ -1,10 +1,11 @@
 import { useState, useRef } from 'react';
-import { Box, Text, Group, ActionIcon, Tooltip, CopyButton, Badge } from '@mantine/core';
+import { Box, Text, Group, ActionIcon, Tooltip, Badge } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconRobot, IconTrash, IconCopy, IconCheck, IconEyeOff } from '@tabler/icons-react';
+import { IconRobot, IconTrash, IconEyeOff } from '@tabler/icons-react';
 import { sessionsApi } from '../../api';
 import type { SessionsQueryParams } from '../../api/sessions';
 import type { Session } from '../../types';
+import { CopyId } from '../../components/common/CopyId';
 import {
   DataTable,
   type DataTableBulkAction,
@@ -151,6 +152,13 @@ export function SessionsPage() {
       ),
     },
     {
+      key: 'id',
+      header: 'ID',
+      render: (session) => (
+        <CopyId value={session.id} label={session.id.slice(0, 8)} tooltip="Copy Session ID" dimmed />
+      ),
+    },
+    {
       key: 'title',
       header: 'Title',
       render: (session) => <Text size="sm">{session.title || 'Untitled'}</Text>,
@@ -160,26 +168,7 @@ export function SessionsPage() {
       header: 'Agent',
       filter: { type: 'text', key: 'agentId', placeholder: 'Agent ID', icon: <IconRobot size={16} /> },
       render: (session) => (
-        <Group gap="xs">
-          <Text size="sm" ff="monospace">{session.agentName || session.agentId}</Text>
-          <CopyButton value={session.agentId}>
-            {({ copied, copy }) => (
-              <Tooltip label={copied ? 'Copied' : 'Copy Agent ID'}>
-                <ActionIcon
-                  size="xs"
-                  variant="subtle"
-                  color={copied ? 'teal' : 'gray'}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    copy();
-                  }}
-                >
-                  {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
-                </ActionIcon>
-              </Tooltip>
-            )}
-          </CopyButton>
-        </Group>
+        <CopyId value={session.agentId} label={session.agentName || session.agentId} tooltip="Copy Agent ID" />
       ),
     },
     {

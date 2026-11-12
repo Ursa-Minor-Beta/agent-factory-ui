@@ -6,7 +6,6 @@ import {
   Badge,
   ActionIcon,
   Tooltip,
-  CopyButton,
 } from '@mantine/core';
 import {
   IconClock,
@@ -16,12 +15,12 @@ import {
   IconRobot,
   IconPlayerStop,
   IconTrash,
-  IconCopy,
 } from '@tabler/icons-react';
 import { runsApi, sessionsApi } from '../../api';
 import type { ListRunsParams } from '../../api/runs';
 import type { RunSummary, RunStatus } from '../../types';
 import { useRunDetailsModal } from '../../components/RunDetailsModal';
+import { CopyId } from '../../components/common/CopyId';
 import {
   DataTable,
   type DataTableBulkAction,
@@ -50,6 +49,7 @@ const INITIAL_SORT: SortValue<RunsSortBy> = { sortBy: 'startedAt', sortOrder: 'd
 interface RunsFilters {
   status: string | null;
   agentId: string;
+  sessionId: string;
   startedAfter: Date | null;
   startedBefore: Date | null;
   includeChildren: boolean;
@@ -91,6 +91,7 @@ export function RunsPage() {
     };
     if (filters.status) params.status = filters.status as RunStatus;
     if (filters.agentId) params.agentId = filters.agentId;
+    if (filters.sessionId) params.sessionId = filters.sessionId;
     if (filters.startedAfter) params.startedAfter = filters.startedAfter.toISOString();
     if (filters.startedBefore) params.startedBefore = filters.startedBefore.toISOString();
 
@@ -253,26 +254,18 @@ export function RunsPage() {
       header: 'Agent',
       filter: { type: 'text', key: 'agentId', placeholder: 'Agent ID', icon: <IconRobot size={16} /> },
       render: (run) => (
-        <Group gap="xs">
-          <Text size="sm" ff="monospace">{run.agentName}</Text>
-          <CopyButton value={run.agentId}>
-            {({ copied, copy }) => (
-              <Tooltip label={copied ? 'Copied' : 'Copy Agent ID'}>
-                <ActionIcon
-                  size="xs"
-                  variant="subtle"
-                  color={copied ? 'teal' : 'gray'}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    copy();
-                  }}
-                >
-                  {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
-                </ActionIcon>
-              </Tooltip>
-            )}
-          </CopyButton>
-        </Group>
+        <CopyId value={run.agentId} label={run.agentName} tooltip="Copy Agent ID" />
+      ),
+    },
+    {
+      key: 'sessionId',
+      hidden: true,
+      header: 'sessionId',
+      filter: { type: 'text', key: 'sessionId', placeholder: 'Session ID' },
+      render: (run) => (
+        <Text size="sm" c="dimmed">
+          {run.sessionId}
+        </Text>
       ),
     },
     {
