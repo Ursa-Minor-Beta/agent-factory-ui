@@ -3,7 +3,7 @@ import { Box, Text, Group, ActionIcon, Tooltip, Badge } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconRobot, IconTrash, IconEyeOff } from '@tabler/icons-react';
 import { sessionsApi } from '../../api';
-import type { SessionsQueryParams } from '../../api/sessions';
+import type { SessionsQueryParams, SessionsSortBy } from '../../api/sessions';
 import type { Session } from '../../types';
 import { CopyId } from '../../components/common/CopyId';
 import {
@@ -12,6 +12,7 @@ import {
   type DataTableColumn,
   type DataTableHandle,
   type DataTableQuery,
+  type SortValue,
 } from '../../components/common/DataTable';
 import type { FilterOption } from '../../components/common/TableFilters';
 import { SessionDetailsModal } from './SessionDetailsModal';
@@ -22,6 +23,8 @@ interface SessionsFilters {
   status: string | null;
   agentId: string;
 }
+
+const INITIAL_SORT: SortValue<SessionsSortBy> = { sortBy: 'updatedAt', sortOrder: 'desc' };
 
 const STATUS_OPTIONS: FilterOption[] = [
   { value: 'active', label: 'Active' },
@@ -42,8 +45,14 @@ export function SessionsPage() {
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
   const [deleteByAgentIds, setDeleteByAgentIds] = useState<string[]>([]);
 
-  const loadSessions = async ({ filters, page, pageSize }: DataTableQuery<SessionsFilters>) => {
+  const loadSessions = async ({
+    filters,
+    sort,
+    page,
+    pageSize,
+  }: DataTableQuery<SessionsFilters, SessionsSortBy>) => {
     const params: SessionsQueryParams = {
+      ...sort,
       offset: (page - 1) * pageSize,
       limit: pageSize,
     };
@@ -137,6 +146,7 @@ export function SessionsPage() {
     {
       key: 'status',
       header: 'Status',
+      sortable: true,
       filter: { type: 'select', key: 'status', placeholder: 'Status', options: STATUS_OPTIONS },
       render: (session) => (
         <Group gap="xs">
@@ -172,8 +182,19 @@ export function SessionsPage() {
       ),
     },
     {
-      key: 'updated',
+      key: 'createdAt',
+      header: 'Created',
+      sortable: true,
+      render: (session) => (
+        <Text size="sm" c="dimmed">
+          {formatRelativeTime(session.createdAt)}
+        </Text>
+      ),
+    },
+    {
+      key: 'updatedAt',
       header: 'Updated',
+      sortable: true,
       render: (session) => (
         <Text size="sm" c="dimmed">
           {formatRelativeTime(session.updatedAt)}
@@ -215,6 +236,7 @@ export function SessionsPage() {
         noMatchMessage="No sessions match your filters"
         onRowClick={handleViewDetails}
         bulkActions={bulkActions}
+        initialSort={INITIAL_SORT}
         itemLabel={['session', 'sessions']}
       />
 
