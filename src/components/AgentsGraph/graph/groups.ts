@@ -33,7 +33,8 @@ function groupLabel(key: string, node: AgentGraphNode) {
 
 /**
  * All-agents graph: each workspace is laid out on its own (layered, like a single workspace)
- * inside a labelled frame; frames are packed left to right in rows of roughly equal width.
+ * inside a labelled frame. Frames are arranged in rows by cross-workspace calls - a called workspace
+ * sits below its callers - and wrap within a row of roughly equal width.
  * Calls between workspaces stay as edges between frames.
  */
 export function workspaceLayout(nodes: AgentGraphNode[], relations: Relation[], sizes: GraphSizes) {
@@ -63,9 +64,36 @@ export function workspaceLayout(nodes: AgentGraphNode[], relations: Relation[], 
     return { id, ...group, positions, minX, width, height };
   });
 
-  // Global first, missing last, workspaces by name
+  // Frame level = longest chain of cross-workspace calls leading to it, so called workspaces sit
+  // below the ones calling them. Within a level: Global first, missing last, workspaces by name.
+  const groupOf = new Map<string, string>();
+  laidOut.forEach((g) => g.nodes.forEach((n) => groupOf.set(n.id, g.id)));
+  const callees = new Map<string, Set<string>>();
+  const hasCaller = new Set<string>();
+  for (const r of relations) {
+    const from = groupOf.get(r.source);
+    const to = groupOf.get(r.target);
+    if (!from || !to || from === to) continue;
+    if (!callees.has(from)) callees.set(from, new Set());
+    callees.get(from)!.add(to);
+    hasCaller.add(to);
+  }
+  const level = new Map<string, number>();
+  const visit = (id: string, depth: number, path: Set<string>) => {
+    // Cycles between workspaces: stop at the first repeat
+    if (path.has(id) || (level.get(id) ?? -1) >= depth) return;
+    level.set(id, depth);
+    path.add(id);
+    callees.get(id)?.forEach((to) => visit(to, depth + 1, path));
+    path.delete(id);
+  };
+  laidOut.filter((g) => !hasCaller.has(g.id)).forEach((g) => visit(g.id, 0, new Set()));
+  laidOut.forEach((g) => { if (!level.has(g.id)) visit(g.id, 0, new Set()); });
+
   const order = (id: string) => (id === GLOBAL_KEY ? 0 : id === MISSING_KEY ? 2 : 1);
-  laidOut.sort((a, b) => order(a.id) - order(b.id) || a.label.localeCompare(b.label));
+  laidOut.sort((a, b) =>
+    level.get(a.id)! - level.get(b.id)! || order(a.id) - order(b.id) || a.label.localeCompare(b.label)
+  );
 
   // Shelf packing: target a roughly square overall shape, never narrower than the widest frame
   const area = laidOut.reduce((sum, g) => sum + (g.width + FRAME_GAP) * (g.height + FRAME_GAP), 0);
@@ -76,8 +104,12 @@ export function workspaceLayout(nodes: AgentGraphNode[], relations: Relation[], 
   let cursorX = 0;
   let cursorY = 0;
   let rowHeight = 0;
+  let currentLevel = 0;
   for (const group of laidOut) {
-    if (cursorX > 0 && cursorX + group.width > rowWidth) {
+    // Each level starts a new row; a level wider than the row wraps onto more rows
+    const newLevel = level.get(group.id)! !== currentLevel;
+    currentLevel = level.get(group.id)!;
+    if (cursorX > 0 && (newLevel || cursorX + group.width > rowWidth)) {
       cursorX = 0;
       cursorY += rowHeight + FRAME_GAP;
       rowHeight = 0;
