@@ -268,8 +268,7 @@ export function WorkspaceDetailPage() {
           <CollectionsList
             workspaceId={workspaceId}
             description="Workspace-scoped memory collections. Falls back to global if not found."
-            showSearch={false}
-            columns={['name', 'description', 'records', 'fields', 'created', 'actions']}
+            excludeColumns={['workspace']}
             onCreate={loadWorkspace}
             onDelete={loadWorkspace}
           />

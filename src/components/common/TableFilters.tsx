@@ -26,13 +26,15 @@ export interface SelectFilterField<V> extends FilterFieldBase<V> {
   options: FilterOption[];
 }
 
-/** Value: `string` - committed on blur or Enter, not on every keystroke */
+/** Value: `string` - committed on blur or Enter, or after `debounce` ms of no typing */
 export interface TextFilterField<V> extends FilterFieldBase<V> {
   type: 'text';
   placeholder?: string;
   icon?: ReactNode;
   /** Dropdown hints while typing; any other text can still be entered */
   suggestions?: string[];
+  /** Also apply while typing, after this many ms without a keystroke (e.g. 300) */
+  debounce?: number;
 }
 
 /** Value: `Date | null` */
@@ -98,9 +100,10 @@ interface TextFilterProps {
   icon?: ReactNode;
   width: number | string;
   suggestions?: string[];
+  debounce?: number;
 }
 
-function TextFilter({ value, onCommit, placeholder, icon, width, suggestions }: TextFilterProps) {
+function TextFilter({ value, onCommit, placeholder, icon, width, suggestions, debounce }: TextFilterProps) {
   const [draft, setDraft] = useState(value);
 
   useEffect(() => {
@@ -111,6 +114,16 @@ function TextFilter({ value, onCommit, placeholder, icon, width, suggestions }: 
     const next = text.trim();
     if (next !== value) onCommit(next);
   };
+
+  useEffect(() => {
+    if (debounce === undefined) return;
+    const next = draft.trim();
+    if (next === value) return;
+    const timer = setTimeout(() => onCommit(next), debounce);
+    return () => clearTimeout(timer);
+    // Only restart the timer on typing; `value`/`onCommit` change when a commit lands
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft, debounce]);
 
   if (suggestions) {
     return (
@@ -192,6 +205,7 @@ export function TableFilters<V>({
             icon={field.icon}
             width={field.width ?? 200}
             suggestions={field.suggestions}
+            debounce={field.debounce}
           />
         );
       case 'date':

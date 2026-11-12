@@ -39,10 +39,15 @@ export interface MemorySearchOptions {
 }
 
 // List options for schemas
+export type SchemasSortBy = 'name' | 'createdAt' | 'updatedAt';
+
 export interface ListSchemasOptions {
-  limit?: number;
+  limit?: number; // backend max 100
   offset?: number;
-  search?: string;
+  name?: string; // Contains, case-insensitive
+  description?: string; // Contains, case-insensitive
+  sortBy?: SchemasSortBy;
+  sortOrder?: 'asc' | 'desc';
   workspaceId?: string | null; // string = specific workspace, null = global only, undefined = all
 }
 
@@ -67,7 +72,10 @@ export const memoryApi = {
     const params = new URLSearchParams();
     if (options?.limit) params.append('limit', String(options.limit));
     if (options?.offset) params.append('offset', String(options.offset));
-    if (options?.search) params.append('search', options.search);
+    if (options?.name) params.append('name', options.name);
+    if (options?.description) params.append('description', options.description);
+    if (options?.sortBy) params.append('sortBy', options.sortBy);
+    if (options?.sortOrder) params.append('sortOrder', options.sortOrder);
     if (options?.workspaceId !== undefined) {
       params.append('workspaceId', options.workspaceId === null ? 'null' : options.workspaceId);
     }
