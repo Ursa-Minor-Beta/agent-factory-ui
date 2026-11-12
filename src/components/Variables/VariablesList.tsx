@@ -1,41 +1,37 @@
-import { useState, useEffect } from 'react';
-import {
-  Box,
-  Text,
-  Button,
-  Card,
-  Group,
-  ActionIcon,
-  Loader,
-  Alert,
-  Table,
-  Center,
-  Code,
-  TextInput,
-} from '@mantine/core';
+import { useState, useRef } from 'react';
+import { Box, Text, Button, Group, ActionIcon, Code } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import {
-  IconPlus,
-  IconTrash,
-  IconPencil,
-  IconSearch,
-  IconAlertCircle,
-} from '@tabler/icons-react';
+import { IconPlus, IconTrash, IconPencil, IconSearch } from '@tabler/icons-react';
 import { variablesApi } from '../../api';
+import type { VariablesSortBy } from '../../api/variables';
 import type { Variable } from '../../types';
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableHandle,
+  type DataTableQuery,
+  type SortValue,
+} from '../common/DataTable';
 import { VariableModal } from './VariableModal';
 import { DeleteConfirmModal } from '../DeleteConfirmModal';
-import { WorkspaceBadge } from '../Workspace';
+import { WorkspaceBadge, useWorkspaceFilterOptions, GLOBAL_WORKSPACE } from '../Workspace';
 
-export type VariableColumn = 'workspace' | 'name' | 'value' | 'description' | 'created' | 'actions';
+export type VariableColumn = 'workspace' | 'name' | 'value' | 'description' | 'created' | 'updated' | 'actions';
 
-const DEFAULT_COLUMNS: VariableColumn[] = ['workspace', 'name', 'value', 'description', 'created', 'actions'];
+const INITIAL_SORT: SortValue<VariablesSortBy> = { sortBy: 'name', sortOrder: 'asc' };
+
+interface VariablesFilters {
+  workspaceId: string | null;
+  name: string;
+}
 
 interface VariablesListProps {
   workspaceId?: string;
   description?: string;
+  /** Show the name search */
   showSearch?: boolean;
-  columns?: VariableColumn[];
+  /** Columns to leave out; all are shown by default */
+  excludeColumns?: VariableColumn[];
   onCreate?: () => void;
   onDelete?: () => void;
 }
@@ -44,37 +40,29 @@ export function VariablesList({
   workspaceId,
   description = '',
   showSearch = true,
-  columns = DEFAULT_COLUMNS,
+  excludeColumns = [],
   onCreate,
   onDelete,
 }: VariablesListProps) {
-  const showColumn = (col: VariableColumn) => columns.includes(col);
-  const [variables, setVariables] = useState<Variable[]>([]);
-  const [loading, setLoading] = useState(true);
+  const showColumn = (col: VariableColumn) => !excludeColumns.includes(col);
+  const tableRef = useRef<DataTableHandle<Variable>>(null);
   const [error, setError] = useState('');
+  const workspaceOptions = useWorkspaceFilterOptions(workspaceId === undefined);
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
   const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
   const [editingVariable, setEditingVariable] = useState<Variable | null>(null);
   const [deletingVariable, setDeletingVariable] = useState<Variable | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [search, setSearch] = useState('');
 
-  const loadVariables = async () => {
-    try {
-      setLoading(true);
-      const data = await variablesApi.list(workspaceId !== undefined ? { workspaceId } : undefined);
-      setVariables(data);
-      setError('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load variables');
-    } finally {
-      setLoading(false);
-    }
+  const loadVariables = async ({ filters, sort }: DataTableQuery<VariablesFilters, VariablesSortBy>) => {
+    const workspace = workspaceId ?? filters.workspaceId;
+    const rows = await variablesApi.list({
+      workspaceId: workspace ? (workspace === GLOBAL_WORKSPACE ? null : workspace) : undefined,
+      name: filters.name || undefined,
+      ...sort,
+    });
+    return { rows, total: rows.length };
   };
-
-  useEffect(() => {
-    loadVariables();
-  }, [workspaceId]);
 
   const handleOpenCreateModal = () => {
     setEditingVariable(null);
@@ -94,7 +82,7 @@ export function VariablesList({
   const handleSuccess = () => {
     const isNew = !editingVariable;
     handleCloseModal();
-    loadVariables();
+    tableRef.current?.reload();
     if (isNew) onCreate?.();
   };
 
@@ -109,8 +97,10 @@ export function VariablesList({
     try {
       await variablesApi.delete(deletingVariable.id);
       closeDeleteModal();
+      const deletedId = deletingVariable.id;
       setDeletingVariable(null);
-      loadVariables();
+      tableRef.current?.setRows((prev) => prev.filter((s) => s.id !== deletedId));
+      tableRef.current?.setTotal((prev) => prev - 1);
       onDelete?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete variable');
@@ -119,14 +109,87 @@ export function VariablesList({
     }
   };
 
-  if (loading) {
-    return (
-      <Center py="xl">
-        <Loader />
-      </Center>
-    );
-  }
-
+  const tableColumns: DataTableColumn<Variable, VariablesFilters>[] = [
+    {
+      key: 'workspace',
+      header: 'Workspace',
+      hidden: !showColumn('workspace'),
+      // Only when the list isn't already scoped to one workspace
+      filter:
+        workspaceId === undefined
+          ? { type: 'select', key: 'workspaceId', placeholder: 'Workspace', options: workspaceOptions }
+          : undefined,
+      render: (variable) => <WorkspaceBadge workspaceName={variable.workspaceName} />,
+    },
+    {
+      key: 'name',
+      header: 'Name',
+      hidden: !showColumn('name'),
+      sortable: true,
+      filter: showSearch
+        ? { type: 'text', key: 'name', placeholder: 'Search by name', icon: <IconSearch size={16} /> }
+        : undefined,
+      render: (variable) => <Code>{variable.name}</Code>,
+    },
+    {
+      key: 'value',
+      header: 'Value',
+      hidden: !showColumn('value'),
+      render: (variable) => (
+        <Text size="sm" c="dimmed">
+          {variable.value}
+        </Text>
+      ),
+    },
+    {
+      key: 'description',
+      header: 'Description',
+      hidden: !showColumn('description'),
+      render: (variable) => (
+        <Text size="sm" c="dimmed" lineClamp={1}>
+          {variable.description || '-'}
+        </Text>
+      ),
+    },
+    {
+      key: 'createdAt',
+      header: 'Created',
+      hidden: !showColumn('created'),
+      sortable: true,
+      render: (variable) => (
+        <Text size="sm" c="dimmed">
+          {new Date(variable.createdAt).toLocaleDateString()}
+        </Text>
+      ),
+    },
+    {
+      key: 'updatedAt',
+      header: 'Updated',
+      hidden: !showColumn('updated'),
+      sortable: true,
+      render: (variable) => (
+        <Text size="sm" c="dimmed">
+          {new Date(variable.updatedAt).toLocaleDateString()}
+        </Text>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      hidden: !showColumn('actions'),
+      render: (variable) => (
+        <Group gap="xs" justify="flex-end">
+          <ActionIcon variant="subtle" onClick={() => handleOpenEditModal(variable)}>
+            <IconPencil size={18} />
+          </ActionIcon>
+          <ActionIcon variant="subtle" color="red" onClick={() => handleOpenDeleteModal(variable)}>
+            <IconTrash size={18} />
+          </ActionIcon>
+        </Group>
+      ),
+    },
+  ];
 
   return (
     <Box>
@@ -134,113 +197,26 @@ export function VariablesList({
         <Text c="dimmed" size="sm">
           {description}
         </Text>
-        {showSearch && (
-          <TextInput
-            placeholder="Search variables..."
-            value={search}
-            onChange={(e) => setSearch(e.currentTarget.value)}
-            leftSection={<IconSearch size={16} />}
-            style={{ flex: 1, maxWidth: 300 }}
-          />
-        )}
         <Button leftSection={<IconPlus size={16} />} onClick={handleOpenCreateModal}>
           Add Variable
         </Button>
       </Group>
 
-      {error && (
-        <Alert
-          icon={<IconAlertCircle size={16} />}
-          color="red"
-          mb="md"
-          withCloseButton
-          onClose={() => setError('')}
-        >
-          {error}
-        </Alert>
-      )}
-
-      <Card withBorder>
-        <Table striped highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              {showColumn('workspace') && <Table.Th>Workspace</Table.Th>}
-              {showColumn('name') && <Table.Th>Name</Table.Th>}
-              {showColumn('value') && <Table.Th>Value</Table.Th>}
-              {showColumn('description') && <Table.Th>Description</Table.Th>}
-              {showColumn('created') && <Table.Th>Created</Table.Th>}
-              {showColumn('actions') && <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>}
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {variables.map((variable) => (
-              <Table.Tr key={variable.id}>
-                {showColumn('workspace') && (
-                  <Table.Td>
-                    <WorkspaceBadge workspaceName={variable.workspaceName} />
-                  </Table.Td>
-                )}
-                {showColumn('name') && (
-                  <Table.Td>
-                    <Code>{variable.name}</Code>
-                  </Table.Td>
-                )}
-                {showColumn('value') && (
-                  <Table.Td>
-                    <Text size="sm" c="dimmed">
-                      {variable.value}
-                    </Text>
-                  </Table.Td>
-                )}
-                {showColumn('description') && (
-                  <Table.Td>
-                    <Text size="sm" c="dimmed" lineClamp={1}>
-                      {variable.description || '-'}
-                    </Text>
-                  </Table.Td>
-                )}
-                {showColumn('created') && (
-                  <Table.Td>
-                    <Text size="sm" c="dimmed">
-                      {new Date(variable.createdAt).toLocaleDateString()}
-                    </Text>
-                  </Table.Td>
-                )}
-                {showColumn('actions') && (
-                  <Table.Td style={{ textAlign: 'right' }}>
-                    <Group gap="xs" justify="flex-end">
-                      <ActionIcon
-                        variant="subtle"
-                        onClick={() => handleOpenEditModal(variable)}
-                      >
-                        <IconPencil size={18} />
-                      </ActionIcon>
-                      <ActionIcon
-                        variant="subtle"
-                        color="red"
-                        onClick={() => handleOpenDeleteModal(variable)}
-                      >
-                        <IconTrash size={18} />
-                      </ActionIcon>
-                    </Group>
-                  </Table.Td>
-                )}
-              </Table.Tr>
-            ))}
-            {variables.length === 0 && (
-              <Table.Tr>
-                <Table.Td colSpan={columns.filter((c) => showColumn(c)).length}>
-                  <Text ta="center" c="dimmed" py="md" size="sm">
-                    {variables.length === 0
-                      ? 'No variables configured'
-                      : 'No variables match your search'}
-                  </Text>
-                </Table.Td>
-              </Table.Tr>
-            )}
-          </Table.Tbody>
-        </Table>
-      </Card>
+      <DataTable
+        // Remount on workspace change so the list reloads for the new workspace
+        key={workspaceId ?? 'all'}
+        ref={tableRef}
+        columns={tableColumns}
+        getRowId={(variable) => variable.id}
+        loadData={loadVariables}
+        error={error}
+        onErrorClose={() => setError('')}
+        emptyMessage="No variables configured"
+        noMatchMessage="No variables match your search"
+        initialSort={INITIAL_SORT}
+        paginated={false}
+        itemLabel={['variable', 'variables']}
+      />
 
       <VariableModal
         opened={modalOpened}
