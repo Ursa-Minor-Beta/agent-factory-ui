@@ -12,7 +12,7 @@ Visual platform for building and managing AI agents through a no-code/low-code i
 - **Agent Builder** - Chat with a builder agent that designs whole multi-agent systems with memory: it reads, adds, edits and removes nodes on the canvas, names the agent, assigns a workspace, saves and test-runs it. Any agent can be picked as the builder
 - **Composable Agents** - Agents can call other agents as sub-workflows or llm-tools
 - **Webhooks** - Start agent runs from external HTTP POSTs, with optional JS handlers (Slack, GitHub, Telegram templates) to verify, filter and reshape requests and a built-in test panel; manage them from the agent editor, a Webhooks page and workspace pages
-- **Agent Relations Graph** - Agents list graph mode and an editor tab showing which agents call which
+- **Agent Relations Graph** - Agents list graph mode (all agents or one workspace) and an editor tab showing which agents call which
 - **Agents Table View** - Switch the agents list between cards and a sortable, filterable table
 - **Run in Editor** - Run the agent from the editor with saved inputs, live node status and an animated step-by-step replay on the canvas
 - **Multi-Provider LLM** - Provider presets loaded from the backend (OpenAI, Anthropic, Ollama, and any OpenAI-compatible endpoint), global or per-workspace, with a default per provider type

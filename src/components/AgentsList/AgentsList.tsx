@@ -60,15 +60,13 @@ export function AgentsList({
   const [importModalOpened, setImportModalOpened] = useState(false);
   const [githubImportModalOpened, setGithubImportModalOpened] = useState(false);
 
-  // Graph view is only offered inside a workspace
   // Last chosen view is remembered across reloads
   const [selectedViewMode, setViewMode] = useLocalStorage<ViewMode>({
     key: VIEW_MODE_STORAGE_KEY,
     defaultValue: 'list',
     getInitialValueInEffect: false,
   });
-  const viewMode: ViewMode =
-    selectedViewMode === 'graph' ? (workspaceId ? 'graph' : 'list') : selectedViewMode;
+  const viewMode = selectedViewMode;
   // Cards and table are one DataTable, so switching between them keeps filters, sort and page
   const tableRef = useRef<DataTableHandle<Agent>>(null);
 
@@ -132,9 +130,7 @@ export function AgentsList({
       data={[
         { value: 'list', label: <Tooltip label="Cards"><Center><IconLayoutGrid size={16} /></Center></Tooltip> },
         { value: 'table', label: <Tooltip label="Table"><Center><IconList size={16} /></Center></Tooltip> },
-        ...(workspaceId
-          ? [{ value: 'graph', label: <Tooltip label="Graph"><Center><IconHierarchy2 size={16} /></Center></Tooltip> }]
-          : []),
+        { value: 'graph', label: <Tooltip label="Graph"><Center><IconHierarchy2 size={16} /></Center></Tooltip> },
       ]}
     />
   );
@@ -184,7 +180,7 @@ export function AgentsList({
 
   return (
     <Box pos="relative">
-      {viewMode === 'graph' && workspaceId ? (
+      {viewMode === 'graph' ? (
         <>
           {/* Floats over the graph so the graph gets the full height */}
           <Group gap="sm" wrap="wrap" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}>

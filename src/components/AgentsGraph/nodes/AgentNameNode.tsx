@@ -4,7 +4,7 @@ import type { AgentGraphNode, NodeStatus } from '../../../types';
 import { WorkspaceBadge } from '../../Workspace';
 import type { GraphSizes } from '../types';
 
-export const NAME_NODE_SIZES: GraphSizes = { nodeWidth: 160, slot: 190, rowGap: 90 };
+export const NAME_NODE_SIZES: GraphSizes = { nodeWidth: 160, slot: 190, rowGap: 90, nodeHeight: 32 };
 
 export type AgentNameNodeData = {
   name: string;
@@ -16,6 +16,7 @@ export type AgentNameNodeData = {
   workspaceId?: string | null;
   workspaceName?: string | null;
   width?: number; // defaults to NAME_NODE_SIZES (card graph renders external agents card-wide)
+  hint?: string; // tooltip for a regular agent; defaults to the editor's "Switch to the agent"
 };
 
 // Name-only node data for an agent of the relation graph
@@ -30,11 +31,11 @@ export function nameNodeData(node: AgentGraphNode, currentAgentId?: string): Age
   };
 }
 
-function tooltipLabel({ current, missing, external, workspaceName }: AgentNameNodeData) {
+function tooltipLabel({ current, missing, external, workspaceName, hint }: AgentNameNodeData) {
   if (missing) return 'Agent was deleted or you have no access to it';
   if (current) return null;
   if (external) return `Open the agent from ${workspaceName ?? 'another workspace'}`;
-  return 'Switch to the agent';
+  return hint ?? 'Switch to the agent';
 }
 
 // Name-only node (editor side panel, external agents); running agents get a glow via AgentsGraph.css

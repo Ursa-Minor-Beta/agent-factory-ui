@@ -19,6 +19,7 @@ interface AgentsGraphViewProps {
   nodesDraggable?: boolean;
   onNodeClick?: NodeMouseHandler;
   onNodeDoubleClick?: NodeMouseHandler;
+  onPaneClick?: () => void;
 }
 
 // Shared read-only React Flow canvas for the agents graph variants
@@ -32,7 +33,7 @@ export function AgentsGraphView(props: AgentsGraphViewProps) {
 }
 
 function AgentsGraphViewInner({
-  nodes, edges, bounds, nodeTypes, loading, error, style, topInset, nodesDraggable, onNodeClick, onNodeDoubleClick,
+  nodes, edges, bounds, nodeTypes, loading, error, style, topInset, nodesDraggable, onNodeClick, onNodeDoubleClick, onPaneClick,
 }: AgentsGraphViewProps) {
   const colorScheme = useComputedColorScheme('dark');
   const { ref, viewport, setViewport } = useFitWidthViewport(bounds, topInset);
@@ -60,6 +61,7 @@ function AgentsGraphViewInner({
             nodesDraggable={nodesDraggable}
             onNodeClick={onNodeClick}
             onNodeDoubleClick={onNodeDoubleClick}
+            onPaneClick={onPaneClick}
           >
             <Background />
           </ReactFlow>
