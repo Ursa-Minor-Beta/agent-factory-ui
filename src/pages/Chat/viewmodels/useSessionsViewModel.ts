@@ -65,9 +65,9 @@ export function useSessionsViewModel(
 
     try {
       setLoading(true);
-      const { items: data } = await sessionsApi.list({ agentId, status: 'active', limit: 50 });
-      setSessions(data);
-      return data;
+      const { items } = await sessionsApi.list({ agentId, status: 'active', limit: 50 });
+      setSessions(items);
+      return items;
     } catch (err) {
       console.error('Failed to load sessions:', err);
       return [];
@@ -83,12 +83,12 @@ export function useSessionsViewModel(
     const initSessions = async () => {
       try {
         setLoading(true);
-        const { items: data } = await sessionsApi.list({ agentId, status: 'active', limit: 50 });
-        setSessions(data);
+        const { items } = await sessionsApi.list({ agentId, status: 'active', limit: 50 });
+        setSessions(items);
 
         // Auto-select most recent session only on initial load
-        if (!urlSessionId && !startIncognito && data.length > 0) {
-          const mostRecent = data[0];
+        if (!urlSessionId && !startIncognito && items.length > 0) {
+          const mostRecent = items[0];
           setCurrentSessionId(mostRecent.id);
           navigate(routes.agentChat(agentId, mostRecent.id), { replace: true });
         }

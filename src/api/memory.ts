@@ -39,10 +39,15 @@ export interface MemorySearchOptions {
 }
 
 // List options for schemas
+export type SchemasSortBy = 'name' | 'createdAt' | 'updatedAt';
+
 export interface ListSchemasOptions {
-  limit?: number;
+  limit?: number; // backend max 100
   offset?: number;
-  search?: string;
+  name?: string; // Contains, case-insensitive
+  description?: string; // Contains, case-insensitive
+  sortBy?: SchemasSortBy;
+  sortOrder?: 'asc' | 'desc';
   workspaceId?: string | null; // string = specific workspace, null = global only, undefined = all
 }
 
@@ -50,9 +55,10 @@ export interface ListSchemasOptions {
 export interface ListRecordsOptions {
   limit?: number;
   offset?: number;
-  sortField?: string;
+  sortField?: string; // 'createdAt', 'updatedAt' or a schema field name
   sortDirection?: 'asc' | 'desc';
-  search?: string;
+  field?: string; // Schema field to search in (used with value)
+  value?: string; // Text the field must contain, case-insensitive
 }
 
 // Paginated records response
@@ -67,7 +73,10 @@ export const memoryApi = {
     const params = new URLSearchParams();
     if (options?.limit) params.append('limit', String(options.limit));
     if (options?.offset) params.append('offset', String(options.offset));
-    if (options?.search) params.append('search', options.search);
+    if (options?.name) params.append('name', options.name);
+    if (options?.description) params.append('description', options.description);
+    if (options?.sortBy) params.append('sortBy', options.sortBy);
+    if (options?.sortOrder) params.append('sortOrder', options.sortOrder);
     if (options?.workspaceId !== undefined) {
       params.append('workspaceId', options.workspaceId === null ? 'null' : options.workspaceId);
     }
@@ -94,7 +103,8 @@ export const memoryApi = {
     if (options?.offset) params.append('offset', String(options.offset));
     if (options?.sortField) params.append('sortField', options.sortField);
     if (options?.sortDirection) params.append('sortDirection', options.sortDirection);
-    if (options?.search) params.append('search', options.search);
+    if (options?.field) params.append('field', options.field);
+    if (options?.value) params.append('value', options.value);
     const query = params.toString();
     return api.get<ListRecordsResponse>(`/api/memory/${collectionId}/records${query ? `?${query}` : ''}`);
   },

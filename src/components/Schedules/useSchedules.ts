@@ -3,12 +3,8 @@ import { schedulesApi, type ListSchedulesOptions } from '../../api';
 import type { AgentSchedule } from '../../types';
 import { subscribeScheduleEvents } from './scheduleEvents';
 
-// Schedule status changes on the server without user action (runs start/finish)
-const POLL_INTERVAL_MS = 30_000;
-
 /**
- * Loads schedules for the given filter and keeps them fresh:
- * polls while the tab is visible and applies modal saves/deletes optimistically.
+ * Loads schedules for the given filter and applies modal saves/deletes optimistically.
  */
 interface UseSchedulesOptions extends Pick<ListSchedulesOptions, 'agentId' | 'workspaceId'> {
   /** A schedule was created in this list's scope */
@@ -47,10 +43,6 @@ export function useSchedules({ agentId, workspaceId, onCreate, onDelete }: UseSc
 
   useEffect(() => {
     load();
-    const timer = setInterval(() => {
-      if (!document.hidden) load(true);
-    }, POLL_INTERVAL_MS);
-    return () => clearInterval(timer);
   }, [load]);
 
   const upsert = useCallback((schedule: AgentSchedule) => {

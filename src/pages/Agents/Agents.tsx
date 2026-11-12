@@ -5,8 +5,6 @@ export function AgentsPage() {
   return (
     <Box>
       <AgentsList
-        showFilters={true}
-        showPagination={true}
         showCreateButton={true}
       />
     </Box>

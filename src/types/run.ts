@@ -80,6 +80,7 @@ export interface RunSummary {
   agentId: string;
   agentName: string;
   userId: string;
+  sessionId?: string;
   status: RunStatus;
   serviceStatus: 'active' | 'inactive';
   error: string | null;

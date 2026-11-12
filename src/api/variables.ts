@@ -1,8 +1,13 @@
 import { api } from './client';
 import type { Variable } from '../types';
 
+export type VariablesSortBy = 'name' | 'createdAt' | 'updatedAt';
+
 export interface ListVariablesOptions {
   workspaceId?: string | null; // string = specific workspace, null = global only, undefined = all
+  name?: string; // Contains, case-insensitive
+  sortBy?: VariablesSortBy;
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface CreateVariableInput {
@@ -25,6 +30,9 @@ export const variablesApi = {
     if (options?.workspaceId !== undefined) {
       params.append('workspaceId', options.workspaceId === null ? 'null' : options.workspaceId);
     }
+    if (options?.name) params.append('name', options.name);
+    if (options?.sortBy) params.append('sortBy', options.sortBy);
+    if (options?.sortOrder) params.append('sortOrder', options.sortOrder);
     const query = params.toString();
     return api.get<Variable[]>(`/api/variables${query ? `?${query}` : ''}`);
   },

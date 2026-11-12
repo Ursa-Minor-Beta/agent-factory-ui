@@ -2,6 +2,7 @@ export interface GraphSizes {
   nodeWidth: number;
   slot: number; // node width + horizontal gap
   rowGap: number;
+  nodeHeight: number; // approximate rendered height, for sizing workspace frames
 }
 
 export interface Relation {

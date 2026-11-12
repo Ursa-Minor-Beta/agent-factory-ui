@@ -4,7 +4,7 @@ import { IconChevronDown, IconChevronUp, IconExternalLink, IconPlayerPlay } from
 import { MarkdownRenderer } from '../../../components/MarkdownRenderer';
 
 const MAX_PREVIEW_LENGTH = 5000;
-const MAX_MARKDOWN_LENGTH = 50000;
+const MAX_MARKDOWN_LENGTH = 100_000;
 const CONTENT_HEIGHT = '70vh';
 const CONTENT_HEIGHT_EXPANDED = '100vh';
 

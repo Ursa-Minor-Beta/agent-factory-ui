@@ -5,7 +5,7 @@ import { AgentCard } from '../../AgentsList/AgentCard';
 import type { AgentCardProps } from '../../AgentsList/types';
 import type { GraphSizes } from '../types';
 
-export const CARD_NODE_SIZES: GraphSizes = { nodeWidth: 300, slot: 380, rowGap: 180 };
+export const CARD_NODE_SIZES: GraphSizes = { nodeWidth: 300, slot: 380, rowGap: 180, nodeHeight: 110 };
 
 export type CardActions = Omit<AgentCardProps, 'agent' | 'compact'>;
 export type AgentCardNodeData = { agent: Agent; actions: CardActions; external?: boolean }; // external: from another workspace - dashed

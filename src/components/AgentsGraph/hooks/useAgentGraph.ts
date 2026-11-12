@@ -3,7 +3,7 @@ import { agentsApi } from '../../../api';
 import type { Agent, AgentGraph } from '../../../types';
 
 /**
- * Workspace relation graph (one request), plus - with `withAgents` - the workspace's agents for full cards.
+ * Relation graph of a workspace or ALL_AGENTS (one request), plus - with `withAgents` - the workspace's agents for full cards.
  * Both served from the agents API cache when possible; any agent mutation drops it (api/agents.ts),
  * refreshKey/currentAgentId re-check it. The graph is also refetched when the current agent is missing
  * from it (e.g. just created) even if a cache exists.

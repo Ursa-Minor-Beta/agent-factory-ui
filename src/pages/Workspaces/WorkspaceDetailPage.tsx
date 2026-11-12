@@ -195,9 +195,6 @@ export function WorkspaceDetailPage() {
           <Tabs.Tab value="agents" leftSection={<IconRobot size={16} />}>
             Agents{workspace.agentCount !== undefined && ` (${workspace.agentCount})`}
           </Tabs.Tab>
-          <Tabs.Tab value="schedules" leftSection={<IconCalendarTime size={16} />}>
-            Schedules{workspace.scheduleCount !== undefined && ` (${workspace.scheduleCount})`}
-          </Tabs.Tab>
           <Tabs.Tab value="providers" leftSection={<IconCloud size={16} />}>
             Providers{workspace.providerCount !== undefined && ` (${workspace.providerCount})`}
           </Tabs.Tab>
@@ -207,20 +204,20 @@ export function WorkspaceDetailPage() {
           <Tabs.Tab value="variables" leftSection={<IconVariable size={16} />}>
             Variables{workspace.variableCount !== undefined && ` (${workspace.variableCount})`}
           </Tabs.Tab>
-          <Tabs.Tab value="webhooks" leftSection={<IconWebhook size={16} />}>
-            Webhooks
-          </Tabs.Tab>
           <Tabs.Tab value="collections" leftSection={<IconDatabase size={16} />}>
             Collections{workspace.collectionCount !== undefined && ` (${workspace.collectionCount})`}
+          </Tabs.Tab>
+          <Tabs.Tab value="schedules" leftSection={<IconCalendarTime size={16} />}>
+            Schedules{workspace.scheduleCount !== undefined && ` (${workspace.scheduleCount})`}
+          </Tabs.Tab>
+          <Tabs.Tab value="webhooks" leftSection={<IconWebhook size={16} />}>
+            Webhooks {workspace.webhookCount !== undefined && ` (${workspace.webhookCount})`}
           </Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value="agents">
           <AgentsList
             workspaceId={workspaceId}
-            showFilters={false}
-            showPagination={false}
-            // showCreateButton={false}
             onCreate={loadWorkspace}
             onDelete={loadWorkspace}
           />
@@ -230,8 +227,7 @@ export function WorkspaceDetailPage() {
           <ProvidersList
             workspaceId={workspaceId}
             description="Workspace-scoped LLM providers. Falls back to global if not configured."
-            showSearch={false}
-            columns={['name', 'provider', 'apiKey', 'baseUrl', 'default', 'actions']}
+            excludeColumns={['workspace', 'createdAt', 'updatedAt']}
             onCreate={loadWorkspace}
             onDelete={loadWorkspace}
           />
@@ -241,8 +237,7 @@ export function WorkspaceDetailPage() {
           <SecretsList
             workspaceId={workspaceId}
             description="Workspace-scoped secrets for {{secret:NAME}} syntax. Falls back to global if not found."
-            showSearch={false}
-            columns={['name', 'value', 'description', 'created', 'actions']}
+            excludeColumns={['workspace', 'updated']}
             onCreate={loadWorkspace}
             onDelete={loadWorkspace}
           />
@@ -252,8 +247,7 @@ export function WorkspaceDetailPage() {
           <VariablesList
             workspaceId={workspaceId}
             description="Workspace-scoped variables for {{var:NAME}} syntax. Falls back to global if not found."
-            showSearch={false}
-            columns={['name', 'value', 'description', 'created', 'actions']}
+            excludeColumns={['workspace', 'updated']}
             onCreate={loadWorkspace}
             onDelete={loadWorkspace}
           />
@@ -263,7 +257,7 @@ export function WorkspaceDetailPage() {
           <WebhooksList
             workspaceId={workspaceId}
             description="Webhooks of this workspace's agents. POST to a URL to start the agent."
-            columns={['agent', 'name', 'url', 'enabled', 'lastTriggered', 'actions']}
+            excludeColumns={['workspace', 'created']}
           />
         </Tabs.Panel>
 
@@ -271,8 +265,7 @@ export function WorkspaceDetailPage() {
           <CollectionsList
             workspaceId={workspaceId}
             description="Workspace-scoped memory collections. Falls back to global if not found."
-            showSearch={false}
-            columns={['name', 'description', 'records', 'fields', 'created', 'actions']}
+            excludeColumns={['workspace']}
             onCreate={loadWorkspace}
             onDelete={loadWorkspace}
           />
@@ -283,7 +276,7 @@ export function WorkspaceDetailPage() {
             <SchedulesList
               workspaceId={workspaceId}
               description="Schedules of this workspace's agents"
-              columns={['name', 'status', 'schedule', 'nextRun', 'lastRun', 'enabled', 'actions']}
+              excludeColumns={['workspace', 'agent']}
               onCreate={loadWorkspace}
               onDelete={loadWorkspace}
             />

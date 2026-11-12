@@ -22,9 +22,13 @@ function parseTrail(value: string | null): RunTrailItem[] {
  * Build a query string for opening a run with the given breadcrumb trail.
  */
 export function buildRunDetailsSearch(id: string, trail: RunTrailItem[]) {
-  const params = new URLSearchParams({ [RUN_PARAM]: id });
+  // Start from the current query string so other params (e.g. table filters) are kept
+  const params = new URLSearchParams(window.location.search);
+  params.set(RUN_PARAM, id);
   if (trail.length > 0) {
     params.set(TRAIL_PARAM, JSON.stringify(trail));
+  } else {
+    params.delete(TRAIL_PARAM);
   }
   return `?${params.toString()}`;
 }

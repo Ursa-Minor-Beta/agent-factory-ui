@@ -1,22 +1,18 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   Box,
   Text,
   Button,
-  Card,
   Group,
   ActionIcon,
-  TextInput,
   Loader,
   Alert,
-  Table,
   Center,
   Tooltip,
   Breadcrumbs,
   Code,
-  Pagination,
-  Select,
+  Badge,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
@@ -28,11 +24,95 @@ import {
   IconList,
 } from '@tabler/icons-react';
 import { memoryApi } from '../../api';
-import type { MemorySchema, MemoryRecord } from '../../types';
+import type { MemorySchema, MemoryRecord, MemoryFieldType } from '../../types';
 import { getRecordUserFields } from '../../types';
+import type { FilterField } from '../../components/common/TableFilters';
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableHandle,
+  type DataTableQuery,
+  type SortValue,
+} from '../../components/common/DataTable';
+import { CopyId } from '../../components/common/CopyId';
 import { RecordModal } from './RecordModal';
 import { DeleteConfirmModal } from '../../components/DeleteConfirmModal';
 import { routes } from '../../config/routes';
+import { WorkspaceBadge } from '../../components/Workspace';
+
+// 'createdAt', 'updatedAt' or a schema field name
+type RecordsSortBy = string;
+
+interface RecordsFilters {
+  field: string | null;
+  value: string;
+}
+
+const INITIAL_SORT: SortValue<RecordsSortBy> = { sortBy: 'createdAt', sortOrder: 'desc' };
+
+// Search is "field contains value"; not tied to a column since field columns come from the schema
+function buildSearchFilters(schema: MemorySchema): FilterField<RecordsFilters>[] {
+  const defaultField = schema.fields.find((field) => field.type === 'string') ?? schema.fields[0];
+  return [
+    {
+      type: 'select',
+      key: 'field',
+      placeholder: 'Field',
+      options: schema.fields
+        .map((field) => ({ value: field.name, label: field.name }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+      defaultValue: defaultField?.name ?? null,
+      // Choosing the field alone isn't a filter
+      persistent: true,
+    },
+    {
+      type: 'text',
+      key: 'value',
+      placeholder: 'Contains...',
+      icon: <IconSearch size={16} />,
+      width: 250,
+      debounce: 300,
+    },
+  ];
+}
+
+const MAX_TEXT_LENGTH = 60;
+
+function truncate(text: string) {
+  return text.length > MAX_TEXT_LENGTH ? `${text.slice(0, MAX_TEXT_LENGTH)}…` : text;
+}
+
+/** Cell content for a record field, formatted by its schema type */
+function FieldValue({ type, value }: { type: MemoryFieldType; value: unknown }) {
+  if (value === undefined || value === null || value === '') {
+    return <Text size="sm" c="dimmed">-</Text>;
+  }
+  switch (type) {
+    case 'boolean':
+      return (
+        <Badge size="sm" variant="light" color={value ? 'teal' : 'gray'}>
+          {value ? 'true' : 'false'}
+        </Badge>
+      );
+    case 'date': {
+      const date = new Date(String(value));
+      return (
+        <Text size="sm" c="dimmed">
+          {Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString()}
+        </Text>
+      );
+    }
+    case 'array':
+    case 'object':
+      return <Code fz="xs">{truncate(JSON.stringify(value))}</Code>;
+    default:
+      return (
+        <Text size="sm" lineClamp={1}>
+          {truncate(String(value))}
+        </Text>
+      );
+  }
+}
 
 interface RecordForm {
   data: string; // JSON string of user fields
@@ -40,9 +120,9 @@ interface RecordForm {
 
 export function CollectionRecordsPage() {
   const { collectionId } = useParams<{ collectionId: string }>();
+  const tableRef = useRef<DataTableHandle<MemoryRecord>>(null);
   const [schema, setSchema] = useState<MemorySchema | null>(null);
-  const [records, setRecords] = useState<MemoryRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [schemaLoading, setSchemaLoading] = useState(true);
   const [error, setError] = useState('');
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
   const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
@@ -50,13 +130,6 @@ export function CollectionRecordsPage() {
   const [deletingRecord, setDeletingRecord] = useState<MemoryRecord | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [search, setSearch] = useState('');
-  const [searchDebounced, setSearchDebounced] = useState('');
-
-  // Pagination state
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(20);
-  const [total, setTotal] = useState(0);
 
   // Form state
   const [formData, setFormData] = useState<RecordForm>({
@@ -64,60 +137,40 @@ export function CollectionRecordsPage() {
   });
   const [dataError, setDataError] = useState('');
 
-  const loadData = useCallback(async (searchQuery?: string, currentPage?: number, currentLimit?: number, schemaData?: MemorySchema | null) => {
+  useEffect(() => {
     if (!collectionId) return;
-    const pageNum = currentPage ?? page;
-    const limitNum = currentLimit ?? limit;
-    const offset = (pageNum - 1) * limitNum;
+    setSchemaLoading(true);
+    memoryApi
+      .getSchema(collectionId)
+      .then((data) => {
+        setSchema(data);
+        setError('');
+      })
+      .catch((err) => {
+        setSchema(null);
+        setError(err instanceof Error ? err.message : 'Failed to load collection');
+      })
+      .finally(() => setSchemaLoading(false));
+  }, [collectionId]);
 
-    try {
-      setLoading(true);
-
-      // Use passed schema or fetch it
-      const currentSchema = schemaData !== undefined ? schemaData : schema;
-      let fetchedSchema = currentSchema;
-
-      if (!fetchedSchema) {
-        fetchedSchema = await memoryApi.getSchema(collectionId);
-        setSchema(fetchedSchema);
-      }
-
-      if (!fetchedSchema) {
-        setError('Collection not found');
-        return;
-      }
-
-      // Fetch records using schema id
-      const data = await memoryApi.listRecords(fetchedSchema.id, {
-        search: searchQuery || undefined,
-        limit: limitNum,
-        offset,
-        sortDirection: 'desc',
-      });
-
-      setRecords(data.records);
-      setTotal(data.total);
-      setError('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load data');
-    } finally {
-      setLoading(false);
-    }
-  }, [collectionId, page, limit, schema]);
-
-  // Debounce search and reset page
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearchDebounced(search);
-      setPage(1); // Reset to first page on search change
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search]);
-
-  // Load data when collection, page, limit, or debounced search changes
-  useEffect(() => {
-    loadData(searchDebounced, page, limit);
-  }, [searchDebounced, page, limit, loadData]);
+  const loadRecords = async ({
+    filters,
+    sort,
+    page,
+    pageSize,
+  }: DataTableQuery<RecordsFilters, RecordsSortBy>) => {
+    if (!schema) return { rows: [], total: 0 };
+    const searching = Boolean(filters.field && filters.value);
+    const data = await memoryApi.listRecords(schema.id, {
+      field: searching ? filters.field ?? undefined : undefined,
+      value: searching ? filters.value : undefined,
+      limit: pageSize,
+      offset: (page - 1) * pageSize,
+      sortField: sort?.sortBy,
+      sortDirection: sort?.sortOrder,
+    });
+    return { rows: data.records, total: data.total };
+  };
 
   const getDefaultDataFromSchema = (): Record<string, unknown> => {
     if (!schema) return {};
@@ -202,10 +255,9 @@ export function CollectionRecordsPage() {
         await memoryApi.updateRecord(schema.id, editingRecord.id, payload);
       } else {
         await memoryApi.createRecord(schema.id, payload);
-        setPage(1); // Go to first page after creating new record
       }
       handleCloseModal();
-      loadData(searchDebounced, editingRecord ? page : 1, limit, schema);
+      tableRef.current?.reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save record');
     } finally {
@@ -225,10 +277,8 @@ export function CollectionRecordsPage() {
       await memoryApi.deleteRecord(schema.id, deletingRecord.id);
       closeDeleteModal();
       setDeletingRecord(null);
-      // If last item on page, go to previous page
-      const newPage = records.length === 1 && page > 1 ? page - 1 : page;
-      if (newPage !== page) setPage(newPage);
-      loadData(searchDebounced, newPage, limit, schema);
+      // Refetch so the page refills; the table steps back if the page is now empty
+      tableRef.current?.reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete record');
     } finally {
@@ -236,19 +286,7 @@ export function CollectionRecordsPage() {
     }
   };
 
-  const formatDataPreview = (data: Record<string, unknown> | null | undefined): string => {
-    if (!data) return '{}';
-    const entries = Object.entries(data);
-    if (entries.length === 0) return '{}';
-    const preview = entries.slice(0, 2).map(([k, v]) => {
-      const valueStr = typeof v === 'string' ? v : JSON.stringify(v);
-      const truncated = valueStr.length > 30 ? valueStr.substring(0, 30) + '...' : valueStr;
-      return `${k}: ${truncated}`;
-    }).join(', ');
-    return entries.length > 2 ? `${preview}, ...` : preview;
-  };
-
-  if (loading) {
+  if (schemaLoading) {
     return (
       <Center py="xl">
         <Loader />
@@ -266,151 +304,111 @@ export function CollectionRecordsPage() {
     );
   }
 
+  const columns: DataTableColumn<MemoryRecord, RecordsFilters>[] = [
+    {
+      key: 'id',
+      header: 'ID',
+      width: 140,
+      render: (record) => (
+        <CopyId value={record.id} label={record.id.slice(0, 8)} tooltip="Copy Record ID" dimmed />
+      ),
+    },
+    // One column per schema field
+    ...schema.fields.map(
+      (field): DataTableColumn<MemoryRecord, RecordsFilters> => ({
+        key: field.name,
+        header: field.name,
+        sortable: true,
+        render: (record) => (
+          <FieldValue type={field.type} value={(record as unknown as Record<string, unknown>)[field.name]} />
+        ),
+      })
+    ),
+    {
+      key: 'createdAt',
+      header: 'Created',
+      width: 120,
+      sortable: true,
+      render: (record) => (
+        <Text size="sm" c="dimmed">
+          {new Date(record.createdAt).toLocaleDateString()}
+        </Text>
+      ),
+    },
+    {
+      key: 'updatedAt',
+      header: 'Updated',
+      width: 120,
+      sortable: true,
+      render: (record) => (
+        <Text size="sm" c="dimmed">
+          {new Date(record.updatedAt).toLocaleDateString()}
+        </Text>
+      ),
+    },
+    {
+      key: 'actions',
+      pinned: true,
+      header: 'Actions',
+      width: 120,
+      align: 'right',
+      render: (record) => (
+        <Group gap="xs" justify="flex-end">
+          <Tooltip label="Edit">
+            <ActionIcon variant="subtle" onClick={() => handleOpenEditModal(record)}>
+              <IconPencil size={18} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Delete">
+            <ActionIcon variant="subtle" color="red" onClick={() => handleOpenDeleteModal(record)}>
+              <IconTrash size={18} />
+            </ActionIcon>
+          </Tooltip>
+        </Group>
+      ),
+    },
+  ];
+
   return (
     <Box>
-      <Breadcrumbs mb="md">
-        <Tooltip label="All Collections">
-          <ActionIcon variant="subtle" color="gray" size="md" component={Link} to={routes.collections()}>
-            <IconList size={18} />
-          </ActionIcon>
-        </Tooltip>
-        <Text>{schema.name}</Text>
-      </Breadcrumbs>
-
-      <Group justify="space-between" mb="md">
-        <Box>
-          {schema.description && (
-            <Text c="dimmed" size="sm">{schema.description}</Text>
-          )}
-        </Box>
-      </Group>
-
-      <Group mb="md" gap="sm">
-        <TextInput
-          placeholder="Search records..."
-          value={search}
-          onChange={(e) => setSearch(e.currentTarget.value)}
-          leftSection={<IconSearch size={16} />}
-          style={{ flex: 1, maxWidth: 400 }}
-        />
-        <Box style={{ flex: 1 }} />
+      <Group justify="space-between" mb="md" wrap="nowrap">
+        <Breadcrumbs>
+          <Tooltip label="All Collections">
+            <ActionIcon variant="subtle" color="gray" size="md" component={Link} to={routes.collections()}>
+              <IconList size={18} />
+            </ActionIcon>
+          </Tooltip>
+          <Group gap="xs" wrap="nowrap">
+            <Text>{schema.name}</Text>
+            <WorkspaceBadge workspaceId={schema.workspaceId} workspaceName={schema.workspaceName} />
+          </Group>
+        </Breadcrumbs>
         <Button leftSection={<IconPlus size={16} />} onClick={handleOpenCreateModal}>
           Add Record
         </Button>
       </Group>
 
-      {error && (
-        <Alert
-          icon={<IconAlertCircle size={16} />}
-          color="red"
-          mb="md"
-          withCloseButton
-          onClose={() => setError('')}
-        >
-          {error}
-        </Alert>
+      {schema.description && (
+        <Text c="dimmed" size="sm" mb="md">
+          {schema.description}
+        </Text>
       )}
 
-      <Card withBorder>
-        <Table striped highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th style={{ width: 100 }}>ID</Table.Th>
-              <Table.Th>Fields</Table.Th>
-              <Table.Th style={{ width: 120 }}>Created</Table.Th>
-              <Table.Th style={{ width: 120 }}>Updated</Table.Th>
-              <Table.Th style={{ width: 120, textAlign: 'right' }}>Actions</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {records.map((record) => (
-              <Table.Tr key={record.id}>
-                <Table.Td>
-                  <Code fz="xs">{record.id.slice(0, 8)}</Code>
-                </Table.Td>
-                <Table.Td>
-                  <Text size="sm" c="dimmed" lineClamp={1}>
-                    {formatDataPreview(getRecordUserFields(record))}
-                  </Text>
-                </Table.Td>
-                <Table.Td>
-                  <Text size="sm" c="dimmed">
-                    {new Date(record.createdAt).toLocaleDateString()}
-                  </Text>
-                </Table.Td>
-                <Table.Td>
-                  <Text size="sm" c="dimmed">
-                    {new Date(record.updatedAt).toLocaleDateString()}
-                  </Text>
-                </Table.Td>
-                <Table.Td style={{ textAlign: 'right' }}>
-                  <Group gap="xs" justify="flex-end">
-                    <Tooltip label="Edit">
-                      <ActionIcon
-                        variant="subtle"
-                        onClick={() => handleOpenEditModal(record)}
-                      >
-                        <IconPencil size={18} />
-                      </ActionIcon>
-                    </Tooltip>
-                    <Tooltip label="Delete">
-                      <ActionIcon
-                        variant="subtle"
-                        color="red"
-                        onClick={() => handleOpenDeleteModal(record)}
-                      >
-                        <IconTrash size={18} />
-                      </ActionIcon>
-                    </Tooltip>
-                  </Group>
-                </Table.Td>
-              </Table.Tr>
-            ))}
-            {records.length === 0 && (
-              <Table.Tr>
-                <Table.Td colSpan={5}>
-                  <Text ta="center" c="dimmed" py="md">
-                    {search ? 'No records match your search' : 'No records in this collection'}
-                  </Text>
-                </Table.Td>
-              </Table.Tr>
-            )}
-          </Table.Tbody>
-        </Table>
-
-        {/* Pagination */}
-        {total > 0 && (
-          <Group justify="space-between" mt="md">
-            <Group gap="xs">
-              <Text size="sm" c="dimmed">Rows per page:</Text>
-              <Select
-                size="xs"
-                w={80}
-                value={String(limit)}
-                onChange={(value) => {
-                  setLimit(Number(value));
-                  setPage(1);
-                }}
-                data={[
-                  { value: '10', label: '10' },
-                  { value: '20', label: '20' },
-                  { value: '50', label: '50' },
-                  { value: '100', label: '100' },
-                ]}
-              />
-              <Text size="sm" c="dimmed">
-                {((page - 1) * limit) + 1}–{Math.min(page * limit, total)} of {total}
-              </Text>
-            </Group>
-            <Pagination
-              size="sm"
-              total={Math.ceil(total / limit)}
-              value={page}
-              onChange={setPage}
-            />
-          </Group>
-        )}
-      </Card>
+      <DataTable
+        // Remount when navigating to another collection
+        key={schema.id}
+        ref={tableRef}
+        columns={columns}
+        getRowId={(record) => record.id}
+        loadData={loadRecords}
+        error={error}
+        onErrorClose={() => setError('')}
+        emptyMessage="No records in this collection"
+        noMatchMessage="No records match your search"
+        extraFilters={buildSearchFilters(schema)}
+        initialSort={INITIAL_SORT}
+        itemLabel={['record', 'records']}
+      />
 
       <RecordModal
         opened={modalOpened}

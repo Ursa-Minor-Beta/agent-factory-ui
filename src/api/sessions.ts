@@ -82,9 +82,18 @@ export interface CancelChatResponse {
   cancelledChildRunIds: string[];
 }
 
+export interface ListSessionsResponse {
+  items: Session[];
+  total: number;
+}
+
+export type SessionsSortBy = 'status' | 'createdAt' | 'updatedAt';
+
 export interface SessionsQueryParams {
   agentId?: string;
   status?: 'active' | 'archived';
+  sortBy?: SessionsSortBy;
+  sortOrder?: 'asc' | 'desc';
   limit?: number;
   offset?: number;
 }

@@ -11,6 +11,7 @@ export interface Workspace {
   providerCount?: number;
   collectionCount?: number;
   scheduleCount?: number;
+  webhookCount?: number;
 }
 
 export interface WorkspaceQueryOptions {
