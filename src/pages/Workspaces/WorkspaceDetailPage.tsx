@@ -250,7 +250,6 @@ export function WorkspaceDetailPage() {
           <VariablesList
             workspaceId={workspaceId}
             description="Workspace-scoped variables for {{var:NAME}} syntax. Falls back to global if not found."
-            showSearch={false}
             excludeColumns={['workspace', 'updated']}
             onCreate={loadWorkspace}
             onDelete={loadWorkspace}
