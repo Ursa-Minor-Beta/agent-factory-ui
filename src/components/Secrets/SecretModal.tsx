@@ -125,6 +125,7 @@ export function SecretModal({ opened, onClose, secret, workspaceId, onSuccess, d
             autoComplete="one-time-code"
             data-lpignore="true"
             data-1p-ignore
+            styles={{ input: { fontFamily: 'monospace' } }}
             error={errors.name?.message}
             {...register('name', {
               required: 'Name is required',

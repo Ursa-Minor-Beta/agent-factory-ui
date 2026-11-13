@@ -28,7 +28,7 @@ import { WorkspaceBadge } from '../Workspace';
 import { CopyIconButton } from '../RunDetailsModal/CopyIconButton';
 import { WebhookTestPanel } from './WebhookTestPanel';
 import { WebhookConfirmModal } from './WebhookConfirmModal';
-import { HANDLER_SKELETON, hasHandler, maskWebhookUrl } from './utils';
+import { HANDLER_SKELETON, hasHandler, maskWebhookUrl, toAbsoluteUrl } from './utils';
 
 const AGENT_SEARCH_LIMIT = 20;
 const HANDLER_MODE = { base: 'base', custom: 'custom' } as const;
@@ -198,12 +198,12 @@ export function WebhookModal({ opened, onClose, webhook, agentId: fixedAgentId, 
         <TextInput
           label="URL"
           readOnly
-          value={maskWebhookUrl(url)}
+          value={maskWebhookUrl(toAbsoluteUrl(url))}
           styles={{ input: { fontFamily: 'monospace' } }}
           rightSectionWidth={64}
           rightSection={
             <Group gap={2} wrap="nowrap">
-              <CopyIconButton value={url} label="Copy URL" />
+              <CopyIconButton value={toAbsoluteUrl(url)} label="Copy URL" />
               <Tooltip label="Rotate URL">
                 <ActionIcon variant="subtle" size="xs" color="orange" onClick={() => setRotateOpened(true)} aria-label="Rotate URL">
                   <IconRefresh size={12} />

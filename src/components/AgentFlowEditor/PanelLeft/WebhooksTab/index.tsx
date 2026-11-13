@@ -5,7 +5,7 @@ import { webhooksApi } from '../../../../api';
 import type { Webhook } from '../../../../types';
 import { formatRelativeTime } from '../../../../pages/Sessions/types';
 import { CopyIconButton } from '../../../RunDetailsModal/CopyIconButton';
-import { WebhookModal, WebhookConfirmModal, maskWebhookUrl, hasHandler } from '../../../Webhooks';
+import { WebhookModal, WebhookConfirmModal, maskWebhookUrl, toAbsoluteUrl, hasHandler } from '../../../Webhooks';
 
 type Dialog =
   | { kind: 'create' }
@@ -124,9 +124,9 @@ export function WebhooksTab({ agentId, workspaceId }: { agentId: string; workspa
               )}
               <Group gap={4} wrap="nowrap">
                 <Code fz="xs" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
-                  {maskWebhookUrl(webhook.url)}
+                  {maskWebhookUrl(toAbsoluteUrl(webhook.url))}
                 </Code>
-                <CopyIconButton value={webhook.url} label="Copy URL" />
+                <CopyIconButton value={toAbsoluteUrl(webhook.url)} label="Copy URL" />
               </Group>
               <Text size="xs" c="dimmed">
                 Last triggered: {webhook.lastTriggeredAt ? formatRelativeTime(webhook.lastTriggeredAt) : 'Never'}

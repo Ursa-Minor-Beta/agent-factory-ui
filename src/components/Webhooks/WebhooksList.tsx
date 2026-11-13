@@ -18,7 +18,7 @@ import { CopyIconButton } from '../RunDetailsModal/CopyIconButton';
 import { WorkspaceBadge, useWorkspaceFilterOptions, GLOBAL_WORKSPACE } from '../Workspace';
 import { WebhookModal } from './WebhookModal';
 import { WebhookConfirmModal } from './WebhookConfirmModal';
-import { maskWebhookUrl, hasHandler } from './utils';
+import { maskWebhookUrl, toAbsoluteUrl, hasHandler } from './utils';
 
 export type WebhookColumn = 'workspace' | 'agent' | 'name' | 'url' | 'enabled' | 'lastTriggered' | 'created' | 'actions';
 
@@ -155,8 +155,8 @@ export function WebhooksList({ workspaceId, description = '', excludeColumns = [
       hidden: !showColumn('url'),
       render: (webhook) => (
         <Group gap={4} wrap="nowrap">
-          <Code fz="xs">{maskWebhookUrl(webhook.url)}</Code>
-          <CopyIconButton value={webhook.url} label="Copy URL" />
+          <Code fz="xs">{maskWebhookUrl(toAbsoluteUrl(webhook.url))}</Code>
+          <CopyIconButton value={toAbsoluteUrl(webhook.url)} label="Copy URL" />
         </Group>
       ),
     },
