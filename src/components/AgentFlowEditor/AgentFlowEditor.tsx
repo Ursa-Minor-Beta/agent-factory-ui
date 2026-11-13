@@ -13,6 +13,7 @@ import { useEdgeHighlight } from './hooks/useEdgeHighlight';
 import { usePersistedState } from './hooks/usePersistedState';
 import { useAssistantEditor } from './hooks/useAssistantEditor';
 import { useDeleteNavigation } from './hooks/useDeleteNavigation';
+import { useDisableShortcut } from './hooks/useDisableShortcut';
 import { useAgentExport } from './hooks/useAgentExport';
 import { EditorToolbar } from './EditorToolbar';
 import { nodeTypes } from './nodes';
@@ -85,7 +86,10 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     getAgentNodes,
     upsertNode,
     removeNode,
+    setNodesDisabled,
   } = useAgentEditor({ agentId, workspaceId });
+
+  useDisableShortcut({ nodes, selectedNodeId: selectedNode?.id, setNodesDisabled });
 
   // Secret / variable names for {{secret:NAME}} / {{var:NAME}} suggestions
   const templateRefs = useTemplateRefs(agent?.workspaceId ?? workspaceId);
@@ -96,7 +100,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
   const { highlightedNodeIds, handleNodeClick, handleNodeDoubleClick, handlePaneClick } =
     useEdgeHighlight({ onNodeClick, onPaneClick });
   const displayNodes = useDisplayNodes(nodes, runStatuses);
-  const displayEdges = useDisplayEdges(edges, runStatuses, runningMsRef, highlightedNodeIds);
+  const displayEdges = useDisplayEdges(edges, nodes, runStatuses, runningMsRef, highlightedNodeIds);
 
   const handleInit = useCallback((instance: ReactFlowInstance) => {
     reactFlowInstance.current = instance;
@@ -348,6 +352,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
           onUpdateId={updateNodeId}
           onReplace={replaceNodeData}
           onRemove={handleRemoveNode}
+          onSetDisabled={setNodesDisabled}
           onClose={onPaneClick}
           />
       )}

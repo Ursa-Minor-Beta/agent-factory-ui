@@ -31,8 +31,16 @@ interface NodeStateItemProps {
   childTrail: RunTrailItem[];
 }
 
+// Skipped nodes report why in output.reason ("Node disabled", "Dependency skipped", ...)
+function getSkipReason(state: NodeState): string | undefined {
+  if (state.status !== 'skipped') return undefined;
+  const reason = (state.output as { reason?: unknown } | undefined)?.reason;
+  return typeof reason === 'string' && reason ? reason : undefined;
+}
+
 function NodeStateItem({ run, nodeId, state, childTrail }: NodeStateItemProps) {
   const usage = getNodeUsage(state);
+  const skipReason = getSkipReason(state);
   const toolCalls = getToolCalls(state.output);
   // Child runs started by tool calls are shown inline on the call row
   const toolCallRuns = matchToolCallRuns(toolCalls ?? [], getNodeChildRuns(run, nodeId));
@@ -48,6 +56,7 @@ function NodeStateItem({ run, nodeId, state, childTrail }: NodeStateItemProps) {
           )}
           <RunStatusBadge status={state.status} />
           <Text size="sm" fw={500}>{nodeId}</Text>
+          {skipReason && <Badge size="xs" variant="light" color="orange">{skipReason}</Badge>}
           {state.completedAt && state.startedAt && (
             <Badge size="xs" variant="outline" color="gray">
               {formatDuration(state.startedAt, state.completedAt)}

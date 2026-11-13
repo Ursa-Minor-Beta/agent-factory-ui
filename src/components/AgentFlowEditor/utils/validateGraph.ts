@@ -1,6 +1,6 @@
 import type { NodeType } from '../../../api';
 import type { AgentNode } from '../../../types/agent';
-import { extractReferencedNodeIds, extractBranchTargets, canRunAfter } from './converters';
+import { extractReferencedNodeIds, extractBranchTargets, canRunAfter, canDisable } from './converters';
 
 export interface GraphValidation {
   ok: boolean;
@@ -25,6 +25,9 @@ export function validateGraph(nodes: AgentNode[], nodeTypes: NodeType[]): GraphV
     const nodeType = knownTypes.get(node.type);
     if (knownTypes.size && !nodeType) {
       errors.push(`${node.id}: unknown node type "${node.type}"`);
+    }
+    if (node.disabled && !canDisable(node.type, nodeTypes)) {
+      errors.push(`${node.id}: node of type "${node.type}" cannot be disabled`);
     }
 
     nodeType?.options?.forEach((option) => {

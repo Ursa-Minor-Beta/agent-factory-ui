@@ -23,9 +23,10 @@ export interface NodeTypeOption {
 
 // Top-level node field (lives next to id/type, not inside data)
 // - node[]: list of other node ids (e.g. runAfter ordering dependencies)
+// - boolean: flag (e.g. disabled)
 export interface NodeTypeField {
   name: string;
-  type: 'node[]';
+  type: 'node[]' | 'boolean';
   description?: string;
 }
 

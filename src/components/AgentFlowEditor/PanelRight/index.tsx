@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback, useRef, memo, lazy, Suspense } from 'react';
 import { Box, Text, Group, ActionIcon, Tooltip, Modal, Button, Loader, Center } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconTrash, IconX } from '@tabler/icons-react';
+import { IconPlayerPause, IconPlayerPlay, IconTrash, IconX } from '@tabler/icons-react';
 import type { Node } from '@xyflow/react';
 import type { NodeType } from '../../../api';
 import type { TemplateRefs } from '../inputs/templateUtils';
+import { canDisable, isNodeDisabled } from '../utils/converters';
 
 const NodeSettingsForm = lazy(() =>
   import('./NodeSettingsForm').then((m) => ({ default: m.NodeSettingsForm }))
@@ -24,11 +25,13 @@ interface PanelRightProps {
   onUpdateId: (oldId: string, newId: string) => void;
   onReplace: (nodeId: string, data: Record<string, unknown>) => void;
   onRemove: (nodeId: string) => void;
+  onSetDisabled: (nodeIds: string[], disabled?: boolean) => void;
   onClose: () => void;
 }
 
-export const PanelRight = memo( function({ node, nodes, nodeTypes, templateRefs, onUpdate, onUpdateId, onReplace, onRemove, onClose }: PanelRightProps) {
+export const PanelRight = memo( function({ node, nodes, nodeTypes, templateRefs, onUpdate, onUpdateId, onReplace, onRemove, onSetDisabled, onClose }: PanelRightProps) {
   const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
+  const disabled = isNodeDisabled(node.data);
   const [width, setWidth] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     return saved ? parseInt(saved, 10) : 280;
@@ -118,6 +121,18 @@ export const PanelRight = memo( function({ node, nodes, nodeTypes, templateRefs,
           </Group>
 
           <Group gap="lg">
+            {canDisable(node.type, nodeTypes) && (
+              <Tooltip label={disabled ? 'Enable node (D)' : 'Disable node (D)'}>
+                <ActionIcon
+                  size="xs"
+                  variant={disabled ? 'light' : 'subtle'}
+                  color={disabled ? 'orange' : 'gray'}
+                  onClick={() => onSetDisabled([node.id], !disabled)}
+                >
+                  {disabled ? <IconPlayerPlay size={14} /> : <IconPlayerPause size={14} />}
+                </ActionIcon>
+              </Tooltip>
+            )}
             <Tooltip label="Remove node">
               <ActionIcon size="xs" variant="subtle" color="red" onClick={openDeleteModal}>
                 <IconTrash size={14} />

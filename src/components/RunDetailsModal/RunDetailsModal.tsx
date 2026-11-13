@@ -5,7 +5,6 @@ import { useRunDetails } from './useRunDetails';
 import { RunDetailsTitle } from './RunDetailsTitle';
 import { RunSummaryCard, RunInputOutput } from './RunSummaryCard';
 import { NodeStatesSection } from './NodeStatesSection';
-import { ChildRunsSection } from './ChildRunsSection';
 
 export function RunDetailsModal() {
   const { runId, isOpen, closeRunDetails, showBackButton, trail, goBack } = useRunDetailsModal();
@@ -44,7 +43,6 @@ export function RunDetailsModal() {
           <RunSummaryCard run={run} />
           <RunInputOutput run={run} />
           <NodeStatesSection run={run} childTrail={childTrail} />
-          {!!run.childRuns?.length && <ChildRunsSection childRuns={run.childRuns} childTrail={childTrail} />}
         </Stack>
       )}
     </Modal>

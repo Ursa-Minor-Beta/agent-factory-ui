@@ -61,6 +61,10 @@ export const ASSISTANT_CLIENT_TOOLS: ChatClientTool[] = [
           items: { type: 'string' },
           description: 'Ids of nodes that must finish before this node runs (ordering only, no data passed)',
         },
+        disabled: {
+          type: 'boolean',
+          description: 'Skip this node at runtime (nodes depending only on it are skipped too). Not allowed for input/output',
+        },
       },
       required: ['id', 'type', 'data'],
     },
@@ -137,7 +141,12 @@ const fail = (summary: string, error: string): ToolExecution => ({ summary, resu
 // Compact graph sent with each message - full node data is fetched via editor_get_nodes
 export function graphOutlineForAssistant(nodes: AgentNode[], nodeTypes: NodeType[]) {
   return {
-    nodes: nodes.map(({ id, type, runAfter }) => ({ id, type, ...(runAfter?.length ? { runAfter } : {}) })),
+    nodes: nodes.map(({ id, type, runAfter, disabled }) => ({
+      id,
+      type,
+      ...(runAfter?.length ? { runAfter } : {}),
+      ...(disabled ? { disabled } : {}),
+    })),
     validation: validateGraph(nodes, nodeTypes),
   };
 }
@@ -165,7 +174,7 @@ export async function executeAssistantTool(editor: AssistantEditor, name: string
 
     case 'editor_set_node': {
       const summary = `Set node ${id || '?'}`;
-      const { type, data, runAfter } = args;
+      const { type, data, runAfter, disabled } = args;
       if (!id) return fail(summary, 'id is required');
       if (typeof type !== 'string' || !type) return fail(summary, 'type is required');
       if (!data || typeof data !== 'object' || Array.isArray(data)) return fail(summary, 'data must be an object');
@@ -178,6 +187,7 @@ export async function executeAssistantTool(editor: AssistantEditor, name: string
         type,
         data: data as AgentNode['data'],
         ...(runAfterIds.length ? { runAfter: runAfterIds } : {}),
+        ...(disabled === true ? { disabled: true } : {}),
       });
       return { summary, result: validateGraph(editor.getNodes(), editor.nodeTypes) };
     }

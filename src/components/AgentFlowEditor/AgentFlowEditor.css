@@ -67,6 +67,20 @@
   transition: filter 0.4s;
 }
 
+/* Disabled nodes are skipped at runtime */
+.react-flow__node.node-disabled {
+  opacity: 0.45;
+  border-style: dashed;
+}
+
+.react-flow__node.node-disabled .tabler-icon {
+  filter: grayscale(1);
+}
+
+.react-flow__edge.edge-disabled {
+  opacity: 0.35;
+}
+
 /* Warm glow wave with slight flicker, like an old lamp */
 @keyframes run-lamp {
   0%, 100% { filter: drop-shadow(0 0 1px rgba(250, 200, 80, 0.3)); }

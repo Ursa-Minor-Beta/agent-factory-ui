@@ -8,8 +8,8 @@ import type { NodeMetadata, TemplateRefs } from '../inputs/templateUtils';
 import { FieldInput } from './FieldInput';
 import { InputNodeEditor } from './InputNodeEditor';
 import { OutputNodeEditor } from './OutputNodeEditor';
-import { MultiEnumInput } from '../inputs';
-import { canRunAfter, getRunAfter, RUN_AFTER_KEY } from '../utils/converters';
+import { BooleanInput, MultiEnumInput } from '../inputs';
+import { canRunAfter, getRunAfter, DISABLED_KEY, RUN_AFTER_KEY } from '../utils/converters';
 
 interface NodeSettingsFormProps {
   node: Node;
@@ -151,10 +151,12 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, templateRefs, onUpdat
   // Merge option names with existing data keys (options first, then any extra data keys)
   const dataKeys = useMemo(() => {
     const optionNames = Object.keys(optionsMap);
-    const existingKeys = Object.keys(nodeData).filter((k) => k !== 'label' && k !== RUN_AFTER_KEY);
+    // Node fields are rendered above, not as data options
+    const nodeFieldNames = new Set([RUN_AFTER_KEY, DISABLED_KEY, ...nodeFields.map((f) => f.name)]);
+    const existingKeys = Object.keys(nodeData).filter((k) => k !== 'label' && !nodeFieldNames.has(k));
     const allKeys = new Set([...optionNames, ...existingKeys]);
     return Array.from(allKeys);
-  }, [optionsMap, nodeData]);
+  }, [optionsMap, nodeData, nodeFields]);
 
   // Create node metadata with outputs for template suggestions
   const nodesMetadata = useMemo((): NodeMetadata[] => {
@@ -264,16 +266,34 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, templateRefs, onUpdat
           />
         ) : (
           <>
-          {nodeFields.filter((field) => field.type === 'node[]').map((field) => (
-            <MultiEnumInput
-              key={`${node.id}:${field.name}`}
-              name={field.name}
-              description={field.description}
-              value={field.name === RUN_AFTER_KEY ? getRunAfter(nodeData) : ((nodeData[field.name] as string[]) ?? [])}
-              values={orderableNodeIds}
-              onChange={(value) => onUpdate(node.id, { [field.name]: value })}
-            />
-          ))}
+          {nodeFields.map((field) => {
+            const key = `${node.id}:${field.name}`;
+            switch (field.type) {
+              case 'node[]':
+                return (
+                  <MultiEnumInput
+                    key={key}
+                    name={field.name}
+                    description={field.description}
+                    value={field.name === RUN_AFTER_KEY ? getRunAfter(nodeData) : ((nodeData[field.name] as string[]) ?? [])}
+                    values={orderableNodeIds}
+                    onChange={(value) => onUpdate(node.id, { [field.name]: value })}
+                  />
+                );
+              case 'boolean':
+                return (
+                  <BooleanInput
+                    key={key}
+                    name={field.name}
+                    description={field.description}
+                    value={nodeData[field.name] === true}
+                    onChange={(value) => onUpdate(node.id, { [field.name]: value })}
+                  />
+                );
+              default:
+                return null;
+            }
+          })}
           {nodeFields.length > 0 && <Divider />}
           {dataKeys.map(key => (
             <FieldInput

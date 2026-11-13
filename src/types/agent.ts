@@ -18,6 +18,8 @@ export interface AgentNode {
   position?: { x: number; y: number };
   // Ordering-only dependencies: ids of nodes that must finish (or be skipped) before this node runs
   runAfter?: string[];
+  // Skipped at runtime; not allowed on input/output nodes
+  disabled?: boolean;
   data: {
     schema?: InputSchema;
     [key: string]: unknown;

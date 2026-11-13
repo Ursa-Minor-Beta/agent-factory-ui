@@ -1,22 +1,26 @@
 import { useMemo, useRef, type RefObject } from 'react';
 import type { Edge, Node } from '@xyflow/react';
 import type { NodeStatus } from '../../../types';
+import { isNodeDisabled } from '../utils/converters';
 
 type RunStatuses = Record<string, NodeStatus> | null;
 
-// Apply run status classes for rendering only - stored nodes stay untouched.
-// Copies are reused while node and status are unchanged, so a status update re-renders only that node
+const nodeClassName = (node: Node, runStatuses: RunStatuses) =>
+  [
+    runStatuses && `run-${runStatuses[node.id] ?? 'pending'}`,
+    isNodeDisabled(node.data) && 'node-disabled',
+  ].filter(Boolean).join(' ') || undefined;
+
+// Apply run status / disabled classes for rendering only - stored nodes stay untouched.
+// Copies are reused while node and class are unchanged, so a status update re-renders only that node
 export function useDisplayNodes(nodes: Node[], runStatuses: RunStatuses) {
   const cacheRef = useRef(new Map<string, { source: Node; display: Node }>());
   return useMemo(() => {
-    if (!runStatuses) {
-      cacheRef.current.clear();
-      return nodes;
-    }
     const cache = cacheRef.current;
     const next = new Map<string, { source: Node; display: Node }>();
     const result = nodes.map((node) => {
-      const className = `run-${runStatuses[node.id] ?? 'pending'}`;
+      const className = nodeClassName(node, runStatuses);
+      if (!className) return node;
       const cached = cache.get(node.id);
       const display = cached && cached.source === node && cached.display.className === className
         ? cached.display
@@ -29,17 +33,26 @@ export function useDisplayNodes(nodes: Node[], runStatuses: RunStatuses) {
   }, [nodes, runStatuses]);
 }
 
-// Highlights outgoing edges of highlighted nodes; photons flow along edges carrying data: source finished, target running
+// Highlights outgoing edges of highlighted nodes; photons flow along edges carrying data: source finished, target running.
+// Edges into / out of disabled nodes are dimmed
 export function useDisplayEdges(
   edges: Edge[],
+  nodes: Node[],
   runStatuses: RunStatuses,
   runningMsRef: RefObject<Record<string, number>>,
   highlightedNodeIds: Set<string>,
 ) {
+  // Keyed by the id list so node edits/moves don't recompute edges
+  const disabledKey = nodes.filter((n) => isNodeDisabled(n.data)).map((n) => n.id).join('\n');
+
   return useMemo(() => {
-    if (!runStatuses && !highlightedNodeIds.size) return edges;
+    const disabledIds = new Set(disabledKey ? disabledKey.split('\n') : []);
+    if (!runStatuses && !highlightedNodeIds.size && !disabledIds.size) return edges;
     return edges.map((edge) => {
       let next = edge;
+      if (disabledIds.has(edge.source) || disabledIds.has(edge.target)) {
+        next = { ...next, className: [next.className, 'edge-disabled'].filter(Boolean).join(' ') };
+      }
       if (highlightedNodeIds.has(edge.source)) {
         next = {
           ...next,
@@ -52,5 +65,5 @@ export function useDisplayEdges(
       // zIndex keeps active edges drawn above overlapping ones
       return active ? { ...next, zIndex: 1, data: { ...next.data, photon: runningMsRef.current[edge.target] } } : next;
     });
-  }, [edges, runStatuses, runningMsRef, highlightedNodeIds]);
+  }, [edges, disabledKey, runStatuses, runningMsRef, highlightedNodeIds]);
 }

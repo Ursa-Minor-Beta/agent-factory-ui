@@ -1,5 +1,6 @@
 import { Position, type Node, type Edge } from '@xyflow/react';
 import type { AgentNode } from '../../../types/agent';
+import type { NodeType } from '../../../api';
 
 // Top-level ordering field; kept in flow node data while editing, lifted out on save
 export const RUN_AFTER_KEY = 'runAfter';
@@ -10,6 +11,25 @@ export const canRunAfter = (type: string | undefined) => type !== 'input' && typ
 export function getRunAfter(data: Record<string, unknown> | undefined): string[] {
   const value = data?.[RUN_AFTER_KEY];
   return Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string' && !!id.trim()) : [];
+}
+
+// Top-level disabled flag; kept in flow node data while editing, lifted out on save
+export const DISABLED_KEY = 'disabled';
+
+// Node type supports disabling when it lists the disabled node field.
+// Until node types are loaded: everything except input/output
+export function canDisable(type: string | undefined, nodeTypes: NodeType[]): boolean {
+  const nodeType = nodeTypes.find((nt) => nt.type === type);
+  if (!nodeType) return !nodeTypes.length && canRunAfter(type);
+  return !!nodeType.nodeFields?.some((f) => f.name === DISABLED_KEY);
+}
+
+export const isNodeDisabled = (data: Record<string, unknown> | undefined) => data?.[DISABLED_KEY] === true;
+
+// Node data with the disabled flag set (true) or removed (false)
+export function withDisabled(data: Record<string, unknown>, disabled: boolean): Record<string, unknown> {
+  const { [DISABLED_KEY]: _disabled, ...rest } = data;
+  return disabled ? { ...rest, [DISABLED_KEY]: true } : rest;
 }
 
 // Convert AgentNode to React Flow Node
@@ -24,19 +44,21 @@ export function toFlowNode(agentNode: AgentNode, index: number): Node {
       label: agentNode.type.toUpperCase(),
       ...agentNode.data,
       ...(agentNode.runAfter?.length ? { [RUN_AFTER_KEY]: agentNode.runAfter } : {}),
+      ...(agentNode.disabled ? { [DISABLED_KEY]: true } : {}),
     },
   };
 }
 
 // Convert React Flow Node to AgentNode
 export function toAgentNode(flowNode: Node): AgentNode {
-  const { label, [RUN_AFTER_KEY]: _runAfter, ...data } = flowNode.data as Record<string, unknown>;
+  const { label, [RUN_AFTER_KEY]: _runAfter, [DISABLED_KEY]: _disabled, ...data } = flowNode.data as Record<string, unknown>;
   const runAfter = getRunAfter(flowNode.data);
   return {
     id: flowNode.id,
     type: flowNode.type || 'default',
     position: flowNode.position,
     ...(runAfter.length ? { runAfter } : {}),
+    ...(isNodeDisabled(flowNode.data) ? { disabled: true } : {}),
     data,
   };
 }

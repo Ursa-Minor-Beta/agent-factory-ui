@@ -1,8 +1,8 @@
 import { memo, useEffect } from 'react';
 import { Handle, Position, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Box } from '@mantine/core';
+import { Badge, Box } from '@mantine/core';
 import { getNodeTypeMeta } from '../../../nodes';
-import { branchHandleId, canRunAfter } from '../utils/converters';
+import { branchHandleId, canRunAfter, isNodeDisabled } from '../utils/converters';
 
 const rotate = (type: string, isVertical: boolean) => {
   switch(type) {
@@ -60,6 +60,7 @@ export const BaseNode = memo(function BaseNode({ id, data, type, sourcePosition,
           />
         )}
         <Box fz="xs" c="cyan">{id || ''}</Box>
+        {isNodeDisabled(data) && <Badge size="xs" color="gray" variant="light" mt={2}>Disabled</Badge>}
       </Box>
       {/* Plain output (no branch selection) - first slot when branch handles exist.
           Dragging from it to another node adds a runAfter ordering dependency */}

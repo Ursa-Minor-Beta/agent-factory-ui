@@ -26,6 +26,9 @@ import {
   canRunAfter,
   getRunAfter,
   RUN_AFTER_KEY,
+  canDisable,
+  isNodeDisabled,
+  withDisabled,
   type LayoutDirection,
 } from '../utils/converters';
 import { routes } from '../../../config/routes';
@@ -156,6 +159,22 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
       );
     },
     [setNodes]
+  );
+
+  // Disable / enable nodes (input/output are left untouched).
+  // Without explicit value: all become disabled unless every one already is
+  const setNodesDisabled = useCallback(
+    (nodeIds: string[], disabled?: boolean) => {
+      setNodes((nds) => {
+        const targets = nds.filter((n) => nodeIds.includes(n.id) && canDisable(n.type, nodeTypes));
+        if (!targets.length) return nds;
+        const value = disabled ?? !targets.every((n) => isNodeDisabled(n.data));
+        return nds.map((n) =>
+          targets.includes(n) ? { ...n, data: withDisabled(n.data as Record<string, unknown>, value) } : n
+        );
+      });
+    },
+    [setNodes, nodeTypes]
   );
 
   // Only ordering connections can be drawn: plain output -> another non input/output node, no cycles
@@ -632,5 +651,6 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     getAgentNodes,
     upsertNode,
     removeNode,
+    setNodesDisabled,
   };
 }
