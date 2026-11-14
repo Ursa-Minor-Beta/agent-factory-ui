@@ -83,22 +83,25 @@ export function RunDetailsPage() {
             alignItems: 'start',
           }}
         >
-          <Card withBorder radius="lg" padding="xs" style={isMobile ? undefined : { position: 'sticky', top: 16 }}>
-            <ScrollArea.Autosize mah={isMobile ? 360 : 'calc(100vh - 160px)'}>
-              <Group gap={4} mb={4}>
-                <Tooltip label="Expand all">
-                  <ActionIcon variant="subtle" size="sm" onClick={() => setCollapsedIds(new Set())}>
-                    <IconChevronsDown size={14} />
-                  </ActionIcon>
-                </Tooltip>
-                <Tooltip label="Collapse all">
-                  {/* The root stays open - its nodes and child run headers are visible */}
-                  <ActionIcon variant="subtle" size="sm" onClick={() => setCollapsedIds(new Set(collectRunIds(run).slice(1)))}>
-                    <IconChevronsUp size={14} />
-                  </ActionIcon>
-                </Tooltip>
-              </Group>
-              <RunTree run={run} selected={select} onSelect={onSelect} collapsedIds={collapsedIds} onToggle={toggleRun} />
+          <Card withBorder radius="lg" padding={0} style={isMobile ? undefined : { position: 'sticky', top: 16 }}>
+            <ScrollArea.Autosize mah={isMobile ? 360 : 'calc(100vh - 160px)'} scrollbarSize={6} offsetScrollbars={false}>
+              {/* Padding inside the scroll area - the scrollbar sits at the card border */}
+              <Box p="xs">
+                <Group gap={4} mb={4}>
+                  <Tooltip label="Expand all">
+                    <ActionIcon variant="subtle" size="sm" onClick={() => setCollapsedIds(new Set())}>
+                      <IconChevronsDown size={14} />
+                    </ActionIcon>
+                  </Tooltip>
+                  <Tooltip label="Collapse all">
+                    {/* The root stays open - its nodes and child run headers are visible */}
+                    <ActionIcon variant="subtle" size="sm" onClick={() => setCollapsedIds(new Set(collectRunIds(run).slice(1)))}>
+                      <IconChevronsUp size={14} />
+                    </ActionIcon>
+                  </Tooltip>
+                </Group>
+                <RunTree run={run} selected={select} onSelect={onSelect} collapsedIds={collapsedIds} onToggle={toggleRun} />
+              </Box>
             </ScrollArea.Autosize>
           </Card>
 
