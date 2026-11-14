@@ -16,6 +16,7 @@ const VariablesPage = lazy(() => import('./pages/Variables').then(m => ({ defaul
 const WebhooksPage = lazy(() => import('./pages/Webhooks').then(m => ({ default: m.WebhooksPage })));
 const FilesPage = lazy(() => import('./pages/Files').then(m => ({ default: m.FilesPage })));
 const RunsPage = lazy(() => import('./pages/Runs/index').then(m => ({ default: m.RunsPage })));
+const RunDetailsPage = lazy(() => import('./pages/RunDetails').then(m => ({ default: m.RunDetailsPage })));
 const SchedulesPage = lazy(() => import('./pages/Schedules').then(m => ({ default: m.SchedulesPage })));
 const SessionsPage = lazy(() => import('./pages/Sessions/index').then(m => ({ default: m.SessionsPage })));
 const SystemSettings = lazy(() => import('./pages/Settings').then(m => ({ default: m.SystemSettings })));
@@ -153,6 +154,10 @@ export const router = createBrowserRouter([
           {
             path: 'runs',
             element: <RunsPage />,
+          },
+          {
+            path: 'runs/:runId',
+            element: <RunDetailsPage />,
           },
           {
             path: 'files',

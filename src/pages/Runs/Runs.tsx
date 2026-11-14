@@ -15,8 +15,11 @@ import {
   IconRobot,
   IconPlayerStop,
   IconTrash,
+  IconExternalLink,
 } from '@tabler/icons-react';
+import { Link } from 'react-router-dom';
 import { runsApi, sessionsApi } from '../../api';
+import { routes } from '../../config/routes';
 import type { ListRunsParams } from '../../api/runs';
 import type { RunSummary, RunStatus } from '../../types';
 import { useRunDetailsModal } from '../../components/RunDetailsModal';
@@ -324,7 +327,7 @@ export function RunsPage() {
     {
       key: 'actions',
       pinned: true,
-      width: 60,
+      width: 100,
       stopPropagation: true,
       render: (run) => (
         <Group gap={4} wrap="nowrap" justify="flex-end">
@@ -340,6 +343,11 @@ export function RunsPage() {
               </ActionIcon>
             </Tooltip>
           )}
+          <Tooltip label="Open full page">
+            <ActionIcon variant="subtle" component={Link} to={routes.runDetails(run.id)}>
+              <IconExternalLink size={16} />
+            </ActionIcon>
+          </Tooltip>
           <Tooltip label="Delete run">
             <ActionIcon
               color="red"

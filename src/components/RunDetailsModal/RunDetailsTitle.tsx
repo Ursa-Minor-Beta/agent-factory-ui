@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ActionIcon, Anchor, Breadcrumbs, Group, Text, Tooltip } from '@mantine/core';
-import { IconArrowLeft, IconPlayerStop, IconRefresh } from '@tabler/icons-react';
+import { IconArrowLeft, IconExternalLink, IconPlayerStop, IconRefresh } from '@tabler/icons-react';
+import { routes } from '../../config/routes';
 import type { Run } from '../../types';
 import { buildRunDetailsSearch, type RunTrailItem } from './useRunDetailsModal';
 import { RunStatusBadge } from './RunStatusBadge';
@@ -53,6 +54,11 @@ export function RunDetailsTitle({ run, trail, showBackButton, onBack, loading, c
             </Tooltip>
           )}
           <CopyIconButton value={toJson(run)} label="Copy entire run" size="sm" iconSize={16} />
+          <Tooltip label="Open full page">
+            <ActionIcon variant="subtle" size="sm" component={Link} to={routes.runDetails(trail[0]?.id ?? run.id, run.id)}>
+              <IconExternalLink size={16} />
+            </ActionIcon>
+          </Tooltip>
         </>
       )}
     </Group>

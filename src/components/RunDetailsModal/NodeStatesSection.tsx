@@ -38,7 +38,7 @@ function getSkipReason(state: NodeState): string | undefined {
   return typeof reason === 'string' && reason ? reason : undefined;
 }
 
-function NodeStateItem({ run, nodeId, state, childTrail }: NodeStateItemProps) {
+export function NodeStateItem({ run, nodeId, state, childTrail }: NodeStateItemProps) {
   const usage = getNodeUsage(state);
   const skipReason = getSkipReason(state);
   const toolCalls = getToolCalls(state.output);

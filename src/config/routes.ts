@@ -36,6 +36,8 @@ export const routes = {
     const query = params.toString();
     return query ? `/monitoring/runs?${query}` : '/monitoring/runs';
   },
+  runDetails: (runId: string, select?: string) =>
+    select ? `/monitoring/runs/${runId}?select=${encodeURIComponent(select)}` : `/monitoring/runs/${runId}`,
   files: () => '/monitoring/files',
 
   settings: () => '/settings',
