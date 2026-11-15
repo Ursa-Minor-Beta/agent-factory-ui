@@ -153,7 +153,7 @@ export function useAssistantChat(assistantAgentId: string | undefined, agentKey:
             agentName,
             agentDescription,
             // Outline only - the assistant reads full nodes via editor_get_nodes
-            graph: graphOutlineForAssistant(editor.getNodes(), editor.nodeTypes),
+            graph: graphOutlineForAssistant(editor.getNodes(), editor.nodeTypes, editor.getLayoutDirection()),
             selection: editor.getSelection(),
             validationErrors: validateGraph(editor.getNodes(), editor.nodeTypes).errors,
           },
