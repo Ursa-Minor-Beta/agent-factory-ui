@@ -19,7 +19,7 @@ Visual platform for building and managing AI agents through a no-code/low-code i
 - **Memory & Collections** - Structured storage with semantic search
 - **Streaming Chat** - Real-time SSE streaming with session management, tool call display, and message queueing while a run is active
 - **GitHub Sync** - Clone/Link agents to repos with push/pull support via a GitHub provider
-- **Export/Import** - Export agents to JSON packages with dependencies
+- **Export/Import** - Export agents with their dependencies, or whole workspaces with all their agents, to JSON packages and import them into a new or existing workspace
 - **Schedules** - Run agents automatically on a repeating calendar (down to every 10 seconds), once at a set time, or every N minutes/hours/days, with next-run preview, run now, pause, failure auto-stop, incognito or chat-session runs, and per-schedule run history; manage them on the Schedules page, in the agent editor, and in workspaces
 - **Execution Monitoring** - Run tracking with node-level timing, logs, tool calls, LLM token usage, child run tree, and what triggered each run (chat, API, schedule, webhook, agent node, tool call) with filtering by trigger; filter, sort and page the run list
 - **Encrypted Secrets** - Secure credential storage (AES-256-GCM)
