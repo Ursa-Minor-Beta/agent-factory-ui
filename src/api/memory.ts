@@ -1,6 +1,13 @@
 import { api } from './client';
 import type { MemorySchema, MemoryRecord, MemorySchemaField, MemorySearchResult } from '../types';
 
+export interface MemoryExport {
+  collection: string;
+  exportedAt: string;
+  total: number;
+  records: MemoryRecord[];
+}
+
 // Schema DTOs
 export interface CreateMemorySchemaInput {
   name: string;
@@ -86,6 +93,9 @@ export const memoryApi = {
 
   getSchema: (id: string) =>
     api.get<MemorySchema>(`/api/memory/schemas/${id}`),
+
+  exportRecords: (schemaId: string) =>
+    api.get<MemoryExport>(`/api/memory/${schemaId}/export`),
 
   createSchema: (data: CreateMemorySchemaInput) =>
     api.post<MemorySchema>('/api/memory/schemas', data),
