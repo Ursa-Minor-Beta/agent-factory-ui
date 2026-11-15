@@ -1,7 +1,8 @@
-import { Box, Group, Text, UnstyledButton } from '@mantine/core';
+import { Box, Group, Text, Tooltip, UnstyledButton } from '@mantine/core';
 import { NodeTypeIcon } from '../../nodes';
 import type { Run } from '../../types';
-import { formatDuration, statusColors } from '../../types';
+import { formatDuration, formatTokens, getNodeUsage, getRunUsage, statusColors } from '../../types';
+import type { TokenUsage } from '../../types';
 import { IconChevronDown, IconChevronRight, IconRobot } from '@tabler/icons-react';
 import { RunStatusBadge, getNodeChildRuns } from '../../components/RunDetailsModal';
 
@@ -35,9 +36,46 @@ function Duration({ startedAt, completedAt }: { startedAt: string; completedAt?:
   const ms = (completedAt ? new Date(completedAt).getTime() : Date.now()) - new Date(startedAt).getTime();
   const color = ms < 1000 ? 'green' : ms < 60000 ? 'yellow' : 'orange';
   return (
-    <Text size="xs" c={`${color}.5`} ml="auto" style={{ flexShrink: 0 }}>
+    <Text size="xs" c={`${color}.5`} style={{ flexShrink: 0 }}>
       {formatDuration(startedAt, completedAt)}
     </Text>
+  );
+}
+
+// Run's own usage plus all its child runs
+function getTotalUsage(run: Run): TokenUsage | null {
+  return [run, ...(run.childRuns ?? [])].reduce<TokenUsage | null>((total, r) => {
+    const usage = r === run ? getRunUsage(run) : getTotalUsage(r);
+    if (!usage) return total;
+    return {
+      inputTokens: (total?.inputTokens ?? 0) + usage.inputTokens,
+      outputTokens: (total?.outputTokens ?? 0) + usage.outputTokens,
+    };
+  }, null);
+}
+
+// 950, 12k, 1.2M
+const shortTokens = (n: number) =>
+  n < 1000 ? `${n}` : n < 1_000_000 ? `${Math.round(n / 1000)}k` : `${(n / 1_000_000).toFixed(1)}M`;
+
+// Short "in / out" tokens, exact numbers in the tooltip
+function Usage({ usage }: { usage: TokenUsage }) {
+  return (
+    <Tooltip label={`Input: ${formatTokens(usage.inputTokens)} / Output: ${formatTokens(usage.outputTokens)} tokens`}>
+      <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
+        {shortTokens(usage.inputTokens)} / {shortTokens(usage.outputTokens)}
+      </Text>
+    </Tooltip>
+  );
+}
+
+// Right-aligned usage + duration
+function Meta({ usage, children }: { usage: TokenUsage | null; children?: React.ReactNode }) {
+  return (
+    <Group gap={8} wrap="nowrap" ml="auto" style={{ flexShrink: 0 }}>
+      {usage && <Usage usage={usage} />}
+      {children}
+    </Group>
   );
 }
 
@@ -118,7 +156,9 @@ export function RunTree({ run, selected, onSelect, collapsedIds, onToggle, depth
             <IconRobot size={16} style={{ flexShrink: 0 }} />
             <RunStatusBadge status={run.status} iconOnly />
             <Text size="sm" fw={600} truncate>{run.agentName || run.agentId}</Text>
-            <Duration startedAt={run.startedAt} completedAt={run.completedAt} />
+            <Meta usage={getTotalUsage(run)}>
+              <Duration startedAt={run.startedAt} completedAt={run.completedAt} />
+            </Meta>
           </Group>
         }
       />
@@ -133,9 +173,11 @@ export function RunTree({ run, selected, onSelect, collapsedIds, onToggle, depth
                 {!!state.nodeType && <NodeTypeIcon type={state.nodeType} size={14} />}
                 <RunStatusBadge status={state.status} iconOnly />
                 <Text size="xs" c={selected === nodeKey(run.id, nodeId) ? undefined : 'dimmed'} truncate>{nodeId}</Text>
-                {state.startedAt && state.completedAt && (
-                  <Duration startedAt={state.startedAt} completedAt={state.completedAt} />
-                )}
+                <Meta usage={getNodeUsage(state)}>
+                  {state.startedAt && state.completedAt && (
+                    <Duration startedAt={state.startedAt} completedAt={state.completedAt} />
+                  )}
+                </Meta>
               </Group>
             }
           />
