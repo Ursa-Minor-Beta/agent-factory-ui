@@ -14,6 +14,7 @@ import { useDisclosure } from '@mantine/hooks';
 import {
   IconEdit,
   IconTrash,
+  IconDownload,
   IconAlertCircle,
   IconList,
   IconRobot,
@@ -26,7 +27,7 @@ import {
 } from '@tabler/icons-react';
 import { workspacesApi } from '../../api/workspaces';
 import type { Workspace } from '../../types/workspace';
-import { WorkspaceModal } from '../../components/Workspace';
+import { WorkspaceModal, useWorkspaceExport } from '../../components/Workspace';
 import { DeleteConfirmModal } from '../../components/DeleteConfirmModal';
 import { AgentsList } from '../../components/AgentsList';
 import { ProvidersList } from '../../components/Providers';
@@ -68,6 +69,7 @@ export function WorkspaceDetailPage() {
 
   // Delete modal
   const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
+  const { exportingId, exportWorkspace } = useWorkspaceExport();
   const [deleting, setDeleting] = useState(false);
 
   const loadWorkspace = useCallback(async () => {
@@ -165,6 +167,17 @@ export function WorkspaceDetailPage() {
           </Group>
         </Group>
         <Group gap="xs">
+            <Tooltip label="Export workspace">
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="md"
+                loading={!!exportingId}
+                onClick={() => exportWorkspace(workspace)}
+              >
+                <IconDownload size={18} />
+              </ActionIcon>
+            </Tooltip>
             <Tooltip label="Edit workspace">
               <ActionIcon variant="subtle" color="cyan" size="md" onClick={openEditModal}>
                 <IconEdit size={18} />

@@ -2,6 +2,8 @@ import { Text, Group, Button, Stack, Card, Badge } from '@mantine/core';
 import { IconCircleCheck, IconCircleDashed, IconKey, IconVariable, IconCloud, IconDatabase, IconPlus, IconCircleHalf2, IconRobot } from '@tabler/icons-react';
 import type { AgentImportResponse } from '../../../types';
 import type { GitHubImportResponse } from '../../../types/github';
+import type { WorkspaceImportResponse } from '../../../types/workspace';
+import type { ImportKind } from './ModalAgentImport';
 
 interface ConfigItemProps {
   name: string;
@@ -81,7 +83,8 @@ function ConfigSection({ title, icon, items, createdItems, globalItems, onCreate
 }
 
 interface ImportSuccessViewProps {
-  result: AgentImportResponse | GitHubImportResponse;
+  result: AgentImportResponse | GitHubImportResponse | WorkspaceImportResponse;
+  kind?: ImportKind;
   onClose: () => void;
   onNavigateToWorkspace: () => void;
   onCreateSecret?: (name: string) => void;
@@ -100,6 +103,7 @@ interface ImportSuccessViewProps {
 
 export function ImportSuccessView({
   result,
+  kind = 'agent',
   onClose,
   onNavigateToWorkspace,
   onCreateSecret,
@@ -124,15 +128,18 @@ export function ImportSuccessView({
     (result.warnings.missingProviders?.length ?? 0) > 0 ||
     collectionsToCreate.length > 0;
 
+  // Agent import counts sub-agents (the main agent is in the map too), workspace import counts all agents
+  const importedCount = Object.keys(result.agentIdMap).length - (kind === 'workspace' ? 0 : 1);
+
   return (
     <Stack gap="xs">
-      {Object.keys(result.agentIdMap).length > 1 && (
+      {importedCount > 0 && (
         <Card withBorder padding="sm" radius="md">
           <Group gap="xs">
             <IconRobot size={16} color="var(--mantine-color-green-6)" />
-            <Text size="sm" fw={500} style={{ flex: 1 }}>Sub-agents Imported</Text>
+            <Text size="sm" fw={500} style={{ flex: 1 }}>{kind === 'workspace' ? 'Agents Imported' : 'Sub-agents Imported'}</Text>
             <Badge size="sm" color="green" variant="light">
-              {Object.keys(result.agentIdMap).length - 1}
+              {importedCount}
             </Badge>
           </Group>
         </Card>

@@ -19,6 +19,7 @@ import { AgentsRelationsGraph } from '../AgentsGraph';
 import { AgentDeleteModal } from './AgentDeleteModal';
 import { AgentWorkspaceModal } from './AgentWorkspaceModal';
 import { ModalAgentImport } from './ModalAgentImport/ModalAgentImport';
+import { downloadJson } from '../../utils/download';
 import { ModalGitHubImport } from './ModalGitHubImport';
 import { useAgentModal } from '../AgentCreateModal';
 import { routes } from '../../config/routes';
@@ -27,16 +28,6 @@ const VIEW_MODE_STORAGE_KEY = 'agents-view-mode';
 
 // 'list' is the card grid (name kept for the stored preference)
 type ViewMode = 'list' | 'table' | 'graph';
-
-function downloadJson(data: unknown, filename: string) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 interface AgentsListProps {
   workspaceId?: string; // If provided, filter by this workspace
