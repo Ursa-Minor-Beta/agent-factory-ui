@@ -22,7 +22,11 @@ import {
   IconSearch,
   IconAlertCircle,
   IconList,
+  IconDownload,
+  IconUpload,
 } from '@tabler/icons-react';
+import { notifications } from '@mantine/notifications';
+import { downloadJson, safeFilename } from '../../utils/download';
 import { memoryApi } from '../../api';
 import type { MemorySchema, MemoryRecord, MemoryFieldType } from '../../types';
 import { getRecordUserFields } from '../../types';
@@ -36,6 +40,7 @@ import {
 } from '../../components/common/DataTable';
 import { CopyId } from '../../components/common/CopyId';
 import { RecordModal } from './RecordModal';
+import { RecordImportModal } from './RecordImportModal';
 import { DeleteConfirmModal } from '../../components/DeleteConfirmModal';
 import { routes } from '../../config/routes';
 import { WorkspaceBadge } from '../../components/Workspace';
@@ -130,6 +135,25 @@ export function CollectionRecordsPage() {
   const [deletingRecord, setDeletingRecord] = useState<MemoryRecord | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [importOpened, { open: openImport, close: closeImport }] = useDisclosure(false);
+
+  const handleExport = async () => {
+    if (!schema) return;
+    setExporting(true);
+    try {
+      const data = await memoryApi.exportRecords(schema.id);
+      downloadJson(data, `${safeFilename(schema.name, 'collection')}.records.json`);
+    } catch (err) {
+      notifications.show({
+        color: 'red',
+        title: 'Failed to export records',
+        message: err instanceof Error ? err.message : 'An error occurred',
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // Form state
   const [formData, setFormData] = useState<RecordForm>({
@@ -383,9 +407,17 @@ export function CollectionRecordsPage() {
             <WorkspaceBadge workspaceId={schema.workspaceId} workspaceName={schema.workspaceName} />
           </Group>
         </Breadcrumbs>
-        <Button leftSection={<IconPlus size={16} />} onClick={handleOpenCreateModal}>
-          Add Record
-        </Button>
+        <Group gap="xs" wrap="nowrap">
+          <Button variant="default" leftSection={<IconDownload size={16} />} loading={exporting} onClick={handleExport}>
+            Export
+          </Button>
+          <Button variant="default" leftSection={<IconUpload size={16} />} onClick={openImport}>
+            Import
+          </Button>
+          <Button leftSection={<IconPlus size={16} />} onClick={handleOpenCreateModal}>
+            Add Record
+          </Button>
+        </Group>
       </Group>
 
       {schema.description && (
@@ -430,6 +462,12 @@ export function CollectionRecordsPage() {
         deleting={deleting}
         title="Delete Record"
         entityName={<>record <Code fz="xs">{deletingRecord?.id}</Code></>}
+      />
+      <RecordImportModal
+        opened={importOpened}
+        onClose={closeImport}
+        onImported={() => tableRef.current?.reload()}
+        collectionId={schema.id}
       />
     </Box>
   );

@@ -1,15 +1,6 @@
 import { useCallback, useState } from 'react';
 import { agentsApi } from '../../../api';
-
-function downloadJson(data: unknown, filename: string) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
+import { downloadJson } from '../../../utils/download';
 
 export function useAgentExport(agentId: string | undefined) {
   const [exporting, setExporting] = useState(false);

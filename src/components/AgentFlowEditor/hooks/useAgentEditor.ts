@@ -508,7 +508,7 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     [setNodes, setEdges]
   );
 
-  // Add a node, or replace data of the node with the same id (position is kept)
+  // Add a node, or replace data of the node with the same id (position is kept unless given)
   const upsertNode = useCallback(
     (agentNode: AgentNode) => {
       const current = nodesRef.current;
@@ -516,7 +516,9 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
       const flowNode = toFlowNode(agentNode, current.length);
 
       if (existing) {
-        commitNodes(current.map((n) => (n.id === agentNode.id ? { ...n, type: flowNode.type, data: flowNode.data } : n)));
+        commitNodes(current.map((n) => (n.id === agentNode.id
+          ? { ...n, type: flowNode.type, data: flowNode.data, ...(agentNode.position ? { position: agentNode.position } : {}) }
+          : n)));
         return;
       }
 
@@ -525,11 +527,11 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
       const anchors = current.filter((n) => refs.has(n.id) || agentNode.runAfter?.includes(n.id));
       const pool = anchors.length ? anchors : current;
       const isTB = layoutDirectionRef.current === 'TB';
-      const position = pool.length
+      const position = agentNode.position ?? (pool.length
         ? isTB
           ? { x: Math.max(...pool.map((n) => n.position.x)), y: Math.max(...pool.map((n) => n.position.y)) + 150 }
           : { x: Math.max(...pool.map((n) => n.position.x)) + 300, y: Math.max(...pool.map((n) => n.position.y)) }
-        : { x: 200, y: 200 };
+        : { x: 200, y: 200 });
 
       commitNodes([
         ...current,

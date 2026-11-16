@@ -9,6 +9,7 @@ type AgentEditor = ReturnType<typeof useAgentEditor>;
 type UseAssistantEditorOptions = Pick<AgentEditor, 'agent' | 'getAgentNodes' | 'upsertNode' | 'removeNode' | 'updateAgentMeta'> & {
   nodeTypes: AgentEditor['nodeTypes'];
   selectedNodeId: string | undefined;
+  layoutDirection: AgentEditor['layoutDirection'];
   save: () => Promise<string | null>;
 };
 
@@ -21,9 +22,11 @@ export function useAssistantEditor({
   updateAgentMeta,
   nodeTypes,
   selectedNodeId,
+  layoutDirection,
   save,
 }: UseAssistantEditorOptions) {
   const saveRef = useLatest(save);
+  const layoutDirectionRef = useLatest(layoutDirection);
   const agentRef = useLatest(agent);
   const updateAgentMetaRef = useLatest(updateAgentMeta);
   const selectedNodeIdRef = useLatest(selectedNodeId);
@@ -36,6 +39,7 @@ export function useAssistantEditor({
       removeNode,
       nodeTypes,
       save: () => saveRef.current(),
+      getLayoutDirection: () => layoutDirectionRef.current,
       getSelection: () => (selectedNodeIdRef.current ? [selectedNodeIdRef.current] : []),
       getAgentInfo: () => ({
         name: agentRef.current?.name ?? '',

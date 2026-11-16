@@ -25,10 +25,13 @@ import {
   IconEdit,
   IconTrash,
   IconAlertCircle,
+  IconDownload,
+  IconUpload,
 } from '@tabler/icons-react';
 import { workspacesApi } from '../../api/workspaces';
 import type { Workspace, WorkspaceQueryOptions } from '../../types/workspace';
-import { WorkspaceModal } from '../../components/Workspace';
+import { WorkspaceModal, useWorkspaceExport } from '../../components/Workspace';
+import { ModalAgentImport } from '../../components/AgentsList/ModalAgentImport/ModalAgentImport';
 import { DeleteConfirmModal } from '../../components/DeleteConfirmModal';
 import { routes } from '../../config/routes';
 
@@ -52,6 +55,9 @@ export function WorkspacesPage() {
   const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
   const [workspaceToDelete, setWorkspaceToDelete] = useState<Workspace | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const [importModalOpened, { open: openImportModal, close: closeImportModal }] = useDisclosure(false);
+  const { exportingId, exportWorkspace } = useWorkspaceExport();
 
   // Query params
   const [search, setSearch] = useState('');
@@ -218,6 +224,9 @@ export function WorkspacesPage() {
           style={{ minWidth: 160 }}
         />
         <Box style={{ flex: 1 }} />
+        <Button variant="default" leftSection={<IconUpload size={16} />} onClick={openImportModal}>
+          Import Workspace
+        </Button>
         <Button leftSection={<IconPlus size={16} />} onClick={handleCreate}>
           New Workspace
         </Button>
@@ -256,6 +265,14 @@ export function WorkspacesPage() {
                   <Group justify="space-between" mb="xs">
                     <Anchor component={Link} to={routes.workspace(workspace.id)} fw={600} c="inherit">{workspace.name}</Anchor>
                     <Group gap="xs">
+                      <ActionIcon
+                        variant="subtle"
+                        color="gray"
+                        loading={exportingId === workspace.id}
+                        onClick={() => exportWorkspace(workspace)}
+                      >
+                        <IconDownload size={16} />
+                      </ActionIcon>
                       <ActionIcon
                         variant="subtle"
                         color="cyan"
@@ -298,7 +315,7 @@ export function WorkspacesPage() {
                     <Table.Th>Description</Table.Th>
                     <Table.Th>Created</Table.Th>
                     <Table.Th>Updated</Table.Th>
-                    <Table.Th style={{ width: 100 }}>Actions</Table.Th>
+                    <Table.Th style={{ width: 130 }}>Actions</Table.Th>
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
@@ -319,7 +336,17 @@ export function WorkspacesPage() {
                         <Text size="sm">{formatDate(workspace.updatedAt)}</Text>
                       </Table.Td>
                       <Table.Td>
-                        <Group gap="xs">
+                        <Group gap="xs" wrap="nowrap">
+                          <Tooltip label="Export">
+                            <ActionIcon
+                              variant="subtle"
+                              color="gray"
+                              loading={exportingId === workspace.id}
+                              onClick={() => exportWorkspace(workspace)}
+                            >
+                              <IconDownload size={16} />
+                            </ActionIcon>
+                          </Tooltip>
                           <Tooltip label="Edit">
                             <ActionIcon
                               variant="subtle"
@@ -374,6 +401,13 @@ export function WorkspacesPage() {
         workspace={workspaceToEdit}
         onSave={handleSave}
         saving={saving}
+      />
+
+      <ModalAgentImport
+        kind="workspace"
+        opened={importModalOpened}
+        onClose={closeImportModal}
+        onImported={loadWorkspaces}
       />
 
       <DeleteConfirmModal

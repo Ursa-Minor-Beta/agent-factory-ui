@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Modal, Text, Group, Button, Stack, Textarea, Select, TextInput, ActionIcon } from '@mantine/core';
 import { agentsApi, workspacesApi, secretsApi, variablesApi, providersApi, memoryApi } from '../../../api';
 import type { AgentExportData, AgentImportResponse, ImportCollectionSchema } from '../../../types';
-import type { Workspace } from '../../../types/workspace';
+import type { Workspace, WorkspaceExport, WorkspaceImportResponse } from '../../../types/workspace';
+import { ApiError } from '../../../api/client';
 import { FileDropZone } from '../../FileDropZone';
 import { ImportSuccessView } from './ImportSuccessView';
 import { SecretModal } from '../../Secrets/SecretModal';
@@ -15,14 +16,28 @@ import { routes } from '../../../config/routes';
 
 const NEW_WORKSPACE_VALUE = '__new__';
 
+export type ImportKind = 'agent' | 'workspace';
+
+const KIND_LABEL: Record<ImportKind, string> = { agent: 'agent', workspace: 'workspace' };
+
+// Workspace exports have an agents array, agent exports have agent + dependencies
+function detectKind(parsed: unknown): ImportKind | null {
+  if (!parsed || typeof parsed !== 'object') return null;
+  if (Array.isArray((parsed as WorkspaceExport).agents)) return 'workspace';
+  if ('agent' in parsed && 'dependencies' in parsed) return 'agent';
+  return null;
+}
+
 interface AgentImportModalProps {
   opened: boolean;
   onClose: () => void;
   onImported: () => void;
   workspaceId?: string;
+  // Which export file this modal imports, agent by default
+  kind?: ImportKind;
 }
 
-export function ModalAgentImport({ opened, onClose, onImported, workspaceId }: AgentImportModalProps) {
+export function ModalAgentImport({ opened, onClose, onImported, workspaceId, kind = 'agent' }: AgentImportModalProps) {
   const navigate = useNavigate();
 
   const [jsonContent, setJsonContent] = useState('');
@@ -31,7 +46,7 @@ export function ModalAgentImport({ opened, onClose, onImported, workspaceId }: A
   const [parseError, setParseError] = useState('');
   const [urlInput, setUrlInput] = useState('');
   const [fetchingUrl, setFetchingUrl] = useState(false);
-  const [result, setResult] = useState<AgentImportResponse | null>(null);
+  const [result, setResult] = useState<AgentImportResponse | WorkspaceImportResponse | null>(null);
 
   // Workspace selection
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -61,6 +76,12 @@ export function ModalAgentImport({ opened, onClose, onImported, workspaceId }: A
   const [globalVariables, setGlobalVariables] = useState<Set<string>>(new Set());
   const [globalProviders, setGlobalProviders] = useState<Set<string>>(new Set());
   const [globalCollections, setGlobalCollections] = useState<Set<string>>(new Set());
+
+  // Track items already in the target workspace (fetched after import)
+  const [existingSecrets, setExistingSecrets] = useState<Set<string>>(new Set());
+  const [existingVariables, setExistingVariables] = useState<Set<string>>(new Set());
+  const [existingProviders, setExistingProviders] = useState<Set<string>>(new Set());
+  const [existingCollections, setExistingCollections] = useState<Set<string>>(new Set());
 
   // Track newly created workspace to notify sidebar on close/navigate
   const [newWorkspaceInfo, setNewWorkspaceInfo] = useState<{ id: string; name: string } | null>(null);
@@ -93,6 +114,10 @@ export function ModalAgentImport({ opened, onClose, onImported, workspaceId }: A
     setGlobalVariables(new Set());
     setGlobalProviders(new Set());
     setGlobalCollections(new Set());
+    setExistingSecrets(new Set());
+    setExistingVariables(new Set());
+    setExistingProviders(new Set());
+    setExistingCollections(new Set());
     setUrlInput('');
     setNewWorkspaceInfo(null);
   };
@@ -152,7 +177,10 @@ export function ModalAgentImport({ opened, onClose, onImported, workspaceId }: A
 
     if (content.trim()) {
       try {
-        JSON.parse(content) as AgentExportData;
+        const detected = detectKind(JSON.parse(content));
+        if (detected && detected !== kind) {
+          setParseError(`This is ${detected === 'agent' ? 'an' : 'a'} ${KIND_LABEL[detected]} export file - use Import ${KIND_LABEL[detected]} instead`);
+        }
       } catch {
         setParseError('Invalid JSON format');
       }
@@ -165,7 +193,7 @@ export function ModalAgentImport({ opened, onClose, onImported, workspaceId }: A
       return;
     }
 
-    let parsed: AgentExportData;
+    let parsed: AgentExportData | WorkspaceExport;
     try {
       parsed = JSON.parse(jsonContent);
     } catch {
@@ -179,23 +207,32 @@ export function ModalAgentImport({ opened, onClose, onImported, workspaceId }: A
     const targetWorkspaceId = selectedWorkspace === NEW_WORKSPACE_VALUE ? undefined : selectedWorkspace ?? undefined;
 
     try {
-      const response = await agentsApi.import({
-        package: parsed,
-        workspaceId: targetWorkspaceId,
-      });
+      const response = kind === 'workspace'
+        ? await workspacesApi.import({ package: parsed as WorkspaceExport, workspaceId: targetWorkspaceId })
+        : await agentsApi.import({ package: parsed as AgentExportData, workspaceId: targetWorkspaceId });
       setResult(response);
 
-      // Fetch global items to check if missing items exist globally
-      const [globals, globalVars, globalProvs, globalColls] = await Promise.all([
+      // Backend reports every package dependency as missing - check which ones already
+      // exist globally or in the target workspace (a new workspace is empty, skip it)
+      const wsId = targetWorkspaceId ? response.workspaceId : undefined;
+      const [globals, globalVars, globalProvs, globalColls, wsSecrets, wsVars, wsProvs, wsColls] = await Promise.all([
         secretsApi.list({ workspaceId: null }),
         variablesApi.list({ workspaceId: null }),
         providersApi.list({ workspaceId: null }),
         memoryApi.listSchemas({ workspaceId: null }),
+        wsId ? secretsApi.list({ workspaceId: wsId }) : [],
+        wsId ? variablesApi.list({ workspaceId: wsId }) : [],
+        wsId ? providersApi.list({ workspaceId: wsId }) : [],
+        wsId ? memoryApi.listSchemas({ workspaceId: wsId }) : [],
       ]);
       setGlobalSecrets(new Set(globals.map((s) => s.name)));
       setGlobalVariables(new Set(globalVars.map((v) => v.name)));
       setGlobalProviders(new Set(globalProvs.map((p) => p.provider)));
       setGlobalCollections(new Set(globalColls.map((c) => c.name)));
+      setExistingSecrets(new Set(wsSecrets.map((s) => s.name)));
+      setExistingVariables(new Set(wsVars.map((v) => v.name)));
+      setExistingProviders(new Set(wsProvs.map((p) => p.provider)));
+      setExistingCollections(new Set(wsColls.map((c) => c.name)));
 
       // Store new workspace info to notify sidebar on close/navigate
       if (selectedWorkspace === NEW_WORKSPACE_VALUE) {
@@ -205,7 +242,11 @@ export function ModalAgentImport({ opened, onClose, onImported, workspaceId }: A
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to import agent');
+      if (kind === 'workspace' && err instanceof ApiError && err.status === 400) {
+        setError('Invalid workspace export file');
+      } else {
+        setError(err instanceof Error ? err.message : `Failed to import ${KIND_LABEL[kind]}`);
+      }
     } finally {
       setImporting(false);
     }
@@ -253,7 +294,7 @@ export function ModalAgentImport({ opened, onClose, onImported, workspaceId }: A
           <Group gap="xs">
             <IconCheck size={20} color="var(--mantine-color-green-6)" />
             <Text fw={500}>
-              Agent imported to workspace <Text span c="cyan" inherit>{result.workspaceName}</Text>
+              {kind === 'workspace' ? 'Workspace imported to' : 'Agent imported to workspace'} <Text span c="cyan" inherit>{result.workspaceName}</Text>
             </Text>
           </Group>
           }
@@ -262,6 +303,7 @@ export function ModalAgentImport({ opened, onClose, onImported, workspaceId }: A
           >
           <ImportSuccessView
             result={result}
+            kind={kind}
             onClose={handleClose}
             onNavigateToWorkspace={handleNavigateToWorkspace}
             onCreateSecret={handleCreateSecret}
@@ -272,6 +314,10 @@ export function ModalAgentImport({ opened, onClose, onImported, workspaceId }: A
             createdVariables={createdVariables}
             createdProviders={createdProviders}
             createdCollections={createdCollections}
+            existingSecrets={existingSecrets}
+            existingVariables={existingVariables}
+            existingProviders={existingProviders}
+            existingCollections={existingCollections}
             globalSecrets={globalSecrets}
             globalVariables={globalVariables}
             globalProviders={globalProviders}
@@ -332,7 +378,7 @@ export function ModalAgentImport({ opened, onClose, onImported, workspaceId }: A
 
   // Import form
   return (
-    <Modal opened={opened} onClose={handleClose} title="Import Agent" centered size="xl">
+    <Modal opened={opened} onClose={handleClose} title={kind === 'workspace' ? 'Import Workspace' : 'Import Agent'} centered size="xl">
       <Stack gap="md" style={{ height: '60vh', minHeight: 400, display: 'flex', flexDirection: 'column' }}>
         <Select
           label="Import to workspace"
@@ -347,7 +393,7 @@ export function ModalAgentImport({ opened, onClose, onImported, workspaceId }: A
 
         <TextInput
           // label=""
-          placeholder="Import from URL, https://example.com/agent.json"
+          placeholder={`Import from URL, https://example.com/${KIND_LABEL[kind]}.json`}
           value={urlInput}
           onChange={(e) => setUrlInput(e.currentTarget.value)}
           rightSection={

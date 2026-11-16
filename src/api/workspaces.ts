@@ -1,6 +1,10 @@
-import { fetchWithRefresh, ApiError } from './client';
+import { api, fetchWithRefresh, ApiError } from './client';
+import { clearAgentsCache } from './agents';
 import type {
   Workspace,
+  WorkspaceExport,
+  WorkspaceImportRequest,
+  WorkspaceImportResponse,
   WorkspaceQueryOptions,
   WorkspaceListResponse,
   CreateWorkspaceData,
@@ -69,5 +73,14 @@ export const workspacesApi = {
   getAgentCount: async (id: string): Promise<{ count: number }> => {
     const response = await fetchWithRefresh(`/api/workspaces/${id}/agent-count`);
     return handleResponse<{ count: number }>(response);
+  },
+
+  export: (id: string) => api.get<WorkspaceExport>(`/api/workspaces/${id}/export`),
+
+  import: async (data: WorkspaceImportRequest): Promise<WorkspaceImportResponse> => {
+    const result = await api.post<WorkspaceImportResponse>('/api/workspaces/import', data);
+    // Import creates agents - drop cached agent lists
+    clearAgentsCache();
+    return result;
   },
 };

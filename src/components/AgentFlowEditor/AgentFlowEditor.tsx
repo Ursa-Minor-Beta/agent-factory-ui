@@ -193,6 +193,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     updateAgentMeta,
     nodeTypes: availableNodeTypes,
     selectedNodeId: selectedNode?.id,
+    layoutDirection,
     save: handleSave,
   });
 

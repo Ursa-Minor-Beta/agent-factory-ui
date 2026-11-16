@@ -22,6 +22,8 @@ export interface AssistantEditor {
   run: (input?: Record<string, unknown>) => Promise<AgentStreamResult>;
   // Ids of the nodes selected on the canvas
   getSelection: () => string[];
+  // Canvas flow direction: LR = left to right, TB = top to bottom
+  getLayoutDirection: () => 'LR' | 'TB';
   getAgentInfo: () => AgentInfo;
   // Persists for a saved agent, local until first save for a new one - false on failure
   updateAgentInfo: (data: Partial<AgentInfo>) => Promise<boolean>;
@@ -64,6 +66,14 @@ export const ASSISTANT_CLIENT_TOOLS: ChatClientTool[] = [
         disabled: {
           type: 'boolean',
           description: 'Skip this node at runtime (nodes depending only on it are skipped too). Not allowed for input/output',
+        },
+        position: {
+          type: 'object',
+          properties: { x: { type: 'number' }, y: { type: 'number' } },
+          required: ['x', 'y'],
+          description:
+            'Canvas position. Follow the graph layoutDirection (LR: next step to the right, TB: next step below). ' +
+            'Omit to keep the current one (or auto-place a new node)',
         },
       },
       required: ['id', 'type', 'data'],
@@ -139,11 +149,13 @@ export interface ToolExecution {
 const fail = (summary: string, error: string): ToolExecution => ({ summary, result: { ok: false, errors: [error] } });
 
 // Compact graph sent with each message - full node data is fetched via editor_get_nodes
-export function graphOutlineForAssistant(nodes: AgentNode[], nodeTypes: NodeType[]) {
+export function graphOutlineForAssistant(nodes: AgentNode[], nodeTypes: NodeType[], layoutDirection: 'LR' | 'TB') {
   return {
-    nodes: nodes.map(({ id, type, runAfter, disabled }) => ({
+    layoutDirection,
+    nodes: nodes.map(({ id, type, position, runAfter, disabled }) => ({
       id,
       type,
+      ...(position ? { position: { x: Math.round(position.x), y: Math.round(position.y) } } : {}),
       ...(runAfter?.length ? { runAfter } : {}),
       ...(disabled ? { disabled } : {}),
     })),
@@ -174,18 +186,23 @@ export async function executeAssistantTool(editor: AssistantEditor, name: string
 
     case 'editor_set_node': {
       const summary = `Set node ${id || '?'}`;
-      const { type, data, runAfter, disabled } = args;
+      const { type, data, runAfter, disabled, position } = args;
       if (!id) return fail(summary, 'id is required');
       if (typeof type !== 'string' || !type) return fail(summary, 'type is required');
       if (!data || typeof data !== 'object' || Array.isArray(data)) return fail(summary, 'data must be an object');
       if (editor.nodeTypes.length && !editor.nodeTypes.some((t) => t.type === type)) {
         return fail(summary, `unknown node type "${type}", available: ${editor.nodeTypes.map((t) => t.type).join(', ')}`);
       }
+      const pos = position as { x?: unknown; y?: unknown } | undefined;
+      if (pos !== undefined && !(pos && Number.isFinite(pos.x) && Number.isFinite(pos.y))) {
+        return fail(summary, 'position must be { x: number, y: number }');
+      }
       const runAfterIds = Array.isArray(runAfter) ? runAfter.filter((v): v is string => typeof v === 'string') : [];
       editor.upsertNode({
         id,
         type,
         data: data as AgentNode['data'],
+        ...(pos ? { position: { x: pos.x as number, y: pos.y as number } } : {}),
         ...(runAfterIds.length ? { runAfter: runAfterIds } : {}),
         ...(disabled === true ? { disabled: true } : {}),
       });
