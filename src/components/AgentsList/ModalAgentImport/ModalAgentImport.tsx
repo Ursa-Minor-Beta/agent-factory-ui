@@ -77,6 +77,12 @@ export function ModalAgentImport({ opened, onClose, onImported, workspaceId, kin
   const [globalProviders, setGlobalProviders] = useState<Set<string>>(new Set());
   const [globalCollections, setGlobalCollections] = useState<Set<string>>(new Set());
 
+  // Track items already in the target workspace (fetched after import)
+  const [existingSecrets, setExistingSecrets] = useState<Set<string>>(new Set());
+  const [existingVariables, setExistingVariables] = useState<Set<string>>(new Set());
+  const [existingProviders, setExistingProviders] = useState<Set<string>>(new Set());
+  const [existingCollections, setExistingCollections] = useState<Set<string>>(new Set());
+
   // Track newly created workspace to notify sidebar on close/navigate
   const [newWorkspaceInfo, setNewWorkspaceInfo] = useState<{ id: string; name: string } | null>(null);
 
@@ -108,6 +114,10 @@ export function ModalAgentImport({ opened, onClose, onImported, workspaceId, kin
     setGlobalVariables(new Set());
     setGlobalProviders(new Set());
     setGlobalCollections(new Set());
+    setExistingSecrets(new Set());
+    setExistingVariables(new Set());
+    setExistingProviders(new Set());
+    setExistingCollections(new Set());
     setUrlInput('');
     setNewWorkspaceInfo(null);
   };
@@ -202,17 +212,27 @@ export function ModalAgentImport({ opened, onClose, onImported, workspaceId, kin
         : await agentsApi.import({ package: parsed as AgentExportData, workspaceId: targetWorkspaceId });
       setResult(response);
 
-      // Fetch global items to check if missing items exist globally
-      const [globals, globalVars, globalProvs, globalColls] = await Promise.all([
+      // Backend reports every package dependency as missing - check which ones already
+      // exist globally or in the target workspace (a new workspace is empty, skip it)
+      const wsId = targetWorkspaceId ? response.workspaceId : undefined;
+      const [globals, globalVars, globalProvs, globalColls, wsSecrets, wsVars, wsProvs, wsColls] = await Promise.all([
         secretsApi.list({ workspaceId: null }),
         variablesApi.list({ workspaceId: null }),
         providersApi.list({ workspaceId: null }),
         memoryApi.listSchemas({ workspaceId: null }),
+        wsId ? secretsApi.list({ workspaceId: wsId }) : [],
+        wsId ? variablesApi.list({ workspaceId: wsId }) : [],
+        wsId ? providersApi.list({ workspaceId: wsId }) : [],
+        wsId ? memoryApi.listSchemas({ workspaceId: wsId }) : [],
       ]);
       setGlobalSecrets(new Set(globals.map((s) => s.name)));
       setGlobalVariables(new Set(globalVars.map((v) => v.name)));
       setGlobalProviders(new Set(globalProvs.map((p) => p.provider)));
       setGlobalCollections(new Set(globalColls.map((c) => c.name)));
+      setExistingSecrets(new Set(wsSecrets.map((s) => s.name)));
+      setExistingVariables(new Set(wsVars.map((v) => v.name)));
+      setExistingProviders(new Set(wsProvs.map((p) => p.provider)));
+      setExistingCollections(new Set(wsColls.map((c) => c.name)));
 
       // Store new workspace info to notify sidebar on close/navigate
       if (selectedWorkspace === NEW_WORKSPACE_VALUE) {
@@ -294,6 +314,10 @@ export function ModalAgentImport({ opened, onClose, onImported, workspaceId, kin
             createdVariables={createdVariables}
             createdProviders={createdProviders}
             createdCollections={createdCollections}
+            existingSecrets={existingSecrets}
+            existingVariables={existingVariables}
+            existingProviders={existingProviders}
+            existingCollections={existingCollections}
             globalSecrets={globalSecrets}
             globalVariables={globalVariables}
             globalProviders={globalProviders}

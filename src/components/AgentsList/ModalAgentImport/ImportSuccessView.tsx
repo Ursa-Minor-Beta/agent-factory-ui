@@ -8,11 +8,25 @@ import type { ImportKind } from './ModalAgentImport';
 interface ConfigItemProps {
   name: string;
   isCreated: boolean;
+  isExisting: boolean;
   isGlobal: boolean;
   onCreate?: () => void;
 }
 
-function ConfigItem({ name, isCreated, isGlobal, onCreate }: ConfigItemProps) {
+function ConfigItem({ name, isCreated, isExisting, isGlobal, onCreate }: ConfigItemProps) {
+  // Already present in the target workspace - nothing to do
+  if (isExisting && !isCreated) {
+    return (
+      <Group gap="xs" py={6} px="xs" style={{ borderRadius: 'var(--mantine-radius-sm)' }}>
+        <IconCircleCheck size={16} color="var(--mantine-color-green-6)" />
+        <Text size="sm" c="dimmed" style={{ flex: 1 }}>
+          {name}
+        </Text>
+        <Badge size="sm" color="green" variant="light">Exists</Badge>
+      </Group>
+    );
+  }
+
   const resolved = isCreated || isGlobal;
 
   return (
@@ -48,14 +62,17 @@ interface ConfigSectionProps {
   icon: React.ReactNode;
   items: string[];
   createdItems: Set<string>;
+  existingItems?: Set<string>;
   globalItems: Set<string>;
   onCreate?: (item: string) => void;
 }
 
-function ConfigSection({ title, icon, items, createdItems, globalItems, onCreate }: ConfigSectionProps) {
+const EMPTY_SET = new Set<string>();
+
+function ConfigSection({ title, icon, items, createdItems, existingItems = EMPTY_SET, globalItems, onCreate }: ConfigSectionProps) {
   if (!items || items.length === 0) return null;
 
-  const resolvedCount = items.filter((item) => createdItems.has(item) || globalItems.has(item)).length;
+  const resolvedCount = items.filter((item) => createdItems.has(item) || existingItems.has(item) || globalItems.has(item)).length;
   const allDone = resolvedCount === items.length;
 
   return (
@@ -73,6 +90,7 @@ function ConfigSection({ title, icon, items, createdItems, globalItems, onCreate
             key={item}
             name={item}
             isCreated={createdItems.has(item)}
+            isExisting={existingItems.has(item)}
             isGlobal={globalItems.has(item)}
             onCreate={onCreate ? () => onCreate(item) : undefined}
           />
@@ -95,6 +113,11 @@ interface ImportSuccessViewProps {
   createdVariables: Set<string>;
   createdProviders: Set<string>;
   createdCollections: Set<string>;
+  // Items already present in the target workspace
+  existingSecrets?: Set<string>;
+  existingVariables?: Set<string>;
+  existingProviders?: Set<string>;
+  existingCollections?: Set<string>;
   globalSecrets: Set<string>;
   globalVariables: Set<string>;
   globalProviders: Set<string>;
@@ -114,6 +137,10 @@ export function ImportSuccessView({
   createdVariables,
   createdProviders,
   createdCollections,
+  existingSecrets,
+  existingVariables,
+  existingProviders,
+  existingCollections,
   globalSecrets,
   globalVariables,
   globalProviders,
@@ -152,6 +179,7 @@ export function ImportSuccessView({
             icon={<IconDatabase size={16} color="var(--mantine-color-dimmed)" />}
             items={collectionsToCreate}
             createdItems={createdCollections}
+            existingItems={existingCollections}
             globalItems={globalCollections}
             onCreate={onCreateCollection}
           />
@@ -160,6 +188,7 @@ export function ImportSuccessView({
             icon={<IconKey size={16} color="var(--mantine-color-dimmed)" />}
             items={result.warnings.missingSecrets ?? []}
             createdItems={createdSecrets}
+            existingItems={existingSecrets}
             globalItems={globalSecrets}
             onCreate={onCreateSecret}
           />
@@ -168,6 +197,7 @@ export function ImportSuccessView({
             icon={<IconVariable size={16} color="var(--mantine-color-dimmed)" />}
             items={result.warnings.missingVariables ?? []}
             createdItems={createdVariables}
+            existingItems={existingVariables}
             globalItems={globalVariables}
             onCreate={onCreateVariable}
           />
@@ -176,6 +206,7 @@ export function ImportSuccessView({
             icon={<IconCloud size={16} color="var(--mantine-color-dimmed)" />}
             items={result.warnings.missingProviders ?? []}
             createdItems={createdProviders}
+            existingItems={existingProviders}
             globalItems={globalProviders}
             onCreate={onCreateProvider}
           />
