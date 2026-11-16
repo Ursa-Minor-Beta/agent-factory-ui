@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useState, lazy } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { AppShell, Divider, Center, Loader } from '@mantine/core';
-import { useDisclosure, useLocalStorage } from '@mantine/hooks';
+import { AppShell, Box, Burger, Divider, Center, Group, Loader, Text } from '@mantine/core';
+import { useDisclosure, useLocalStorage, useMediaQuery } from '@mantine/hooks';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspaceNav } from './useWorkspaceNav';
 import { NavbarHeader } from './NavbarHeader';
@@ -36,6 +36,7 @@ const AgentModalWrapper = lazy(() =>
 export function Layout() {
   const { user } = useAuth();
   const location = useLocation();
+  const isMobile = useMediaQuery('(max-width: 48em)');
   const [mobileOpened, { toggle: toggleMobile, close: closeMobile }] = useDisclosure();
   const [collapsed, setCollapsed] = useLocalStorage({
     key: 'nav-sidebar-collapsed',
@@ -97,10 +98,12 @@ export function Layout() {
   };
 
   const filteredNavItems = filterNavItems(navItems);
-  const navbarWidth = collapsed ? 64 : 240;
+  const navCollapsed = collapsed && !isMobile;
+  const navbarWidth = navCollapsed ? 64 : 240;
 
   return (
     <AppShell
+      header={{ height: 50, collapsed: !isMobile }}
       navbar={{
         width: navbarWidth,
         breakpoint: 'sm',
@@ -108,6 +111,13 @@ export function Layout() {
       }}
       padding="md"
     >
+      <AppShell.Header hiddenFrom="sm">
+        <Group h="100%" px="md" gap="sm">
+          <Burger opened={mobileOpened} onClick={toggleMobile} size="sm" />
+          <Text fw={600} size="lg">{config.appName}</Text>
+        </Group>
+      </AppShell.Header>
+
       <AppShell.Navbar
         // p="xs"
         style={{
@@ -118,26 +128,28 @@ export function Layout() {
           flexDirection: 'column',
         }}
       >
-        <NavbarHeader
-          collapsed={collapsed}
-          setCollapsed={setCollapsed}
-          mobileOpened={mobileOpened}
-          toggleMobile={toggleMobile}
-        />
+        <Box visibleFrom="sm">
+          <NavbarHeader
+            collapsed={navCollapsed}
+            setCollapsed={setCollapsed}
+            mobileOpened={mobileOpened}
+            toggleMobile={toggleMobile}
+          />
 
-        <Divider mb={1}/>
+          <Divider mb={1}/>
+        </Box>
 
         <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '8px' }}>
           <NavbarLinks
             items={filteredNavItems}
-            collapsed={collapsed}
+            collapsed={navCollapsed}
             closeMobile={closeMobile}
           />
         </div>
 
         <Divider mt={1}/>
 
-        <UserMenu collapsed={collapsed} />
+        <UserMenu collapsed={navCollapsed} />
       </AppShell.Navbar>
 
       <AppShell.Main style={{ minHeight: '100vh' }}>
