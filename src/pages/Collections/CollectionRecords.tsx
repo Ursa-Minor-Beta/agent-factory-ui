@@ -408,10 +408,10 @@ export function CollectionRecordsPage() {
           </Group>
         </Breadcrumbs>
         <Group gap="xs" wrap="nowrap">
-          <Button variant="default" leftSection={<IconDownload size={16} />} loading={exporting} onClick={handleExport}>
+          <Button variant="default" leftSection={<IconUpload size={16} />} loading={exporting} onClick={handleExport}>
             Export
           </Button>
-          <Button variant="default" leftSection={<IconUpload size={16} />} onClick={openImport}>
+          <Button variant="default" leftSection={<IconDownload size={16} />} onClick={openImport}>
             Import
           </Button>
           <Button leftSection={<IconPlus size={16} />} onClick={handleOpenCreateModal}>

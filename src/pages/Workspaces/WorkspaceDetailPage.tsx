@@ -14,7 +14,7 @@ import { useDisclosure } from '@mantine/hooks';
 import {
   IconEdit,
   IconTrash,
-  IconDownload,
+  IconUpload,
   IconAlertCircle,
   IconList,
   IconRobot,
@@ -175,7 +175,7 @@ export function WorkspaceDetailPage() {
                 loading={!!exportingId}
                 onClick={() => exportWorkspace(workspace)}
               >
-                <IconDownload size={18} />
+                <IconUpload size={18} />
               </ActionIcon>
             </Tooltip>
             <Tooltip label="Edit workspace">
