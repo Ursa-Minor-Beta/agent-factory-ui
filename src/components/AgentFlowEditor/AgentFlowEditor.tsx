@@ -61,6 +61,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     edgeType,
     layoutDirection,
     initialViewport,
+    canvasSettingsDirty,
     setNodes,
     setEdges,
     onNodesChange,
@@ -214,7 +215,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
       running={isRunning}
       onRun={handleToolbarRun}
       // New agents can always be saved (creates them)
-      canSave={!agent?.id || history.isDirty}
+      canSave={!agent?.id || history.isDirty || canvasSettingsDirty}
       canUndo={history.canUndo}
       canRedo={history.canRedo}
       onUndo={history.undo}
@@ -222,6 +223,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     />
   ), [
     history.isDirty,
+    canvasSettingsDirty,
     history.canUndo,
     history.canRedo,
     history.undo,

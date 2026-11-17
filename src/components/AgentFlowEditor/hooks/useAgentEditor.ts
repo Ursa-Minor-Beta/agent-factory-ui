@@ -32,6 +32,7 @@ import {
   type LayoutDirection,
 } from '../utils/converters';
 import { routes } from '../../../config/routes';
+import { edgeLayoutStore } from '../edges/edgeLayoutStore';
 
 const DEFAULT_EDGE_TYPE_KEY = 'agent-editor-default-edge-type';
 const DEFAULT_LAYOUT_DIRECTION_KEY = 'agent-editor-default-layout-direction';
@@ -49,6 +50,8 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
   const [saving, setSaving] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [initialViewport, setInitialViewport] = useState<EditorViewport | undefined>();
+  // Canvas settings as last loaded/saved - differs from current = unsaved settings
+  const [savedCanvasSettings, setSavedCanvasSettings] = useState<string>('');
 
   // Ref to hold a function that gets the current viewport from ReactFlow
   const viewportGetterRef = useRef<(() => EditorViewport) | null>(null);
@@ -89,6 +92,7 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     try {
       const data = await agentsApi.getById(agentId);
       setAgent(data);
+      setSavedCanvasSettings(JSON.stringify(data.editorData?.canvasSettings ?? {}));
 
       // Convert agent nodes to flow nodes
       const flowNodes = data.nodes.map((n, i) => toFlowNode(n, i));
@@ -116,6 +120,8 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
           }))
         : autoLayoutNodes(flowNodes, flowEdges, direction);
 
+      // Before edges render - they read saved turn points
+      edgeLayoutStore.load(data.editorData?.edgeLayout);
       setNodes(positionedNodes);
       setEdges(flowEdges);
 
@@ -136,6 +142,7 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     if (agentId === 'new') {
       // Editor may stay mounted when switching from another agent - start from an empty canvas
       setAgent({ workspaceId });
+      edgeLayoutStore.load();
       setNodes([]);
       setEdges([]);
       setSelectedNodeId(null);
@@ -239,8 +246,11 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
       // Merge with existing editorData to preserve other fields
       const editorData = {
         ...agent.editorData,
+        // Pin the current direction, otherwise the agent follows the global localStorage default
+        canvasSettings: { ...agent.editorData?.canvasSettings, layoutDirection: layoutDirectionRef.current },
         nodePositions,
         viewport,
+        edgeLayout: edgeLayoutStore.toJSON(edgesRef.current.map((e) => e.id)),
       };
 
       if (agent.id) {
@@ -248,6 +258,7 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
         await agentsApi.update(agent.id, { nodes: agentNodes, editorData });
         // Sync local agent so derived data (e.g. Run tab input schema) updates
         setAgent((prev) => (prev ? { ...prev, nodes: agentNodes, editorData } : prev));
+        setSavedCanvasSettings(JSON.stringify(editorData.canvasSettings));
         return agent.id;
       }
 
@@ -263,6 +274,7 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
       // Set it before navigating: with an id the reload shows only the canvas overlay
       // instead of the full-screen loader, so panels (Assistant stream, Run tab) stay mounted
       setAgent(newAgent);
+      setSavedCanvasSettings(JSON.stringify(editorData.canvasSettings));
       navigate(routes.agentEditor(newAgent.id), { replace: true });
       return newAgent.id;
     } catch (err) {
@@ -349,35 +361,14 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     [agent]
   );
 
-  // Update canvas settings (layout direction, edge type)
-  const updateCanvasSettings = useCallback(
-    async (settings: CanvasSettings) => {
-      if (!agent) return;
-
-      // Optimistically update local state
-      const updatedEditorData = {
-        ...agent.editorData,
-        canvasSettings: {
-          ...agent.editorData?.canvasSettings,
-          ...settings,
-        },
-      };
-      setAgent({ ...agent, editorData: updatedEditorData });
-
-      // Persist to backend only for existing agents
-      if (agent.id) {
-        setSaving(true);
-        try {
-          await agentsApi.update(agent.id, { editorData: updatedEditorData });
-        } catch (err) {
-          console.error('Failed to save canvas settings:', err);
-        } finally {
-          setSaving(false);
-        }
-      }
-    },
-    [agent]
-  );
+  // Update canvas settings (layout direction, edge type) - local only, persisted by Save
+  const updateCanvasSettings = useCallback((settings: CanvasSettings) => {
+    setAgent((prev) =>
+      prev
+        ? { ...prev, editorData: { ...prev.editorData, canvasSettings: { ...prev.editorData?.canvasSettings, ...settings } } }
+        : prev
+    );
+  }, []);
 
   // Add new node
   const addNode = (type: string, position?: { x: number; y: number }, data?: Record<string, unknown>) => {
@@ -579,9 +570,13 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
   const changeLayoutDirection = useCallback((direction: LayoutDirection) => {
     const layoutedNodes = autoLayoutNodes(nodesRef.current, edgesRef.current, direction);
     setNodes(layoutedNodes);
+    // Turn points of the old layout don't fit the new one
+    edgeLayoutStore.load();
     updateCanvasSettings({ layoutDirection: direction });
     localStorage.setItem(DEFAULT_LAYOUT_DIRECTION_KEY, direction);
   }, [setNodes, updateCanvasSettings]);
+
+  const canvasSettingsDirty = JSON.stringify(agent?.editorData?.canvasSettings ?? {}) !== savedCanvasSettings;
 
   // Change edge type
   const changeEdgeType = useCallback((value: string) => {
@@ -625,6 +620,7 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     edgeType,
     layoutDirection,
     initialViewport,
+    canvasSettingsDirty,
 
     // Actions
     setNodes,
