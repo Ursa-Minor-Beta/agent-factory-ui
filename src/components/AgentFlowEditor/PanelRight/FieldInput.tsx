@@ -83,6 +83,8 @@ export const FieldInput = memo(function FieldInput({
         description={option.description}
         value={String(value ?? option?.default ?? '')}
         values={option.values}
+        nodes={nodes}
+        refs={refs}
         onChange={handleChange}
       />
     );

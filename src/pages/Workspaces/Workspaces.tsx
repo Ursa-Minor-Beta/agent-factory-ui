@@ -224,7 +224,7 @@ export function WorkspacesPage() {
           style={{ minWidth: 160 }}
         />
         <Box style={{ flex: 1 }} />
-        <Button variant="default" leftSection={<IconUpload size={16} />} onClick={openImportModal}>
+        <Button variant="default" leftSection={<IconDownload size={16} />} onClick={openImportModal}>
           Import Workspace
         </Button>
         <Button leftSection={<IconPlus size={16} />} onClick={handleCreate}>
@@ -271,7 +271,7 @@ export function WorkspacesPage() {
                         loading={exportingId === workspace.id}
                         onClick={() => exportWorkspace(workspace)}
                       >
-                        <IconDownload size={16} />
+                        <IconUpload size={16} />
                       </ActionIcon>
                       <ActionIcon
                         variant="subtle"
@@ -344,7 +344,7 @@ export function WorkspacesPage() {
                               loading={exportingId === workspace.id}
                               onClick={() => exportWorkspace(workspace)}
                             >
-                              <IconDownload size={16} />
+                              <IconUpload size={16} />
                             </ActionIcon>
                           </Tooltip>
                           <Tooltip label="Edit">
