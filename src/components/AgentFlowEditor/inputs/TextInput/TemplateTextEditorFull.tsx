@@ -66,6 +66,8 @@ interface TemplateTextEditorFullProps {
 
     getValues: (fieldName: string) => string;
     setValue: (fieldName: string, value: string) => void;
+    /** Called on every edit (setValue only fires on close) */
+    onContentChange?: (value: string) => void;
 }
 
 const editorProps = {
@@ -100,6 +102,7 @@ export function TemplateTextEditorFull({
     refs,
     setValue,
     getValues,
+    onContentChange,
 }: TemplateTextEditorFullProps) {
     const textAreaRef = useRef<HTMLTextAreaElement>(null);
     const highlightRef = useRef<HTMLDivElement>(null);
@@ -108,6 +111,8 @@ export function TemplateTextEditorFull({
     const contentRef = useRef<string>(getValues(formFieldName));
     const setValueRef = useRef(setValue);
     setValueRef.current = setValue;
+    const onContentChangeRef = useRef(onContentChange);
+    onContentChangeRef.current = onContentChange;
 
     const [editorMode, setEditorMode] = useState<EditorMode>(defaultMode);
     const [rawModeKey, setRawModeKey] = useState(0);
@@ -186,6 +191,7 @@ export function TemplateTextEditorFull({
             onUpdate: ({ editor }) => {
                 // Keep contentRef in sync with editor
                 contentRef.current = editor.getMarkdown();
+                onContentChangeRef.current?.(contentRef.current);
             },
             onDestroy: () => {
                 // Save content when editor is destroyed (modal closes)
@@ -198,6 +204,7 @@ export function TemplateTextEditorFull({
     // Handle raw mode content updates
     const handleRawContentChange = (newValue: string) => {
         contentRef.current = newValue;
+        onContentChangeRef.current?.(newValue);
     };
 
     // Scroll sync for raw mode highlight layer

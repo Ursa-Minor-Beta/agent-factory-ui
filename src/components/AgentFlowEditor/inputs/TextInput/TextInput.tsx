@@ -1,4 +1,4 @@
-import { memo, useRef, useCallback, lazy, Suspense } from 'react';
+import { memo, useRef, useState, useCallback, lazy, Suspense } from 'react';
 import { Box, Text, Group, ActionIcon, Modal, Textarea, Tooltip, ThemeIcon, Loader, Center } from '@mantine/core';
 import { IconArrowsMaximize, IconList, IconListNumbers, IconQuestionMark } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
@@ -9,6 +9,8 @@ import { useScrollMemory } from '../scrollMemory';
 const TemplateTextEditorFull = lazy(() =>
   import('./TemplateTextEditorFull').then((m) => ({ default: m.TemplateTextEditorFull }))
 );
+
+const estimateTokens = (text: string) => Math.ceil(text.length / 4);
 
 interface TextInputProps {
   name: string;
@@ -23,7 +25,12 @@ interface TextInputProps {
 }
 
 export const TextInput = memo(function TextInput({ name, description, nodeLabel, nodeId: scrollNodeId, value, nodes, refs, onChange }: TextInputProps) {
-  const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
+  const [modalOpened, { open: openModalRaw, close: closeModal }] = useDisclosure(false);
+  const [modalText, setModalText] = useState('');
+  const openModal = () => {
+    setModalText(value ?? '');
+    openModalRaw();
+  };
   const highlightRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
   const saveScroll = useScrollMemory(textAreaRef, scrollNodeId, name, [highlightRef]);
@@ -37,11 +44,22 @@ export const TextInput = memo(function TextInput({ name, description, nodeLabel,
     saveScroll(e.currentTarget.scrollTop);
   }, [saveScroll]);
 
+  const renderTokenCounter = (text: string) => {
+    const tokens = estimateTokens(text);
+    return tokens > 100 && (
+      <Tooltip label="Approximate token count (~4 chars per token)">
+        <Text size="xs" c="dimmed">~{tokens.toLocaleString()} tokens</Text>
+      </Tooltip>
+    );
+  };
+  const tokenCounter = renderTokenCounter(value ?? '');
+
   return (
     <Box>
       <Group justify="space-between" mb={4}>
           <Text size="xs" c="dimmed">{name}</Text>
         <Group gap={4} >
+          {tokenCounter}
           {description && (
             <Tooltip label={description} multiline maw={300}>
               <ThemeIcon size={14} radius="xl" color="gray" variant="light">
@@ -98,7 +116,12 @@ export const TextInput = memo(function TextInput({ name, description, nodeLabel,
       <Modal
         opened={modalOpened}
         onClose={closeModal}
-        title={`${nodeLabel || 'Node'} / ${name}`}
+        title={
+          <Group gap="md">
+            <Text>{`${nodeLabel || 'Node'} / ${name}`}</Text>
+            {renderTokenCounter(modalText)}
+          </Group>
+        }
         size="xl"
         fullScreen
         centered
@@ -120,6 +143,7 @@ export const TextInput = memo(function TextInput({ name, description, nodeLabel,
             formFieldName={name}
             getValues={() => value}
             setValue={(_, newValue) => onChange(newValue)}
+            onContentChange={setModalText}
             nodes={nodes}
             refs={refs}
             toolbarFormatBtns={[
