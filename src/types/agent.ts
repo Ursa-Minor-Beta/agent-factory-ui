@@ -37,10 +37,17 @@ export interface EditorViewport {
   zoom: number;
 }
 
+// Manual edge geometry, see AgentFlowEditor/edges/EdgeSmart
+export interface EdgeLayout {
+  turn?: number; // turn coordinate of a forward edge
+  back?: { side: 'before' | 'after'; value: number }; // middle line of a back edge
+}
+
 export interface EditorData {
   nodePositions?: Record<string, { x: number; y: number }>;
   canvasSettings?: CanvasSettings;
   viewport?: EditorViewport;
+  edgeLayout?: Record<string, EdgeLayout>;
   [key: string]: unknown;
 }
 

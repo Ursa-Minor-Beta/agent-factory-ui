@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { BaseEdge, Position, useNodes, type Node } from '@xyflow/react';
 import { EdgePhoton } from './EdgePhoton';
+import { edgeLayoutStore, type BackLine, type EdgeLayout } from './edgeLayoutStore';
 
 const radius = 20;
 const baseOffset = 40; // % 2 = 0
@@ -102,15 +103,19 @@ interface GetPointsParams {
   sourceNodeBox: ReturnType<typeof getBox>;
   isVertical?: boolean;
   startOffset: number;
+  turn: number | null; // turn coordinate of a forward edge, null - edge goes back
+  layout: EdgeLayout; // saved turn points, updated in place
 }
 
-function getPoints({
+function getPointsHorizontal({
   sourceX,
   sourceY,
   targetX,
   targetY,
   sourceNodeBox,
   startOffset,
+  turn,
+  layout,
 }: GetPointsParams): Point[] {
 
   const pointStart: Point = { key: 'M', x: sourceX, y: sourceY }; // start
@@ -119,8 +124,18 @@ function getPoints({
   const pointFinish: Point = { key: 'L', x: targetX, y: targetY }; // finish
 
   // Handles (almost) aligned - straight line, avoids degenerate corners
-  if (pointStartOffset.x < pointFinishOffset.x && Math.abs(targetY - sourceY) < alignThreshold) {
+  if (turn !== null && Math.abs(targetY - sourceY) < alignThreshold) {
     return [pointStart, pointFinish];
+  }
+
+  if (turn !== null) {
+    const turnX = turn;
+    return [
+      pointStart,
+      { key: 'L', x: turnX, y: sourceY, length: (turnX - sourceX) * 2 },
+      { key: 'L', x: turnX, y: targetY, length: Math.abs(targetY - sourceY) },
+      { ...pointFinish, length: targetX - turnX },
+    ];
   }
 
   const points: Point[] = [pointStart, pointStartOffset];
@@ -130,17 +145,21 @@ function getPoints({
     let length: number;
 
     if (pointStart.y < pointFinish.y) {
-      y =
-        sourceNodeBox.c.y + baseOffset + baseOffset < pointFinish.y
-          ? sourceNodeBox.c.y + baseOffset
-          : pointStart.y + (pointFinish.y - pointStart.y) / 2;
+      y = getBackLine(layout, 'after', {
+        preferred: sourceNodeBox.c.y + baseOffset,
+        min: sourceNodeBox.c.y + baseOffset / 2,
+        max: pointFinish.y - baseOffset / 2,
+        fallback: pointStart.y + (pointFinish.y - pointStart.y) / 2,
+      });
 
       length = y - pointStartOffset.y;
     } else {
-      y =
-        sourceNodeBox.b.y - baseOffset - baseOffset > pointFinish.y
-          ? sourceNodeBox.b.y - baseOffset
-          : pointFinish.y + (pointStart.y - pointFinish.y) / 2;
+      y = getBackLine(layout, 'before', {
+        preferred: sourceNodeBox.b.y - baseOffset,
+        min: pointFinish.y + baseOffset / 2,
+        max: sourceNodeBox.b.y - baseOffset / 2,
+        fallback: pointFinish.y + (pointStart.y - pointFinish.y) / 2,
+      });
 
       length = pointStartOffset.y - y;
     }
@@ -149,9 +168,6 @@ function getPoints({
 
     const finishOffLen = Math.abs(y - pointFinishOffset.y);
     points.push({ ...pointFinishOffset, length: finishOffLen });
-  } else if (pointStartOffset.x < pointFinishOffset.x) {
-    const length = Math.abs(pointFinishOffset.y - pointStartOffset.y);
-    points.push({ key: 'L', x: pointStartOffset.x, y: pointFinishOffset.y, length });
   }
 
   const finishLen = pointFinish.x - points[points.length - 1].x;
@@ -167,6 +183,8 @@ function getPointsVertical({
   targetY,
   sourceNodeBox,
   startOffset,
+  turn,
+  layout,
 }: GetPointsParams): Point[] {
 
   const pointStart: Point = { key: 'M', x: sourceX, y: sourceY };
@@ -175,8 +193,18 @@ function getPointsVertical({
   const pointFinish: Point = { key: 'L', x: targetX, y: targetY };
 
   // Handles (almost) aligned - straight line, avoids degenerate corners
-  if (pointStartOffset.y < pointFinishOffset.y && Math.abs(targetX - sourceX) < alignThreshold) {
+  if (turn !== null && Math.abs(targetX - sourceX) < alignThreshold) {
     return [pointStart, pointFinish];
+  }
+
+  if (turn !== null) {
+    const turnY = turn;
+    return [
+      pointStart,
+      { key: 'L', x: sourceX, y: turnY, length: (turnY - sourceY) * 2 },
+      { key: 'L', x: targetX, y: turnY, length: Math.abs(targetX - sourceX) },
+      { ...pointFinish, length: targetY - turnY },
+    ];
   }
 
   const points: Point[] = [pointStart, pointStartOffset];
@@ -186,17 +214,21 @@ function getPointsVertical({
     let length: number;
 
     if (pointStart.x < pointFinish.x) {
-      x =
-        sourceNodeBox.c.x + baseOffset + baseOffset < pointFinish.x
-          ? sourceNodeBox.c.x + baseOffset
-          : pointStart.x + (pointFinish.x - pointStart.x) / 2;
+      x = getBackLine(layout, 'after', {
+        preferred: sourceNodeBox.c.x + baseOffset,
+        min: sourceNodeBox.c.x + baseOffset / 2,
+        max: pointFinish.x - baseOffset / 2,
+        fallback: pointStart.x + (pointFinish.x - pointStart.x) / 2,
+      });
 
       length = x - pointStartOffset.x;
     } else {
-      x =
-        sourceNodeBox.a.x - baseOffset - baseOffset > pointFinish.x
-          ? sourceNodeBox.a.x - baseOffset
-          : pointFinish.x + (pointStart.x - pointFinish.x) / 2;
+      x = getBackLine(layout, 'before', {
+        preferred: sourceNodeBox.a.x - baseOffset,
+        min: pointFinish.x + baseOffset / 2,
+        max: sourceNodeBox.a.x - baseOffset / 2,
+        fallback: pointFinish.x + (pointStart.x - pointFinish.x) / 2,
+      });
 
       length = pointStartOffset.x - x;
     }
@@ -205,9 +237,6 @@ function getPointsVertical({
 
     const finishOffLen = Math.abs(x - pointFinishOffset.x);
     points.push({ ...pointFinishOffset, length: finishOffLen });
-  } else if (pointStartOffset.y < pointFinishOffset.y) {
-    const length = Math.abs(pointFinishOffset.x - pointStartOffset.x);
-    points.push({ key: 'L', x: pointFinishOffset.x, y: pointStartOffset.y, length });
   }
 
   const finishLen = Math.abs(pointFinish.y - points[points.length - 1].y);
@@ -216,10 +245,39 @@ function getPointsVertical({
   return points;
 }
 
+// Turn of a forward edge stays where it was, so the segment of the moving node
+// shrinks first; once it hits min offset the turn is pushed and the other segment shrinks
+function getForwardTurn(layout: EdgeLayout, from: number, to: number, startOffset: number) {
+  const min = from + baseOffset / 2;
+  const max = to - baseOffset / 2;
+  if (min > max) {
+    layout.turn = undefined;
+    return null;
+  }
+  layout.turn = Math.min(Math.max(layout.turn ?? to - startOffset, min), max);
+  return layout.turn;
+}
+
+// Middle line of a back edge (goes around the source node) stays where it was while nodes move,
+// pushed only by min offsets; no room between the nodes - goes through the middle
+function getBackLine(
+  layout: EdgeLayout,
+  side: BackLine['side'],
+  { preferred, min, max, fallback }: { preferred: number; min: number; max: number; fallback: number }
+): number {
+  if (min > max) {
+    layout.back = undefined;
+    return fallback;
+  }
+  const prev = layout.back?.side === side ? layout.back.value : preferred;
+  layout.back = { side, value: Math.min(Math.max(prev, min), max) };
+  return layout.back.value;
+}
+
 function getPath(params: GetPointsParams): string {
   let path = '';
 
-  const points = params.isVertical ? getPointsVertical(params) : getPoints(params);
+  const points = params.isVertical ? getPointsVertical(params) : getPointsHorizontal(params);
   if (points && points.length > 0) {
     for (let i = 0; i < points.length; i++) {
       const x = points[i].x;
@@ -273,6 +331,13 @@ export function EdgeSmart(edgeProps: EdgeProps) {
   const isVertical =
     edgeProps.sourcePosition === Position.Bottom || edgeProps.targetPosition === Position.Top;
 
+  const startOffset =
+    baseOffset / 2 +
+    getHandleOffsetLevel(getHandleSlot(edgeProps.sourceHandleId), sourceSlotsCount) * handleOffsetStep;
+  const from = isVertical ? edgeProps.sourceY : edgeProps.sourceX;
+  const to = isVertical ? edgeProps.targetY : edgeProps.targetX;
+  const layout = { ...edgeLayoutStore.get(edgeProps.id) };
+
   const edgePathParams: GetPointsParams = {
     sourceX: edgeProps.sourceX,
     sourceY: edgeProps.sourceY,
@@ -280,12 +345,13 @@ export function EdgeSmart(edgeProps: EdgeProps) {
     targetY: edgeProps.targetY,
     sourceNodeBox,
     isVertical,
-    startOffset:
-      baseOffset / 2 +
-      getHandleOffsetLevel(getHandleSlot(edgeProps.sourceHandleId), sourceSlotsCount) * handleOffsetStep,
+    startOffset,
+    turn: getForwardTurn(layout, from, to, startOffset),
+    layout,
   };
 
   const path = getPath(edgePathParams);
+  edgeLayoutStore.set(edgeProps.id, layout);
 
   return (
     <>
