@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { createContext, useContext, useState, useEffect } from 'react';
 import { authApi } from '../api';
+import { clearSession } from '../utils/session';
 import type { User } from '../types';
 
 interface AuthContextType {
@@ -32,6 +33,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const response = await authApi.login(email, password);
+    // Drop cached data from a previous user
+    clearSession();
     setUser(response.user);
   };
 
@@ -39,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await authApi.logout();
     } finally {
+      clearSession();
       setUser(null);
     }
   };

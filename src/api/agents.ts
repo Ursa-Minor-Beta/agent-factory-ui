@@ -1,4 +1,5 @@
 import { api, fetchWithRefresh, ApiError } from './client';
+import { registerSessionCache } from '../utils/session';
 import type { Agent, AgentGraph, AgentQueryParams, AgentListResponse, EditorData, AgentNode, AgentExportData, AgentImportRequest, AgentImportResponse } from '../types';
 
 export interface AgentExample {
@@ -49,6 +50,7 @@ export function clearAgentsCache() {
   graphCache.clear();
   allAgentsCache.clear();
 }
+registerSessionCache(clearAgentsCache);
 
 // Run a mutation and drop cached agents once it succeeds
 async function mutating<T>(request: Promise<T>): Promise<T> {

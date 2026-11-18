@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../../../api/client';
+import { registerSessionCache } from '../../../../utils/session';
 import type { Agent } from '../../../../types/agent';
 
 interface GitHubSync {
@@ -38,6 +39,7 @@ interface UseGitHubDataResult {
 
 // Module-level cache that persists across component mount/unmount
 const cache = new Map<string, { syncStatus: GitHubSync; commits: GitHubCommit[] }>();
+registerSessionCache(() => cache.clear());
 
 // Export function to clear cache from outside the hook
 export function clearGitHubCache(agentId: string) {

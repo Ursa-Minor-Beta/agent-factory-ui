@@ -12,6 +12,7 @@ import { MessageContent } from '../../../pages/Chat/ChatMessages';
 import { useChatFavicon } from '../../../pages/Chat/useChatFavicon';
 import { useAgentStream, RunStatus, RunSteps, RunErrorAlert } from '../../AgentStream';
 import type { AgentStreamResult } from '../../AgentStream/useAgentStream';
+import { RUN_INPUTS_STORAGE_KEY, RUN_INPUTS_OPEN_STORAGE_KEY } from '../../../utils/session';
 
 interface RunTabProps {
   agent: Partial<Agent> | null;
@@ -29,11 +30,9 @@ interface RunTabProps {
 // Runs the agent with the given input (form values when omitted); null when it can't start
 export type AgentRunner = (input?: Record<string, unknown>) => Promise<AgentStreamResult | null>;
 
-const INPUTS_STORAGE_KEY = 'agent-editor-run-inputs';
 
 const ANIMATE_STORAGE_KEY = 'agent-editor-run-animate';
 const SPEED_STORAGE_KEY = 'agent-editor-run-speed';
-const INPUTS_OPEN_STORAGE_KEY = 'agent-editor-run-inputs-open';
 
 // Min time each executed node is shown as "running" during the animation
 const MIN_RUNNING_MS = 50;
@@ -42,7 +41,7 @@ const DEFAULT_RUNNING_MS = 400;
 
 export const RunTab = memo(function RunTab({ agent, onRunStart, onNodeStatus, onRunEnd, onRunClear, runRequest, onInputsRequired, onRunningChange, onAgentStatusesChange, runnerRef }: RunTabProps) {
   // Last used inputs are remembered per agent
-  const inputsStorageKey = agent?.id ? `${INPUTS_STORAGE_KEY}-${agent.id}` : null;
+  const inputsStorageKey = agent?.id ? `${RUN_INPUTS_STORAGE_KEY}-${agent.id}` : null;
   const [inputs, setInputs] = useState<Record<string, string>>(() => {
     if (!inputsStorageKey) return {};
     try {
@@ -59,7 +58,7 @@ export const RunTab = memo(function RunTab({ agent, onRunStart, onNodeStatus, on
       setInputs({});
     }
   }, [inputsStorageKey]);
-  const [inputsOpen, setInputsOpen] = useLocalStorage({ key: INPUTS_OPEN_STORAGE_KEY, defaultValue: true, getInitialValueInEffect: false });
+  const [inputsOpen, setInputsOpen] = useLocalStorage({ key: RUN_INPUTS_OPEN_STORAGE_KEY, defaultValue: true, getInitialValueInEffect: false });
   const toggleInputsOpen = () => setInputsOpen((prev) => !prev);
 
   const [animate, setAnimate] = useLocalStorage({ key: ANIMATE_STORAGE_KEY, defaultValue: false, getInitialValueInEffect: false });
