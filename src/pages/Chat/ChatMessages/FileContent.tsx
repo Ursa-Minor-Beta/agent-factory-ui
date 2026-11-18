@@ -2,9 +2,11 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Box, Text, ActionIcon, Loader, Image, Tooltip, Modal } from '@mantine/core';
 import { IconFile, IconDownload, IconAlertCircle, IconFileTypePdf } from '@tabler/icons-react';
 import { filesApi, type FileData } from '../../../api';
+import { registerSessionCache } from '../../../utils/session';
 
 // Simple in-memory cache for fetched files
 const fileCache = new Map<string, FileData>();
+registerSessionCache(() => fileCache.clear());
 
 interface FileContentProps {
   fileId: string;

@@ -5,8 +5,8 @@ import { mapApiMessageToChatMessage, parseMessageContent } from '../../../../pag
 import type { ChatMessage } from '../../../../pages/Chat/types';
 import { ASSISTANT_CLIENT_TOOLS, executeAssistantTool, graphOutlineForAssistant, type AssistantEditor, type ToolExecution } from './assistantTools';
 import { validateGraph } from '../../utils/validateGraph';
+import { ASSISTANT_SESSION_STORAGE_PREFIX } from '../../../../utils/session';
 
-const SESSION_STORAGE_PREFIX = 'agent-editor-assistant-session:';
 const HISTORY_LIMIT = 50;
 
 // Rendered by the Chat page's MessageBubble; UI tool calls are part of the answer's toolCalls
@@ -20,7 +20,7 @@ const isUnsaved = (sessionKey: string) => sessionKey.endsWith(':new');
 function readSession(sessionKey: string) {
   if (isUnsaved(sessionKey)) return null;
   try {
-    return localStorage.getItem(SESSION_STORAGE_PREFIX + sessionKey);
+    return localStorage.getItem(ASSISTANT_SESSION_STORAGE_PREFIX + sessionKey);
   } catch {
     return null;
   }
@@ -29,8 +29,8 @@ function readSession(sessionKey: string) {
 function writeSession(sessionKey: string, sessionId: string | null) {
   if (isUnsaved(sessionKey)) return;
   try {
-    if (sessionId) localStorage.setItem(SESSION_STORAGE_PREFIX + sessionKey, sessionId);
-    else localStorage.removeItem(SESSION_STORAGE_PREFIX + sessionKey);
+    if (sessionId) localStorage.setItem(ASSISTANT_SESSION_STORAGE_PREFIX + sessionKey, sessionId);
+    else localStorage.removeItem(ASSISTANT_SESSION_STORAGE_PREFIX + sessionKey);
   } catch {
     // Storage unavailable - session just won't survive reload
   }
@@ -39,7 +39,7 @@ function writeSession(sessionKey: string, sessionId: string | null) {
 // Drop sessions stored for unsaved agents by earlier versions
 try {
   Object.keys(localStorage)
-    .filter((key) => key.startsWith(SESSION_STORAGE_PREFIX) && isUnsaved(key))
+    .filter((key) => key.startsWith(ASSISTANT_SESSION_STORAGE_PREFIX) && isUnsaved(key))
     .forEach((key) => localStorage.removeItem(key));
 } catch {
   // Storage unavailable
