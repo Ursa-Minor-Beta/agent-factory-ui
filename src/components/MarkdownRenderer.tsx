@@ -130,6 +130,11 @@ export function MarkdownRenderer({ children }: MarkdownRendererProps) {
             {children}
           </Box>
         ),
+        a: ({ href, children }) => (
+          <a href={href} target="_blank" rel="noopener noreferrer">
+            {children}
+          </a>
+        ),
         img: ({ src, alt }) => <MarkdownImage src={src} alt={alt} />,
       }}
     >
