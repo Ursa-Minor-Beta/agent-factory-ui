@@ -190,8 +190,17 @@ export async function executeAssistantTool(editor: AssistantEditor, name: string
       if (!id) return fail(summary, 'id is required');
       if (typeof type !== 'string' || !type) return fail(summary, 'type is required');
       if (!data || typeof data !== 'object' || Array.isArray(data)) return fail(summary, 'data must be an object');
-      if (editor.nodeTypes.length && !editor.nodeTypes.some((t) => t.type === type)) {
+      const nodeType = editor.nodeTypes.find((t) => t.type === type);
+      if (editor.nodeTypes.length && !nodeType) {
         return fail(summary, `unknown node type "${type}", available: ${editor.nodeTypes.map((t) => t.type).join(', ')}`);
+      }
+      // Only declared options (plus input schema) may be set - reject made-up fields
+      if (nodeType) {
+        const allowed = new Set(['schema', ...(nodeType.options ?? []).map((o) => o.name)]);
+        const unknown = Object.keys(data).filter((key) => !allowed.has(key));
+        if (unknown.length) {
+          return fail(summary, `unknown data fields ${unknown.join(', ')} for "${type}", allowed: ${[...allowed].join(', ')}`);
+        }
       }
       const pos = position as { x?: unknown; y?: unknown } | undefined;
       if (pos !== undefined && !(pos && Number.isFinite(pos.x) && Number.isFinite(pos.y))) {
