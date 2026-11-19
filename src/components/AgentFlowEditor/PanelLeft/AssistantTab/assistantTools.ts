@@ -194,9 +194,10 @@ export async function executeAssistantTool(editor: AssistantEditor, name: string
       if (editor.nodeTypes.length && !nodeType) {
         return fail(summary, `unknown node type "${type}", available: ${editor.nodeTypes.map((t) => t.type).join(', ')}`);
       }
-      // Only declared options (plus input schema) may be set - reject made-up fields
-      if (nodeType) {
-        const allowed = new Set(['schema', ...(nodeType.options ?? []).map((o) => o.name)]);
+      // Only declared options (plus input schema) may be set - reject made-up fields.
+      // Types without options (e.g. output) have free-form data keys
+      if (nodeType?.options?.length) {
+        const allowed = new Set(['schema', ...nodeType.options.map((o) => o.name)]);
         const unknown = Object.keys(data).filter((key) => !allowed.has(key));
         if (unknown.length) {
           return fail(summary, `unknown data fields ${unknown.join(', ')} for "${type}", allowed: ${[...allowed].join(', ')}`);
