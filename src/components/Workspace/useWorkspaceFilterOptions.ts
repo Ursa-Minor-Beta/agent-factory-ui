@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { workspacesApi } from '../../api';
 import type { FilterOption } from '../common/TableFilters';
 
-/** Sent as `workspaceId=null` - resources not tied to any workspace */
-export const GLOBAL_WORKSPACE = 'null';
+/** Select value for resources not tied to any workspace (mapped to `workspaceId: null` for the API).
+ * Not 'null': Mantine Select treats it as equal to an empty value, so picking it first did nothing */
+export const GLOBAL_WORKSPACE = 'global';
 
 /** Options for a workspace filter select: "Global" followed by every workspace */
 export function useWorkspaceFilterOptions(enabled = true): FilterOption[] {
