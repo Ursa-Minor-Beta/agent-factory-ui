@@ -35,6 +35,8 @@ export interface AgentStreamHandlers extends Omit<ChatStreamCallbacks, 'onClient
   onClientToolCall?: (event: ChatClientToolCallEvent) => Promise<ClientToolOutcome>;
 }
 
+const CONNECTION_LOST = 'Connection to the server was lost before the run finished';
+
 // Path "parentNode / SUB: node / SUBSUB: node" - segment count gives nesting
 const pathDepth = (path: string) => path.split(' / ').length - 1;
 
@@ -175,13 +177,22 @@ export function useAgentStream() {
           },
           controller.signal
         );
-      } catch (err) {
+        // Stream closed without a done / error event
+        if (result.response === undefined && !result.error) fail(CONNECTION_LOST, result.runId);
+      } 
+      catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') {
           result.aborted = true;
-        } else {
+        } 
+        else if (err instanceof TypeError) {
+          // fetch / stream read network failure - browser message is useless ("Error in input stream")
+          fail(CONNECTION_LOST, result.runId);
+        } 
+        else {
           fail(err instanceof Error ? err.message : 'Failed to send message', err instanceof ApiError ? err.runId : undefined);
         }
-      } finally {
+      } 
+      finally {
         const finished = [...toolCalls].flatMap(([id, { status, ...call }]) => (status ? [{ id, status, ...call }] : []));
         if (finished.length) result.toolCalls = finished;
         if (isCurrent()) {
