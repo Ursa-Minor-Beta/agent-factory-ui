@@ -2,7 +2,7 @@ import { useMemo, type ReactNode } from 'react';
 import { Alert, Box, Card, Code, Group, Paper, ScrollArea, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { IconAlertCircle } from '@tabler/icons-react';
 import type { Run } from '../../types';
-import { formatDuration, formatTokens, getTriggerNodeId, getTriggerToolName, getTriggerWebhookId, triggerLabels, getRunProviderNames, getRunUsage, resolveRunOutput } from '../../types';
+import { formatDuration, formatTokens, getTriggerNodeId, getTriggerToolName, getTriggerWebhookId, triggerLabels, getRunProviderNames, getRunUsage, getRunUsageSplit, resolveRunOutput } from '../../types';
 import { CopyIconButton, toJson } from './CopyIconButton';
 import { DataWithFileRefs } from './utils';
 import { TriggerBadge } from './TriggerBadge';
@@ -21,6 +21,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 export function RunSummaryCard({ run }: { run: Run }) {
   const usage = useMemo(() => getRunUsage(run), [run]);
   const providers = useMemo(() => getRunProviderNames(run), [run]);
+  const usageSplit = useMemo(() => getRunUsageSplit(run), [run]);
 
   return (
     <>
@@ -38,7 +39,25 @@ export function RunSummaryCard({ run }: { run: Run }) {
           <Field label="Duration">
             <Text size="sm">{formatDuration(run.startedAt, run.completedAt)}</Text>
           </Field>
-          {usage && (
+          {usageSplit ? (
+            // Server total includes child runs
+            <Field label="Token Usage">
+              <Text size="sm">
+                {formatTokens(usageSplit.total.inputTokens)} in · {formatTokens(usageSplit.total.outputTokens)} out
+              </Text>
+              <Text size="xs" c="dimmed">
+                This run: {formatTokens(usageSplit.own.inputTokens + usageSplit.own.outputTokens)}
+                {!!usageSplit.own.cachedTokens && ` (${formatTokens(usageSplit.own.cachedTokens)} cached)`}
+              </Text>
+              {!!run.childRuns?.length && (
+                <Text size="xs" c="dimmed">
+                  Child runs: {formatTokens(usageSplit.children.inputTokens + usageSplit.children.outputTokens)}
+                  {!!usageSplit.children.cachedTokens && ` (${formatTokens(usageSplit.children.cachedTokens)} cached)`}
+                </Text>
+              )}
+              <Text size="xs" c="dimmed">{Object.keys(run.usage!).join(', ')}</Text>
+            </Field>
+          ) : usage && (
             <Field label="Token Usage">
               <Text size="sm">
                 {formatTokens(usage.inputTokens)} in · {formatTokens(usage.outputTokens)} out

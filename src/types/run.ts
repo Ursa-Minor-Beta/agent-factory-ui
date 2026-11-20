@@ -72,6 +72,8 @@ export interface Run {
   parentRunId?: string;
   triggeredBy?: RunTrigger; // Old runs may have none
   childRuns?: Run[]; // Only when includeChildren=true
+  childRunIds?: string[];
+  usage?: Record<string, TokenUsage>; // Total per provider, includes child runs; old runs may have none
 }
 
 // Summary returned by list endpoints (without input/output/nodeStates)
@@ -127,6 +129,7 @@ export function formatDuration(startedAt: string, completedAt?: string | null): 
 export interface TokenUsage {
   inputTokens: number;
   outputTokens: number;
+  cachedTokens?: number;
 }
 
 function asUsage(value: unknown): TokenUsage | null {
@@ -159,6 +162,38 @@ export function getRunUsage(run: Run): TokenUsage | null {
     total.outputTokens += usage.outputTokens;
   }
   return found ? total : null;
+}
+
+// Sum of a server usage record over all providers
+export function sumProviderUsage(usage?: Record<string, TokenUsage>): TokenUsage | null {
+  if (!usage || Object.keys(usage).length === 0) return null;
+  const total: TokenUsage = { inputTokens: 0, outputTokens: 0, cachedTokens: 0 };
+  for (const u of Object.values(usage)) {
+    total.inputTokens += u.inputTokens || 0;
+    total.outputTokens += u.outputTokens || 0;
+    total.cachedTokens! += u.cachedTokens || 0;
+  }
+  return total;
+}
+
+// Split the server total (run + descendants) into the run's own usage and its child runs' usage
+export function getRunUsageSplit(run: Run): { total: TokenUsage; own: TokenUsage; children: TokenUsage } | null {
+  const total = sumProviderUsage(run.usage);
+  if (!total) return null;
+  const children: TokenUsage = { inputTokens: 0, outputTokens: 0, cachedTokens: 0 };
+  for (const child of run.childRuns ?? []) {
+    const u = sumProviderUsage(child.usage);
+    if (!u) continue;
+    children.inputTokens += u.inputTokens;
+    children.outputTokens += u.outputTokens;
+    children.cachedTokens! += u.cachedTokens ?? 0;
+  }
+  const own: TokenUsage = {
+    inputTokens: Math.max(0, total.inputTokens - children.inputTokens),
+    outputTokens: Math.max(0, total.outputTokens - children.outputTokens),
+    cachedTokens: Math.max(0, (total.cachedTokens ?? 0) - (children.cachedTokens ?? 0)),
+  };
+  return { total, own, children };
 }
 
 export function formatTokens(count: number): string {

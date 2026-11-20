@@ -1,8 +1,8 @@
-import { Anchor, Box, Group, Text } from '@mantine/core';
+import { Anchor, Box, Group, Text, Tooltip } from '@mantine/core';
 import { IconCheck, IconClock, IconPlayerPlay, IconX } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import type { Run } from '../../types';
-import { formatDuration, getTriggerNodeId, getTriggerToolName } from '../../types';
+import { formatDuration, formatTokens, getTriggerNodeId, getTriggerToolName, sumProviderUsage } from '../../types';
 import { buildRunDetailsSearch } from './useRunDetailsModal';
 
 type Trail = Parameters<typeof buildRunDetailsSearch>[1];
@@ -12,6 +12,21 @@ const statusIcon = (status: Run['status']) =>
   status === 'failed' ? <IconX size={12} color="var(--mantine-color-red-6)" /> :
   status === 'running' ? <IconPlayerPlay size={12} color="var(--mantine-color-blue-6)" /> :
   <IconClock size={12} color="var(--mantine-color-dimmed)" />;
+
+/** Child run token total (includes its own child runs), with in/out in a tooltip */
+export function ChildRunUsage({ run }: { run: Run }) {
+  const usage = sumProviderUsage(run.usage);
+  if (!usage) return null;
+  return (
+    <Tooltip 
+      label={`Input: ${formatTokens(usage.inputTokens)} / Output: ${formatTokens(usage.outputTokens)} tokens`}
+      >
+      <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
+        {formatTokens(usage.inputTokens + usage.outputTokens)} tok
+      </Text>
+    </Tooltip>
+  );
+}
 
 /** Child runs started by a node (sub-agent node or agent tool call) */
 export function getNodeChildRuns(run: Run, nodeId: string): Run[] {
@@ -26,7 +41,7 @@ export function ChildRunsTree({ runs, trail, depth = 0 }: { runs: Run[]; trail: 
         const last = i === runs.length - 1;
         return (
           <Box key={child.id}>
-            <Group gap={4} wrap="nowrap">
+            <Group gap="lg" wrap="nowrap">
               <Text size="xs" c="dimmed" ff="monospace">{last ? '└─' : '├─'}</Text>
               <Anchor
                 component={Link}
@@ -43,6 +58,7 @@ export function ChildRunsTree({ runs, trail, depth = 0 }: { runs: Run[]; trail: 
               )}
               {statusIcon(child.status)}
               <Text size="xs" c="dimmed">{formatDuration(child.startedAt, child.completedAt)}</Text>
+              <ChildRunUsage run={child} />
             </Group>
             {!!child.childRuns?.length && (
               <ChildRunsTree

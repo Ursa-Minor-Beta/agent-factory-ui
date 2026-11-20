@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import type { Run } from '../../types';
 import { formatDuration, getTriggerToolName } from '../../types';
 import { buildRunDetailsSearch } from './useRunDetailsModal';
-import { ChildRunsTree } from './ChildRunsTree';
+import { ChildRunsTree, ChildRunUsage } from './ChildRunsTree';
 
 type Trail = Parameters<typeof buildRunDetailsSearch>[1];
 
@@ -84,7 +84,10 @@ export function ToolCallsTree({ calls, childRuns, trail = [], depth = 0 }: ToolC
                   <IconCheck size={12} color="var(--mantine-color-green-6)" />
                 ))}
               {child && (
-                <Text size="xs" c="dimmed">{formatDuration(child.startedAt, child.completedAt)}</Text>
+                <>
+                  <Text size="xs" c="dimmed">{formatDuration(child.startedAt, child.completedAt)}</Text>
+                  <ChildRunUsage run={child} />
+                </>
               )}
             </Group>
             {nested && <ToolCallsTree calls={nested} depth={depth + 1} />}
