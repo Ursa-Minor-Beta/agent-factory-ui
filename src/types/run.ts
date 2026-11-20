@@ -91,6 +91,7 @@ export interface RunSummary {
   parentRunId?: string;
   triggeredBy?: RunTrigger; // Old runs may have none
   childRunIds?: string[]; // Only when includeChildren=true
+  usage?: Record<string, TokenUsage>; // Total per provider, includes child runs; old runs may have none
 }
 
 export interface RunDetailsModalProps {

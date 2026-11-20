@@ -30,7 +30,7 @@ import {
   type SortValue,
 } from '../../components/common/DataTable';
 import type { FilterOption } from '../../components/common/TableFilters';
-import { statusColors, formatDuration } from '../../types';
+import { statusColors, formatDuration, formatTokens, sumProviderUsage } from '../../types';
 import { DeleteRunsModal } from './DeleteRunsModal';
 
 const statusIcons: Record<RunStatus, React.ReactNode> = {
@@ -290,6 +290,21 @@ export function RunsPage() {
           {run.completedAt ? formatDuration(run.startedAt, run.completedAt) : '~'}
         </Text>
       ),
+    },
+    {
+      key: 'usage',
+      header: 'Usage',
+      render: (run) => {
+        const usage = sumProviderUsage(run.usage);
+        if (!usage) return null;
+        return (
+          <Tooltip label={`${formatTokens(usage.inputTokens)} in · ${formatTokens(usage.outputTokens)} out`}>
+            <Text size="sm" c="dimmed">
+              {formatTokens(usage.inputTokens + usage.outputTokens)}
+            </Text>
+          </Tooltip>
+        );
+      },
     },
     {
       key: 'childRuns',
