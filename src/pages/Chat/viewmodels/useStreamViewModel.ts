@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback } from 'react';
 import type { ChatMessage } from '../types';
 import { parseMessageContent } from '../models/messageParser';
 import { formatContent } from '../models/formatting';
@@ -6,8 +6,6 @@ import { useAgentStream, type RunStep } from '../../../components/AgentStream';
 
 export interface StreamState {
   sending: boolean;
-  error: string;
-  errorRunId?: string;
   currentRunId: string | null;
   cancelling: boolean;
   statusText?: string;
@@ -21,8 +19,6 @@ export interface StreamCallbacks {
 export interface UseStreamViewModelReturn {
   // State
   sending: boolean;
-  error: string;
-  errorRunId?: string;
   currentRunId: string | null;
   cancelling: boolean;
   statusText?: string;
@@ -31,8 +27,6 @@ export interface UseStreamViewModelReturn {
   // Actions
   send: (input: Record<string, unknown>) => Promise<void>;
   cancel: () => Promise<void>;
-  retry: () => void;
-  clearError: () => void;
 
   // For adding optimistic user message
   createUserMessage: (input: Record<string, unknown>) => ChatMessage;
@@ -45,8 +39,7 @@ export function useStreamViewModel(
   callbacks: StreamCallbacks
 ): UseStreamViewModelReturn {
   const stream = useAgentStream();
-  const { running: sending, start, cancel, clearError } = stream;
-  const lastInputRef = useRef<Record<string, unknown> | null>(null);
+  const { running: sending, start, cancel } = stream;
 
   const createUserMessage = useCallback((input: Record<string, unknown>): ChatMessage => {
     return {
@@ -61,7 +54,6 @@ export function useStreamViewModel(
   const send = useCallback(
     async (input: Record<string, unknown>) => {
       if (!agentId || sending) return;
-      lastInputRef.current = input;
 
       const result = await start(
         agentId,
@@ -74,8 +66,22 @@ export function useStreamViewModel(
           onInit: (data) => callbacks.onInit?.(data),
         }
       );
+      if (result.cancelled || result.aborted) return;
+      // Failed run - the server stores it as an error message (if the run started), mirror it locally
+      if (result.error) {
+        callbacks.onMessage?.({
+          id: `error-${Date.now()}`,
+          role: 'assistant',
+          content: result.error,
+          error: true,
+          toolCalls: result.toolCalls,
+          createdAt: new Date().toISOString(),
+          runId: result.runId,
+        });
+        return;
+      }
       // Built once the stream ends - tool calls of the answer are known by then
-      if (result.response === undefined || result.cancelled) return;
+      if (result.response === undefined) return;
 
       const { text, fileRefs } = parseMessageContent(result.response);
       const assistantMessage: ChatMessage = {
@@ -93,15 +99,8 @@ export function useStreamViewModel(
     [agentId, sessionId, incognito, sending, start, callbacks]
   );
 
-  const retry = useCallback(() => {
-    if (!lastInputRef.current || sending) return;
-    send(lastInputRef.current);
-  }, [send, sending]);
-
   return {
     sending,
-    error: stream.error,
-    errorRunId: stream.errorRunId,
     // Run id only while it runs
     currentRunId: sending ? stream.runId : null,
     cancelling: stream.cancelling,
@@ -109,8 +108,6 @@ export function useStreamViewModel(
     steps: stream.steps,
     send,
     cancel,
-    retry,
-    clearError,
     createUserMessage,
   };
 }

@@ -28,6 +28,8 @@ export interface Message {
   content: string;
   files?: string[]; // Array of file references: "inner:<fileId>:<fieldName>"
   toolCalls?: MessageToolCall[] | null;
+  runId?: string;
+  error?: boolean; // The run failed - content is the error message
   createdAt: string;
 }
 

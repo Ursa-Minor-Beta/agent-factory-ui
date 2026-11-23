@@ -179,7 +179,7 @@ export function SessionDetailsModal({ session, opened, onClose }: SessionDetails
                         {formatDate(message.createdAt)}
                       </Text>
                     </Group>
-                    <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>
+                    <Text size="sm" c={message.error ? 'red' : undefined} style={{ whiteSpace: 'pre-wrap' }}>
                       {message.content}
                     </Text>
                     {message.toolCalls && message.toolCalls.length > 0 && (

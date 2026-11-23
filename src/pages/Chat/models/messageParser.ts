@@ -55,6 +55,7 @@ export interface ApiMessage {
   files?: string[];
   runId?: string;
   toolCalls?: MessageToolCall[] | null;
+  error?: boolean;
   createdAt: string;
 }
 
@@ -62,6 +63,19 @@ export interface ApiMessage {
  * Map API message to ChatMessage
  */
 export function mapApiMessageToChatMessage(m: ApiMessage): ChatMessage {
+  // Failed run - content is the plain error message
+  if (m.error) {
+    return {
+      id: m.id,
+      role: m.role,
+      runId: m.runId,
+      content: m.content,
+      error: true,
+      toolCalls: m.toolCalls?.length ? m.toolCalls : undefined,
+      createdAt: m.createdAt,
+    };
+  }
+
   const { text, fileRefs: contentFileRefs } = parseMessageContent(m.content);
   const messageFileRefs = parseFileReferences(m.files, typeof m.content === 'string' ? m.content : text);
 

@@ -100,15 +100,11 @@ export function ChatPage() {
           agentName={vm.agent.name}
           isNewChat={vm.isNewChat}
           isIncognito={vm.startIncognito}
-          error={vm.error}
-          errorRunId={vm.errorRunId}
           hasMore={vm.hasMoreMessages}
           loadingMore={vm.loadingMoreMessages}
           statusText={vm.statusText}
           steps={vm.steps}
           inputHeight={vm.inputHeight}
-          onClearError={vm.clearError}
-          onRetry={vm.retry}
           onLoadMore={vm.loadMoreMessages}
           onViewRun={openRunDetails}
           onRepeat={vm.onRepeat}

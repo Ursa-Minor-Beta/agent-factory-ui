@@ -22,8 +22,6 @@ interface AssistantTabProps {
   onSendingChange?: (sending: boolean) => void;
 }
 
-const noop = () => {};
-
 // Memoized: messages are immutable, a new message must not re-render (re-parse markdown of) older ones
 // Same bubble as the Chat page (copy, timestamp, run details, file previews, tool calls)
 const MessageItem = memo(function MessageItem({ message, onViewRun }: { message: AssistantMessage; onViewRun: (runId: string) => void }) {
@@ -31,8 +29,6 @@ const MessageItem = memo(function MessageItem({ message, onViewRun }: { message:
     <MessageBubble
       message={message}
       isFirst={false}
-      showRetry={false}
-      onRetry={noop}
       onViewRun={onViewRun}
     />
   );

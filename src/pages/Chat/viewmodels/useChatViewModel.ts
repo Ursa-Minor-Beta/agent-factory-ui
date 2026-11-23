@@ -38,15 +38,11 @@ export interface UseChatViewModelReturn {
 
   // Stream/Send
   sending: boolean;
-  error: string;
-  errorRunId?: string;
   currentRunId: string | null;
   statusText?: string;
   steps: RunStep[];
   send: (input: Record<string, unknown>) => void;
   cancel: () => Promise<void>;
-  retry: () => void;
-  clearError: () => void;
   onRepeat: (input: Record<string, unknown>) => void;
 
   // UI State
@@ -137,25 +133,19 @@ export function useChatViewModel(): UseChatViewModelReturn {
     [streamVM.sending, queue.length, sendNow]
   );
 
-  // Flush next queued message once the run ends (paused while an error is shown)
+  // Flush next queued message once the run ends
   useEffect(() => {
-    if (streamVM.sending || streamVM.error || queue.length === 0) return;
+    if (streamVM.sending || queue.length === 0) return;
     const [next, ...rest] = queue;
     setQueue(rest);
     sendNow(next.input);
-  }, [streamVM.sending, streamVM.error, queue, sendNow]);
+  }, [streamVM.sending, queue, sendNow]);
 
   // Stop clears the queue
   const cancel = useCallback(async () => {
     setQueue([]);
     await streamVM.cancel();
   }, [streamVM]);
-
-  // Retry removes last message then re-sends
-  const retry = useCallback(() => {
-    messagesVM.removeLastMessage();
-    streamVM.retry();
-  }, [messagesVM, streamVM]);
 
   // Repeat sends a new message with given input
   const onRepeat = useCallback(
@@ -251,15 +241,11 @@ export function useChatViewModel(): UseChatViewModelReturn {
 
     // Stream
     sending: streamVM.sending,
-    error: streamVM.error,
-    errorRunId: streamVM.errorRunId,
     currentRunId: streamVM.currentRunId,
     statusText: streamVM.statusText,
     steps: streamVM.steps,
     send,
     cancel,
-    retry,
-    clearError: streamVM.clearError,
     onRepeat,
 
     // UI

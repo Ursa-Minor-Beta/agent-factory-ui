@@ -17,7 +17,7 @@ Visual platform for building and managing AI agents through a no-code/low-code i
 - **Run in Editor** - Run the agent from the editor with saved inputs, live node status and an animated step-by-step replay on the canvas
 - **Multi-Provider LLM** - Provider presets loaded from the backend (OpenAI, Anthropic, Ollama, and any OpenAI-compatible endpoint), global or per-workspace, with a default per provider type
 - **Memory & Collections** - Structured storage with semantic search and JSON export/import of collection records
-- **Streaming Chat** - Real-time SSE streaming with session management, tool call display, and message queueing while a run is active
+- **Streaming Chat** - Real-time SSE streaming with session management, tool call display, message queueing while a run is active, and failed runs kept in history with their tool calls and a run link
 - **GitHub Sync** - Clone/Link agents to repos with push/pull support via a GitHub provider
 - **Export/Import** - Export agents with their dependencies, or whole workspaces with all their agents, to JSON packages and import them into a new or existing workspace
 - **Schedules** - Run agents automatically on a repeating calendar (down to every 10 seconds), once at a set time, or every N minutes/hours/days, with next-run preview, run now, pause, failure auto-stop, incognito or chat-session runs, and per-schedule run history; manage them on the Schedules page, in the agent editor, and in workspaces

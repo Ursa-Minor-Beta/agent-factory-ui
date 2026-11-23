@@ -26,6 +26,7 @@ export interface ChatMessage {
   runId?: string;
   rawInput?: Record<string, unknown>; // Original input for user messages (for repeat)
   toolCalls?: MessageToolCall[]; // Assistant messages: top-level tools used for the answer
+  error?: boolean; // Assistant message of a failed run - content is the error message
 }
 
 export interface QueuedMessage {
@@ -71,10 +72,6 @@ export interface ChatMessagesProps {
   agentName: string;
   isNewChat: boolean;
   isIncognito: boolean;
-  error: string;
-  errorRunId?: string;
-  onClearError: () => void;
-  onRetry: () => void;
   hasMore: boolean;
   loadingMore: boolean;
   onLoadMore: () => void;

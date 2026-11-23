@@ -30,3 +30,4 @@ dist-ssr
 .sc/profiles/
 .sc/artifacts/
 .sc/stacks/*/secrets.yaml
+.claude/settings.local.json

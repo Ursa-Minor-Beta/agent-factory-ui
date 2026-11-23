@@ -1,5 +1,5 @@
 import { Box, Paper, ActionIcon, Tooltip, Group, CopyButton, Text } from '@mantine/core';
-import { IconCopy, IconCheck, IconListDetails, IconRepeat } from '@tabler/icons-react';
+import { IconCopy, IconCheck, IconListDetails, IconRepeat, IconAlertCircle } from '@tabler/icons-react';
 import type { ChatMessage } from '../types';
 import { MessageContent } from './MessageContent';
 import { MessageToolCalls } from '../../../components/AgentStream';
@@ -20,13 +20,11 @@ function formatMessageDate(dateString: string): string {
 interface MessageBubbleProps {
   message: ChatMessage;
   isFirst: boolean;
-  showRetry: boolean;
-  onRetry: () => void;
   onViewRun: (runId: string) => void;
   onRepeat?: (input: Record<string, unknown>) => void;
 }
 
-export function MessageBubble({ message, isFirst, showRetry, onViewRun, onRepeat }: MessageBubbleProps) {
+export function MessageBubble({ message, isFirst, onViewRun, onRepeat }: MessageBubbleProps) {
   return (
     <Box
       px="md"
@@ -50,20 +48,31 @@ export function MessageBubble({ message, isFirst, showRetry, onViewRun, onRepeat
           maxWidth: '90%',
           position: 'relative',
           backgroundColor:
-            message.role === 'user'
-              ? showRetry
-                ? 'light-dark(var(--mantine-color-red-1), var(--mantine-color-red-9))'
-                : 'var(--mantine-color-cyan-light)'
+            message.error
+              ? 'light-dark(var(--mantine-color-red-0), rgba(250, 82, 82, 0.15))'
+              : message.role === 'user'
+              ? 'var(--mantine-color-cyan-light)'
               : 'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5))',
         }}
       >
         {message.toolCalls && <MessageToolCalls toolCalls={message.toolCalls} />}
-        <MessageContent
-          content={message.content}
-          attachments={message.attachments}
-          fileRefs={message.fileRefs}
-          messageId={message.id}
-        />
+        {message.error ? (
+          <>
+            <Group gap="xs" wrap="nowrap" align="flex-start">
+              <IconAlertCircle size={18} color="var(--mantine-color-red-filled)" style={{ flexShrink: 0, marginTop: 2 }} />
+              <Text size="sm" c="red" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                {message.content}
+              </Text>
+            </Group>
+          </>
+        ) : (
+          <MessageContent
+            content={message.content}
+            attachments={message.attachments}
+            fileRefs={message.fileRefs}
+            messageId={message.id}
+          />
+        )}
         {message.createdAt && (
           <Text size="xs" c="dimmed" mt={4} style={{ textAlign: message.role === 'user' ? 'right' : 'left' }}>
             {formatMessageDate(message.createdAt)}

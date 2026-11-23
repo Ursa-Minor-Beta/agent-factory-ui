@@ -4,7 +4,7 @@ import { Virtuoso } from 'react-virtuoso';
 import { IconGhost } from '@tabler/icons-react';
 import type { ChatMessagesProps } from '../types';
 import { MessageBubble } from './MessageBubble';
-import { RunStatus, RunErrorAlert } from '../../../components/AgentStream';
+import { RunStatus } from '../../../components/AgentStream';
 
 export function ChatMessages({
   currentRunId,
@@ -14,10 +14,6 @@ export function ChatMessages({
   agentName,
   isNewChat,
   isIncognito,
-  error,
-  errorRunId,
-  onClearError,
-  onRetry,
   hasMore,
   loadingMore,
   onLoadMore,
@@ -83,16 +79,6 @@ export function ChatMessages({
 
   return (
     <Box style={{ height: '100%', position: 'relative' }}>
-      {error && (
-        <RunErrorAlert
-          error={error}
-          runId={errorRunId}
-          onRetry={onRetry}
-          onClose={onClearError}
-          mb="md"
-          style={{ position: 'absolute', top: 80, left: 16, right: 16, zIndex: 5 }}
-        />
-      )}
 
       <Virtuoso
         ref={virtuosoRef}
@@ -109,14 +95,10 @@ export function ChatMessages({
           }
         }}
         itemContent={(index, message) => {
-          const isLastMessage = index === messages.length - 1;
-          const showRetry = error && isLastMessage && message.role === 'user' && !sending;
           return (
             <MessageBubble
               message={message}
               isFirst={index === 0}
-              showRetry={!!showRetry}
-              onRetry={onRetry}
               onViewRun={onViewRun}
               onRepeat={onRepeat}
             />
