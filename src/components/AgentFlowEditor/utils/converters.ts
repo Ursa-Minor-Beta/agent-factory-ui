@@ -85,6 +85,33 @@ export function extractReferencedNodeIds(data: Record<string, unknown>): Set<str
   return refs;
 }
 
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Renames a node in {{node: id...}} templates and branch targets, anywhere in node data
+export function renameNodeReferences<T>(data: T, oldId: string, newId: string, isBranch = false): T {
+  const templateRegex = new RegExp(`(\\{\\{node:\\s*)${escapeRegExp(oldId)}(?=[.}\\s])`, 'g');
+  const rename = (value: unknown): unknown => {
+    if (typeof value === 'string') return value.replace(templateRegex, (_, prefix: string) => prefix + newId);
+    if (Array.isArray(value)) return value.map(rename);
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(Object.entries(value).map(([key, v]) => [key, rename(v)]));
+    }
+    return value;
+  };
+  const renamed = rename(data) as Record<string, unknown>;
+
+  // Branch targets are plain node IDs: branches[].nodes
+  if (isBranch && Array.isArray(renamed.branches)) {
+    renamed.branches = renamed.branches.map((branch) => {
+      const branchNodes = (branch as { nodes?: unknown })?.nodes;
+      return Array.isArray(branchNodes)
+        ? { ...(branch as object), nodes: branchNodes.map((id) => (typeof id === 'string' && id.trim() === oldId ? newId : id)) }
+        : branch;
+    });
+  }
+  return renamed as T;
+}
+
 // Source handle ID for a branch node's branch (one handle per branch)
 export const branchHandleId = (index: number) => `branch-${index}`;
 

@@ -37,13 +37,9 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, templateRefs, onUpdat
   const { register, reset, watch } = useForm<NodeFormData>();
   const updateTimeoutRef = useRef<number | undefined>(undefined);
 
-  // ID editing state
-  const idInputRef = useRef<HTMLInputElement>(null);
-  const idDebounceRef = useRef<number | null>(null);
-  const lastEmittedIdRef = useRef<string | null>(null);
-  const onUpdateIdRef = useRef(onUpdateId);
+  // ID editing state - renamed on blur
+  const [idValue, setIdValue] = useState(node.id);
   const [idEditEnabled, setIdEditEnabled] = useState(false);
-  onUpdateIdRef.current = onUpdateId;
 
   useEffect(() => {
     reset({
@@ -54,12 +50,7 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, templateRefs, onUpdat
 
   // Sync ID input when node changes (e.g., selecting different node)
   useEffect(() => {
-    if (lastEmittedIdRef.current === node.id) {
-      return;
-    }
-    if (idInputRef.current && idInputRef.current.value !== node.id) {
-      idInputRef.current.value = node.id;
-    }
+    setIdValue(node.id);
   }, [node.id]);
 
   // Watch only the label field with debouncing
@@ -87,33 +78,20 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, templateRefs, onUpdat
     };
   }, [labelValue, node.id, onUpdate]);
 
-  // ID change handlers
-  const handleIdChange = () => {
-    if (idDebounceRef.current !== null) {
-      clearTimeout(idDebounceRef.current);
-    }
-    idDebounceRef.current = window.setTimeout(() => {
-      if (idInputRef.current) {
-        const newId = idInputRef.current.value.trim();
-        if (newId && newId !== node.id) {
-          lastEmittedIdRef.current = newId;
-          onUpdateIdRef.current(node.id, newId);
-        }
-      }
-    }, DEBOUNCE_MS);
-  };
+  // ID validation: required and unique among the agent's nodes
+  const trimmedId = idValue.trim();
+  const idError = !trimmedId
+    ? 'ID is required'
+    : trimmedId !== node.id && nodes.some((n) => n.id === trimmedId)
+      ? 'A node with this ID already exists'
+      : null;
 
   const handleIdBlur = () => {
-    if (idDebounceRef.current !== null) {
-      clearTimeout(idDebounceRef.current);
+    if (idError || trimmedId === node.id) {
+      setIdValue(node.id); // Invalid or unchanged - restore the current ID
+      return;
     }
-    if (idInputRef.current) {
-      const newId = idInputRef.current.value.trim();
-      if (newId && newId !== node.id) {
-        lastEmittedIdRef.current = newId;
-        onUpdateIdRef.current(node.id, newId);
-      }
-    }
+    onUpdateId(node.id, trimmedId);
   };
 
   const nodeData = node.data as Record<string, unknown>;
@@ -216,13 +194,12 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, templateRefs, onUpdat
         />
 
         <MantineTextInput
-          ref={idInputRef}
           labelProps={{ style: {width: '100%'} }}
           label={
             <Group gap="xs" justify="space-between">
               <Text size="xs" fw={500}>ID</Text>
               <Group gap={4}>
-                <Tooltip label="Updating the node ID will break any references to this node in other nodes (e.g., template variables like {{nodeId.output}})" multiline maw={300}>
+                <Tooltip label="Renaming updates references to this node in other nodes ({{node: id...}} templates, branch targets, run after). References from other agents or outside the editor are not updated" multiline maw={300}>
                   <ThemeIcon size={14} radius="xl" color="gray" variant="light">
                     <IconQuestionMark size={10} />
                   </ThemeIcon>
@@ -239,10 +216,15 @@ export function NodeSettingsForm({ node, nodes, nodeTypes, templateRefs, onUpdat
             </Group>
           }
           size="xs"
-          defaultValue={node.id}
+          value={idValue}
+          error={idEditEnabled && idError}
           styles={{ input: { fontFamily: 'monospace' } }}
-          onChange={handleIdChange}
+          onChange={(e) => setIdValue(e.currentTarget.value)}
           onBlur={handleIdBlur}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') e.currentTarget.blur();
+            if (e.key === 'Escape') setIdValue(node.id);
+          }}
           disabled={!idEditEnabled}
         />
 

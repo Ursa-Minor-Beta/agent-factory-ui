@@ -3,6 +3,7 @@ import { IconDeviceFloppy, IconLayoutSidebar, IconBrandGithub, IconPlayerPlay, I
 import { Link } from 'react-router-dom';
 import { routes } from '../../config/routes';
 import { WorkspaceBadge } from '../Workspace';
+import { MinimalLoggingBadge } from '../common/MinimalLoggingBadge';
 import type { AgentGitHubInfo } from '../../types/agent';
 
 interface EditorToolbarProps {
@@ -11,6 +12,7 @@ interface EditorToolbarProps {
   workspaceId?: string | null;
   workspaceName?: string | null;
   github?: AgentGitHubInfo | null;
+  minimalRunLogging?: boolean;
   saving: boolean;
   isPaletteOpen: boolean;
   onSave: () => void;
@@ -40,6 +42,7 @@ export function EditorToolbar({
   workspaceId,
   workspaceName,
   github,
+  minimalRunLogging,
   saving,
   isPaletteOpen,
   onSave,
@@ -96,6 +99,7 @@ export function EditorToolbar({
             </Badge>
           </Tooltip>
         )}
+        {minimalRunLogging && <MinimalLoggingBadge />}
       </Group>
       </Group>
 

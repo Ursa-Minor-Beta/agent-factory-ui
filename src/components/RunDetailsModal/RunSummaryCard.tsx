@@ -1,8 +1,8 @@
 import { useMemo, type ReactNode } from 'react';
 import { Alert, Box, Card, Code, Group, Paper, ScrollArea, SimpleGrid, Stack, Text, Title } from '@mantine/core';
-import { IconAlertCircle } from '@tabler/icons-react';
+import { IconAlertCircle, IconEyeOff } from '@tabler/icons-react';
 import type { Run } from '../../types';
-import { formatDuration, formatTokens, getTriggerNodeId, getTriggerToolName, getTriggerWebhookId, triggerLabels, getRunProviderNames, getRunUsage, getRunUsageSplit, resolveRunOutput } from '../../types';
+import { formatDuration, formatTokens, getTriggerNodeId, getTriggerToolName, getTriggerWebhookId, triggerLabels, getRunProviderNames, getRunUsage, getRunUsageSplit, resolveRunOutput, isRunRedacted } from '../../types';
 import { CopyIconButton, toJson } from './CopyIconButton';
 import { DataWithFileRefs } from './utils';
 import { TriggerBadge } from './TriggerBadge';
@@ -118,10 +118,18 @@ function DataCard({ title, copyValue, maxHeight, children }: { title: string; co
   );
 }
 
-// Run input + output (nodeRef references resolved)
+// Run input + output (nodeRef references resolved), a note instead for minimal run logging
 export function RunInputOutput({ run }: { run: Run }) {
   const output = useMemo(() => resolveRunOutput(run), [run]);
   const hasOutput = !!output && Object.keys(output).length > 0;
+
+  if (isRunRedacted(run)) {
+    return (
+      <Alert icon={<IconEyeOff size={16} />} color="gray" variant="light">
+        Minimal run logging is on for this agent: inputs, outputs and node data are not stored, only statuses, timing and usage.
+      </Alert>
+    );
+  }
 
   return (
     <Stack gap="md">

@@ -2,7 +2,7 @@ import { Accordion, Alert, Badge, Card, Group, Stack, Text, Title, Tooltip } fro
 import { IconAlertCircle } from '@tabler/icons-react';
 import { NodeTypeIcon } from '../../nodes';
 import type { NodeState, Run } from '../../types';
-import { formatDuration, formatTokens, getNodeUsage } from '../../types';
+import { formatDuration, formatTokens, getNodeUsage, isNodeStateRedacted } from '../../types';
 import type { RunTrailItem } from './useRunDetailsModal';
 import { RunStatusBadge } from './RunStatusBadge';
 import { CopyIconButton } from './CopyIconButton';
@@ -44,10 +44,16 @@ function NodeStateItem({ run, nodeId, state, childTrail }: NodeStateItemProps) {
   const toolCalls = getToolCalls(state.output);
   // Child runs started by tool calls are shown inline on the call row
   const toolCallRuns = matchToolCallRuns(toolCalls ?? [], getNodeChildRuns(run, nodeId));
+  // Minimal run logging: nothing to show in the panel, so the row doesn't expand
+  const redacted = isNodeStateRedacted(state);
 
   return (
     <Accordion.Item value={nodeId}>
-      <Accordion.Control>
+      <Accordion.Control
+        disabled={redacted}
+        chevron={redacted ? <span /> : undefined}
+        style={redacted ? { opacity: 1, cursor: 'default' } : undefined}
+      >
         <Group gap="sm">
           {!!state.nodeType && (
             <Tooltip label={`Node: ${state.nodeType}`}>

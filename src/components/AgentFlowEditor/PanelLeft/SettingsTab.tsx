@@ -1,9 +1,9 @@
 import { useEffect, useState, memo } from 'react';
-import { Stack, TextInput, Textarea, Group, Code, ActionIcon, Tooltip, CopyButton, Text, Select, Divider, Button } from '@mantine/core';
+import { Stack, TextInput, Textarea, Group, Code, ActionIcon, Tooltip, CopyButton, Text, Select, Divider, Button, Switch } from '@mantine/core';
 import { IconCheck, IconCopy, IconTrash, IconUpload } from '@tabler/icons-react';
 import { AgentDeleteModal } from '../../AgentsList/AgentDeleteModal';
 import { useForm } from 'react-hook-form';
-import type { Agent } from '../../../types/agent';
+import type { Agent, AgentSettings } from '../../../types/agent';
 import type { Workspace } from '../../../types/workspace';
 import type { LayoutDirection } from '../utils/converters';
 import { workspacesApi } from '../../../api/workspaces';
@@ -26,9 +26,10 @@ interface SettingsTabProps {
   edgeType: string;
   layoutDirection: LayoutDirection;
   onAgentInfoChange: (data: { name?: string; description?: string }) => Promise<void>;
+  onSettingsChange: (settings: AgentSettings) => void;
   onEdgeTypeChange: (value: string) => void;
   onLayoutDirectionChange: (value: LayoutDirection) => void;
-  onWorkspaceChange?: (workspaceId: string | null) => Promise<void>;
+  onWorkspaceChange?: (workspaceId: string | null, workspaceName?: string) => Promise<void>;
   onExport?: () => void;
   onDeleted?: () => void;
   exporting?: boolean;
@@ -39,7 +40,7 @@ interface SettingsForm {
   description: string;
 }
 
-export const SettingsTab = memo(function SettingsTab({ agent, edgeType, layoutDirection, onAgentInfoChange, onEdgeTypeChange, onLayoutDirectionChange, onWorkspaceChange, onExport, onDeleted, exporting }: SettingsTabProps) {
+export const SettingsTab = memo(function SettingsTab({ agent, edgeType, layoutDirection, onAgentInfoChange, onSettingsChange, onEdgeTypeChange, onLayoutDirectionChange, onWorkspaceChange, onExport, onDeleted, exporting }: SettingsTabProps) {
   const [deleteOpened, setDeleteOpened] = useState(false);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [workspacesLoading, setWorkspacesLoading] = useState(false);
@@ -124,11 +125,18 @@ export const SettingsTab = memo(function SettingsTab({ agent, edgeType, layoutDi
         label="Workspace"
         placeholder={workspacesLoading ? 'Loading...' : 'Select workspace (optional)'}
         value={agent?.workspaceId || ''}
-        onChange={(val) => onWorkspaceChange?.(val || null)}
+        onChange={(val) => onWorkspaceChange?.(val || null, workspaces.find((ws) => ws.id === val)?.name)}
         data={workspaces.map((ws) => ({ value: ws.id, label: ws.name }))}
         disabled={workspacesLoading}
         searchable
         clearable
+      />
+      <Switch
+        label="Minimal run logging"
+        description="Store only run statuses. Inputs, outputs and node data are not saved, errors are saved as 'error'. Also applies to sub-agents this agent calls."
+        checked={!!agent?.settings?.minimalRunLogging}
+        // Saved with the editor's Save
+        onChange={(e) => onSettingsChange({ minimalRunLogging: e.currentTarget.checked })}
       />
       <Divider />
       <Text size="sm" fw={500}>Canvas Settings</Text>

@@ -1,6 +1,6 @@
 import { api, fetchWithRefresh, ApiError } from './client';
 import { registerSessionCache } from '../utils/session';
-import type { Agent, AgentGraph, AgentQueryParams, AgentListResponse, EditorData, AgentNode, AgentExportData, AgentImportRequest, AgentImportResponse } from '../types';
+import type { Agent, AgentGraph, AgentQueryParams, AgentListResponse, EditorData, AgentSettings, AgentNode, AgentExportData, AgentImportRequest, AgentImportResponse } from '../types';
 
 export interface AgentExample {
   name: string;
@@ -14,6 +14,7 @@ export interface CreateAgentInput {
   nodes?: Agent['nodes'];
   editorData?: EditorData;
   workspaceId?: string | null;
+  settings?: AgentSettings;
 }
 
 export interface UpdateAgentInput {
@@ -23,6 +24,7 @@ export interface UpdateAgentInput {
   editorData?: EditorData;
   status?: 'draft' | 'published';
   workspaceId?: string | null;
+  settings?: AgentSettings;
 }
 
 function buildQueryString(params: AgentQueryParams): string {

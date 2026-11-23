@@ -11,7 +11,7 @@ import {
   type Connection,
 } from '@xyflow/react';
 import { agentsApi, nodesApi, type NodeType, type AgentExample } from '../../../api';
-import type { Agent, AgentNode, CanvasSettings, EditorViewport } from '../../../types/agent';
+import type { Agent, AgentNode, AgentSettings, CanvasSettings, EditorViewport } from '../../../types/agent';
 import {
   toFlowNode,
   toAgentNode,
@@ -30,6 +30,7 @@ import {
   isNodeDisabled,
   withDisabled,
   type LayoutDirection,
+  renameNodeReferences,
 } from '../utils/converters';
 import { routes } from '../../../config/routes';
 import { edgeLayoutStore } from '../edges/edgeLayoutStore';
@@ -42,6 +43,16 @@ interface UseAgentEditorOptions {
   workspaceId?: string;
 }
 
+// Agent fields edited in the Settings tab, compared to enable Save
+function agentInfoSnapshot(agent: Partial<Agent>): string {
+  return JSON.stringify({
+    name: agent.name ?? '',
+    description: agent.description ?? '',
+    workspaceId: agent.workspaceId ?? null,
+    settings: agent.settings ?? {},
+  });
+}
+
 export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) {
   const navigate = useNavigate();
   const [agent, setAgent] = useState<Partial<Agent> | null>(null);
@@ -52,6 +63,8 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
   const [initialViewport, setInitialViewport] = useState<EditorViewport | undefined>();
   // Canvas settings as last loaded/saved - differs from current = unsaved settings
   const [savedCanvasSettings, setSavedCanvasSettings] = useState<string>('');
+  // Snapshot of saved agent info + settings, see agentInfoDirty
+  const [savedAgentInfo, setSavedAgentInfo] = useState<string>('');
 
   // Ref to hold a function that gets the current viewport from ReactFlow
   const viewportGetterRef = useRef<(() => EditorViewport) | null>(null);
@@ -93,6 +106,7 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
       const data = await agentsApi.getById(agentId);
       setAgent(data);
       setSavedCanvasSettings(JSON.stringify(data.editorData?.canvasSettings ?? {}));
+      setSavedAgentInfo(agentInfoSnapshot(data));
 
       // Convert agent nodes to flow nodes
       const flowNodes = data.nodes.map((n, i) => toFlowNode(n, i));
@@ -255,10 +269,18 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
 
       if (agent.id) {
         // Update existing agent
-        await agentsApi.update(agent.id, { nodes: agentNodes, editorData });
+        const updatedAgent = await agentsApi.update(agent.id, {
+          name: agent.name,
+          description: agent.description ?? '',
+          workspaceId: agent.workspaceId ?? null,
+          settings: agent.settings,
+          nodes: agentNodes,
+          editorData,
+        });
         // Sync local agent so derived data (e.g. Run tab input schema) updates
-        setAgent((prev) => (prev ? { ...prev, nodes: agentNodes, editorData } : prev));
+        setAgent((prev) => (prev ? { ...prev, nodes: agentNodes, editorData, workspaceName: updatedAgent.workspaceName } : prev));
         setSavedCanvasSettings(JSON.stringify(editorData.canvasSettings));
+        setSavedAgentInfo(agentInfoSnapshot(agent));
         return agent.id;
       }
 
@@ -268,6 +290,7 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
         description: agent.description || undefined,
         nodes: agentNodes,
         editorData,
+        settings: agent.settings,
         // Workspace may have been changed before the first save
         workspaceId: agent.workspaceId ?? workspaceId,
       });
@@ -275,6 +298,7 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
       // instead of the full-screen loader, so panels (Assistant stream, Run tab) stay mounted
       setAgent(newAgent);
       setSavedCanvasSettings(JSON.stringify(editorData.canvasSettings));
+      setSavedAgentInfo(agentInfoSnapshot(newAgent));
       navigate(routes.agentEditor(newAgent.id), { replace: true });
       return newAgent.id;
     } catch (err) {
@@ -285,81 +309,32 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     }
   }, [agent, navigate, workspaceId]);
 
-  // Update agent info (name, description)
-  const updateAgentInfo = useCallback(
-    async (data: { name?: string; description?: string }) => {
-      if (!agent) return;
+  // Update agent info (name, description) - local only, persisted by Save
+  const updateAgentInfo = useCallback(async (data: { name?: string; description?: string }) => {
+    setAgent((prev) => (prev ? { ...prev, ...data } : prev));
+  }, []);
 
-      // For new agents (no id), just update local state
-      if (!agent.id) {
-        setAgent({ ...agent, ...data });
-        return;
-      }
+  // Update workspace - local only, persisted by Save
+  const updateWorkspace = useCallback(async (newWorkspaceId: string | null, workspaceName?: string) => {
+    setAgent((prev) => (prev ? { ...prev, workspaceId: newWorkspaceId || undefined, workspaceName: newWorkspaceId ? workspaceName : undefined } : prev));
+  }, []);
 
-      // For existing agents, persist to backend
-      setSaving(true);
-      try {
-        const updatedAgent = await agentsApi.update(agent.id, data);
-        setAgent(updatedAgent);
-      } catch (err) {
-        console.error('Failed to update agent info:', err);
-      } finally {
-        setSaving(false);
-      }
-    },
-    [agent]
-  );
-
-  // Update workspace
-  const updateWorkspace = useCallback(
-    async (newWorkspaceId: string | null) => {
-      if (!agent) return;
-
-      // For new agents (no id), just update local state
-      if (!agent.id) {
-        setAgent({ ...agent, workspaceId: newWorkspaceId || undefined });
-        return;
-      }
-
-      // For existing agents, persist to backend
-      setSaving(true);
-      try {
-        const updatedAgent = await agentsApi.update(agent.id, { workspaceId: newWorkspaceId });
-        setAgent(updatedAgent);
-      } catch (err) {
-        console.error('Failed to update workspace:', err);
-      } finally {
-        setSaving(false);
-      }
-    },
-    [agent]
-  );
-
-  // Update name / description / workspace in one call (assistant tool) - false on failure
-  const updateAgentMeta = useCallback(
-    async (data: { name?: string; description?: string; workspaceId?: string | null }) => {
-      if (!agent) return false;
-
-      // For new agents (no id), just update local state - applied on first save
-      if (!agent.id) {
-        setAgent((prev) => (prev ? { ...prev, ...data, workspaceId: data.workspaceId === null ? undefined : data.workspaceId ?? prev.workspaceId } : prev));
-        return true;
-      }
-
-      setSaving(true);
-      try {
-        const updatedAgent = await agentsApi.update(agent.id, data);
-        setAgent(updatedAgent);
-        return true;
-      } catch (err) {
-        console.error('Failed to update agent info:', err);
-        return false;
-      } finally {
-        setSaving(false);
-      }
-    },
-    [agent]
-  );
+  // Update name / description / workspace in one call (assistant tool) - local only, persisted by Save
+  const updateAgentMeta = useCallback(async (data: { name?: string; description?: string; workspaceId?: string | null }) => {
+    if (!agent) return false;
+    setAgent((prev) => {
+      if (!prev) return prev;
+      const workspaceChanged = data.workspaceId !== undefined && (data.workspaceId || undefined) !== prev.workspaceId;
+      return {
+        ...prev,
+        ...data,
+        workspaceId: data.workspaceId === null ? undefined : data.workspaceId ?? prev.workspaceId,
+        // Name of a new workspace is unknown until Save
+        workspaceName: workspaceChanged ? undefined : prev.workspaceName,
+      };
+    });
+    return true;
+  }, [agent]);
 
   // Update canvas settings (layout direction, edge type) - local only, persisted by Save
   const updateCanvasSettings = useCallback((settings: CanvasSettings) => {
@@ -431,15 +406,17 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
 
   // Update node ID and all related edges
   const updateNodeId = (oldId: string, newId: string) => {
-    if (oldId === newId) return;
+    // IDs must stay unique
+    if (oldId === newId || nodesRef.current.some((n) => n.id === newId)) return;
 
-    // Update node ID and rename it in other nodes' runAfter
+    // Update node ID and rename it in other nodes' runAfter, templates and branch targets
     setNodes((nds) =>
       nds.map((n) => {
         const runAfter = getRunAfter(n.data);
+        const renamed = renameNodeReferences(n.data, oldId, newId, n.type === 'branch');
         const data = runAfter.includes(oldId)
-          ? { ...n.data, [RUN_AFTER_KEY]: runAfter.map((id) => (id === oldId ? newId : id)) }
-          : n.data;
+          ? { ...renamed, [RUN_AFTER_KEY]: runAfter.map((id) => (id === oldId ? newId : id)) }
+          : renamed;
         return { ...n, id: n.id === oldId ? newId : n.id, data };
       })
     );
@@ -577,6 +554,12 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
   }, [setNodes, updateCanvasSettings]);
 
   const canvasSettingsDirty = JSON.stringify(agent?.editorData?.canvasSettings ?? {}) !== savedCanvasSettings;
+  const agentInfoDirty = !!agent?.id && agentInfoSnapshot(agent) !== savedAgentInfo;
+
+  // Agent settings are local until the editor's Save
+  const updateAgentSettings = useCallback((settings: AgentSettings) => {
+    setAgent((prev) => (prev ? { ...prev, settings: { ...prev.settings, ...settings } } : prev));
+  }, []);
 
   // Change edge type
   const changeEdgeType = useCallback((value: string) => {
@@ -621,6 +604,7 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     layoutDirection,
     initialViewport,
     canvasSettingsDirty,
+    agentInfoDirty,
 
     // Actions
     setNodes,
@@ -639,6 +623,7 @@ export function useAgentEditor({ agentId, workspaceId }: UseAgentEditorOptions) 
     updateNodeData,
     replaceNodeData,
     updateAgentInfo,
+    updateAgentSettings,
     updateWorkspace,
     updateAgentMeta,
     changeLayoutDirection,

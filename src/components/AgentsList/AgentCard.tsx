@@ -5,6 +5,7 @@ import type { AgentCardProps } from './types';
 import { AgentActionsMenu } from './AgentActionsMenu';
 import { WorkspaceBadge } from '../Workspace';
 import { routes } from '../../config/routes';
+import { MinimalLoggingBadge } from '../common/MinimalLoggingBadge';
 
 export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExport, compact, currentWorkspaceId }: AgentCardProps) {
   return (
@@ -79,6 +80,7 @@ export function AgentCard({ agent, onEdit, onDelete, onClone, onWorkspace, onExp
                 </Badge>
               </Tooltip>
             )}
+            {agent.settings?.minimalRunLogging && <MinimalLoggingBadge />}
           </Flex>
 
         </Flex>

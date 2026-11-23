@@ -62,6 +62,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     layoutDirection,
     initialViewport,
     canvasSettingsDirty,
+    agentInfoDirty,
     setNodes,
     setEdges,
     onNodesChange,
@@ -76,6 +77,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     replaceNodeData,
     deleteNode,
     updateAgentInfo,
+    updateAgentSettings,
     updateWorkspace,
     updateAgentMeta,
     changeLayoutDirection,
@@ -208,6 +210,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
       workspaceId={agent?.workspaceId}
       workspaceName={agent?.workspaceName}
       github={agent?.github}
+      minimalRunLogging={agent?.settings?.minimalRunLogging}
       saving={saving}
       isPaletteOpen={isPaletteOpen}
       onSave={handleSave}
@@ -215,7 +218,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
       running={isRunning}
       onRun={handleToolbarRun}
       // New agents can always be saved (creates them)
-      canSave={!agent?.id || history.isDirty || canvasSettingsDirty}
+      canSave={!agent?.id || history.isDirty || canvasSettingsDirty || agentInfoDirty}
       canUndo={history.canUndo}
       canRedo={history.canRedo}
       onUndo={history.undo}
@@ -224,6 +227,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
   ), [
     history.isDirty,
     canvasSettingsDirty,
+    agentInfoDirty,
     history.canUndo,
     history.canRedo,
     history.undo,
@@ -233,6 +237,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
     agent?.workspaceId,
     agent?.workspaceName,
     agent?.github,
+    agent?.settings?.minimalRunLogging,
     saving,
     isPaletteOpen,
     isRunning,
@@ -324,6 +329,7 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
           onActiveTabChange={setActiveTab}
           onAddNode={handleAddNode}
           onAgentInfoChange={updateAgentInfo}
+          onSettingsChange={updateAgentSettings}
           onWorkspaceChange={updateWorkspace}
           onEdgeTypeChange={changeEdgeType}
           onExport={handleExport}

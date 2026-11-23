@@ -203,6 +203,21 @@ export function formatTokens(count: number): string {
 
 // Resolve nodeRef references in run output
 // Format: "nodeRef:<nodeId>:<handle>"
+const isEmptyObject = (value: unknown) => !value || (typeof value === 'object' && Object.keys(value).length === 0);
+
+// Minimal run logging: finished nodes keep only status/timing, no input/output/state
+export function isNodeStateRedacted(state: NodeState): boolean {
+  return (state.status === 'completed' || state.status === 'failed' || state.status === 'skipped')
+    && state.input === undefined && state.output === undefined && state.state === undefined;
+}
+
+// Minimal run logging: finished run with empty input/output and only redacted nodes
+export function isRunRedacted(run: Run): boolean {
+  if (run.status === 'pending' || run.status === 'running') return false;
+  const states = Object.values(run.nodeStates ?? {});
+  return isEmptyObject(run.input) && isEmptyObject(run.output) && states.length > 0 && states.every(isNodeStateRedacted);
+}
+
 export function resolveRunOutput(run: Run): Record<string, unknown> {
   if (!run.output) return {};
 

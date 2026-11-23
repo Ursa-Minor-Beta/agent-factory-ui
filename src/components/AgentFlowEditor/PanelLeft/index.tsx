@@ -16,7 +16,7 @@ import {
 import { Link } from 'react-router-dom';
 import { routes } from '../../../config/routes';
 import type { NodeType, AgentExample } from '../../../api';
-import type { Agent } from '../../../types/agent';
+import type { Agent, AgentSettings } from '../../../types/agent';
 import type { NodeStatus } from '../../../types';
 import type { ChatStatusEvent } from '../../../api/sessions';
 import type { LayoutDirection } from '../utils/converters';
@@ -63,7 +63,8 @@ interface PanelLeftProps {
   onEdgeTypeChange: (value: string) => void;
   onLayoutDirectionChange: (value: LayoutDirection) => void;
   onAgentInfoChange: (data: { name?: string; description?: string }) => Promise<void>;
-  onWorkspaceChange?: (workspaceId: string | null) => Promise<void>;
+  onSettingsChange: (settings: AgentSettings) => void;
+  onWorkspaceChange?: (workspaceId: string | null, workspaceName?: string) => Promise<void>;
   onLoadTemplate: (template: AgentExample) => void;
   onExport?: () => void;
   onAgentDeleted?: () => void;
@@ -80,7 +81,7 @@ interface PanelLeftProps {
   runnerRef?: RefObject<AgentRunner | null>;
 }
 
-export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, savedAt, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onWorkspaceChange, onLoadTemplate, onExport, onAgentDeleted, exporting, onReloadAgent, onRunStart, onNodeStatus, onRunEnd, onRunClear, runRequest, onRunInputsRequired, onRunningChange, assistantEditor, runnerRef }: PanelLeftProps) {
+export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNodeTypes, edgeType, layoutDirection, agent, hasNodes, activeTab: externalActiveTab, savedAt, onActiveTabChange, onAddNode, onEdgeTypeChange, onLayoutDirectionChange, onAgentInfoChange, onSettingsChange, onWorkspaceChange, onLoadTemplate, onExport, onAgentDeleted, exporting, onReloadAgent, onRunStart, onNodeStatus, onRunEnd, onRunClear, runRequest, onRunInputsRequired, onRunningChange, assistantEditor, runnerRef }: PanelLeftProps) {
   const [agentRunStatuses, setAgentRunStatuses] = useState<Record<string, NodeStatus>>({});
   const [assistantSending, setAssistantSending] = useState(false);
   const [viewingNodeType, setViewingNodeType] = useState<NodeType | null>(null);
@@ -258,6 +259,7 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
                 edgeType={edgeType}
                 layoutDirection={layoutDirection}
                 onAgentInfoChange={onAgentInfoChange}
+                onSettingsChange={onSettingsChange}
                 onEdgeTypeChange={onEdgeTypeChange}
                 onLayoutDirectionChange={onLayoutDirectionChange}
                 onWorkspaceChange={onWorkspaceChange}

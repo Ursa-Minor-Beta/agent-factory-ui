@@ -57,6 +57,10 @@ export interface AgentGitHubInfo {
   rootId?: string;
 }
 
+export interface AgentSettings {
+  minimalRunLogging?: boolean; // Runs (and child runs) store only statuses, timestamps and usage
+}
+
 export interface Agent {
   id: string;
   userId: string;
@@ -71,6 +75,7 @@ export interface Agent {
   systemName?: string;
   github?: AgentGitHubInfo | null;
   nodesCount?: number;
+  settings?: AgentSettings;
   createdAt: string;
   updatedAt: string;
 }
