@@ -43,14 +43,9 @@ if [[ "$ANSWER" != "y" ]]; then
   exit 1
 fi
 
-ASSET="agent-factory-ui-$VERSION-dist.zip"
-rm -f "$ASSET"
-(cd dist && zip -qr "../$ASSET" .)
-
 git push origin master
 git push origin "$VERSION"
 
-gh release create "$VERSION" "$ASSET" --title "$VERSION" --generate-notes ${GH_FLAGS[@]+"${GH_FLAGS[@]}"}
-rm -f "$ASSET"
+gh release create "$VERSION" --title "$VERSION" --generate-notes ${GH_FLAGS[@]+"${GH_FLAGS[@]}"}
 
 echo "Done: $(gh release view "$VERSION" --json url -q .url)"
