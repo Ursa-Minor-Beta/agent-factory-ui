@@ -11,7 +11,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "prepare": "husky",
-    "test": "vitest run"
+    "test": "vitest run",
+    "release": "bash scripts/release.sh"
   },
   "dependencies": {
     "@mantine/core": "^9.6.0",
