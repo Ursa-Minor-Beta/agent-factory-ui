@@ -1,4 +1,4 @@
-import type { Agent, Session, InputSchema, MessageToolCall } from '../../types';
+import type { Agent, Session, InputSchema, MessageToolCall, MessageStatus } from '../../types';
 import type { RunStep } from '../../components/AgentStream';
 
 export interface MessageAttachment {
@@ -26,7 +26,7 @@ export interface ChatMessage {
   runId?: string;
   rawInput?: Record<string, unknown>; // Original input for user messages (for repeat)
   toolCalls?: MessageToolCall[]; // Assistant messages: top-level tools used for the answer
-  error?: boolean; // Assistant message of a failed run - content is the error message
+  status?: MessageStatus; // Assistant messages: failed - content is the error message, cancelled - stopped by the user
 }
 
 export interface QueuedMessage {

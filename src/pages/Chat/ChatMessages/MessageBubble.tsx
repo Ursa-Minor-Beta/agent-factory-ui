@@ -1,5 +1,5 @@
 import { Box, Paper, ActionIcon, Tooltip, Group, CopyButton, Text } from '@mantine/core';
-import { IconCopy, IconCheck, IconListDetails, IconRepeat, IconAlertCircle } from '@tabler/icons-react';
+import { IconCopy, IconCheck, IconListDetails, IconRepeat, IconAlertCircle, IconPlayerStop } from '@tabler/icons-react';
 import type { ChatMessage } from '../types';
 import { MessageContent } from './MessageContent';
 import { MessageToolCalls } from '../../../components/AgentStream';
@@ -48,7 +48,7 @@ export function MessageBubble({ message, isFirst, onViewRun, onRepeat }: Message
           maxWidth: '90%',
           position: 'relative',
           backgroundColor:
-            message.error
+            message.status === 'failed'
               ? 'light-dark(var(--mantine-color-red-0), rgba(250, 82, 82, 0.15))'
               : message.role === 'user'
               ? 'var(--mantine-color-cyan-light)'
@@ -56,15 +56,22 @@ export function MessageBubble({ message, isFirst, onViewRun, onRepeat }: Message
         }}
       >
         {message.toolCalls && <MessageToolCalls toolCalls={message.toolCalls} />}
-        {message.error ? (
-          <>
-            <Group gap="xs" wrap="nowrap" align="flex-start">
-              <IconAlertCircle size={18} color="var(--mantine-color-red-filled)" style={{ flexShrink: 0, marginTop: 2 }} />
+        {message.status === 'failed' ? (
+          <Group gap="xs" wrap="nowrap" align="flex-start">
+            <IconAlertCircle size={18} color="var(--mantine-color-red-filled)" style={{ flexShrink: 0, marginTop: 2 }} />
+            <Box>
               <Text size="sm" c="red" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                 {message.content}
               </Text>
-            </Group>
-          </>
+            </Box>
+          </Group>
+        ) : message.status === 'cancelled' ? (
+          <Group gap={6} wrap="nowrap">
+            <IconPlayerStop size={14} color="var(--mantine-color-dimmed)" />
+            <Text size="sm" c="dimmed" fs="italic">
+              Stopped
+            </Text>
+          </Group>
         ) : (
           <MessageContent
             content={message.content}
@@ -89,7 +96,7 @@ export function MessageBubble({ message, isFirst, onViewRun, onRepeat }: Message
             transition: 'opacity 0.15s',
           }}
         >
-          <CopyButton value={message.content}>
+          <CopyButton value={message.status === 'cancelled' ? 'Stopped' : message.content}>
             {({ copied, copy }) => (
               <Tooltip label={copied ? 'Copied' : 'Copy'}>
                 <ActionIcon variant="subtle" size="xs" onClick={copy}>

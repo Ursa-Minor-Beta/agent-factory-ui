@@ -179,8 +179,8 @@ export function SessionDetailsModal({ session, opened, onClose }: SessionDetails
                         {formatDate(message.createdAt)}
                       </Text>
                     </Group>
-                    <Text size="sm" c={message.error ? 'red' : undefined} style={{ whiteSpace: 'pre-wrap' }}>
-                      {message.content}
+                    <Text size="sm" c={message.status === 'failed' ? 'red' : message.status === 'cancelled' ? 'dimmed' : undefined} style={{ whiteSpace: 'pre-wrap' }}>
+                      {message.status === 'cancelled' ? 'Stopped' : message.content}
                     </Text>
                     {message.toolCalls && message.toolCalls.length > 0 && (
                       <Box mt="sm">

@@ -1,5 +1,5 @@
 import type { ChatMessage, FileRef } from '../types';
-import type { MessageToolCall } from '../../../types';
+import type { MessageToolCall, MessageStatus } from '../../../types';
 import { extractFileRefsFromString, parseFileReferences } from './fileRefs';
 import { extractNodeOutput, formatContentWithFileRefs } from './formatting';
 
@@ -55,7 +55,7 @@ export interface ApiMessage {
   files?: string[];
   runId?: string;
   toolCalls?: MessageToolCall[] | null;
-  error?: boolean;
+  status?: MessageStatus;
   createdAt: string;
 }
 
@@ -63,14 +63,14 @@ export interface ApiMessage {
  * Map API message to ChatMessage
  */
 export function mapApiMessageToChatMessage(m: ApiMessage): ChatMessage {
-  // Failed run - content is the plain error message
-  if (m.error) {
+  // Failed run - content is the plain error message; stopped run - content is not a reply
+  if (m.status === 'failed' || m.status === 'cancelled') {
     return {
       id: m.id,
       role: m.role,
       runId: m.runId,
       content: m.content,
-      error: true,
+      status: m.status,
       toolCalls: m.toolCalls?.length ? m.toolCalls : undefined,
       createdAt: m.createdAt,
     };

@@ -66,14 +66,14 @@ export function useStreamViewModel(
           onInit: (data) => callbacks.onInit?.(data),
         }
       );
-      if (result.cancelled || result.aborted) return;
-      // Failed run - the server stores it as an error message (if the run started), mirror it locally
-      if (result.error) {
+      if (result.aborted) return;
+      // Failed / stopped run - the server stores it as a failed / cancelled message (if the run started), mirror it locally
+      if (result.error || result.cancelled) {
         callbacks.onMessage?.({
-          id: `error-${Date.now()}`,
+          id: `${result.cancelled ? 'cancelled' : 'error'}-${Date.now()}`,
           role: 'assistant',
-          content: result.error,
-          error: true,
+          content: result.error ?? '',
+          status: result.cancelled ? 'cancelled' : 'failed',
           toolCalls: result.toolCalls,
           createdAt: new Date().toISOString(),
           runId: result.runId,

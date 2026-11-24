@@ -21,6 +21,8 @@ export interface MessageToolCall {
   error?: string | string[];
 }
 
+export type MessageStatus = 'completed' | 'failed' | 'cancelled';
+
 export interface Message {
   id: string;
   sessionId: string;
@@ -29,7 +31,8 @@ export interface Message {
   files?: string[]; // Array of file references: "inner:<fileId>:<fieldName>"
   toolCalls?: MessageToolCall[] | null;
   runId?: string;
-  error?: boolean; // The run failed - content is the error message
+  // Assistant messages: outcome of the run (missing = completed). failed - content is the error message
+  status?: MessageStatus;
   createdAt: string;
 }
 
