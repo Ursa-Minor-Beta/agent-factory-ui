@@ -2,8 +2,6 @@
 
 Visual platform for building and managing AI agents through a no-code/low-code interface.
 
-> **⚠️ Note:** The current version is actively being built. There could be breaking changes.
-
 > **🐳 One shot Docker Deployment:** For a complete deployment with both API and UI, see [agent-factory-docker-api-ui](https://github.com/Ursa-Minor-Beta/agent-factory-docker-api-ui).
 
 ## Features
