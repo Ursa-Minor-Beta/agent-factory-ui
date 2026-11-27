@@ -187,8 +187,22 @@ export function useAssistantChat(assistantAgentId: string | undefined, agentKey:
           },
         }
       );
+      if (result.aborted) return;
+      // Failed / stopped run - shown as a failed / cancelled message, same as the Chat page
+      if (result.error || result.cancelled) {
+        addMessage({
+          id: nextId(result.cancelled ? 'cancelled' : 'error'),
+          role: 'assistant',
+          content: result.error ?? '',
+          status: result.cancelled ? 'cancelled' : 'failed',
+          toolCalls: result.toolCalls,
+          createdAt: new Date().toISOString(),
+          runId: result.runId,
+        });
+        return;
+      }
       // Built once the stream ends - tool calls of the answer are known by then
-      if (result.response === undefined || result.cancelled) return;
+      if (result.response === undefined) return;
       const { text: content, fileRefs } = parseMessageContent(result.response);
       if (!content) return;
       addMessage({
@@ -219,9 +233,6 @@ export function useAssistantChat(assistantAgentId: string | undefined, agentKey:
     statusText: stream.statusText,
     runId: stream.runId,
     steps: stream.steps,
-    error: stream.error,
-    errorRunId: stream.errorRunId,
-    clearError,
     send,
     cancel,
     newChat,

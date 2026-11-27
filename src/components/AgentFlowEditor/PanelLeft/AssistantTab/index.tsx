@@ -8,7 +8,7 @@ import { useAgentModal } from '../../../AgentCreateModal';
 import { useRunDetailsModal } from '../../../RunDetailsModal';
 import { useAssistantChat, type AssistantMessage } from './useAssistantChat';
 import { AssistantAgentSelect } from './AssistantAgentSelect';
-import { RunStatus, RunErrorAlert } from '../../../AgentStream';
+import { RunStatus } from '../../../AgentStream';
 import type { AssistantEditor } from './assistantTools';
 
 export type { AssistantEditor } from './assistantTools';
@@ -50,7 +50,7 @@ export const AssistantTab = memo(function AssistantTab({ agentKey, editor, onSen
   const openRunDetailsRef = useRef(openRunDetails);
   openRunDetailsRef.current = openRunDetails;
   const handleViewRun = useCallback((runId: string) => openRunDetailsRef.current(runId), []);
-  const { messages, loadingHistory, sending, statusText, runId, steps, error, errorRunId, clearError, send, cancel, newChat } =
+  const { messages, loadingHistory, sending, statusText, runId, steps, send, cancel, newChat } =
     useAssistantChat(assistantAgentId ?? undefined, agentKey, editor);
 
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -107,8 +107,6 @@ export const AssistantTab = memo(function AssistantTab({ agentKey, editor, onSen
         )}
 
         {sending && <RunStatus statusText={statusText} runId={runId} steps={steps} mx="md" mb="xs" />}
-
-        {error && <RunErrorAlert error={error} runId={errorRunId} onClose={clearError} variant="light" size="xs" mb="xs" />}
       </ScrollArea>
 
       <AssistantInput disabled={!assistantAgentId} sending={sending} onSend={send} onCancel={cancel} />
