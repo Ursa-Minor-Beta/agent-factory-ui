@@ -94,6 +94,17 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
 
   useDisableShortcut({ nodes, selectedNodeId: selectedNode?.id, setNodesDisabled });
 
+  // JSON editor (global agent modal) saved this agent - show its changes on the canvas
+  const editedAgentId = agent?.id;
+  useEffect(() => {
+    if (!editedAgentId) return;
+    const handleAgentSaved = (e: Event) => {
+      if ((e as CustomEvent<{ agentId?: string | null }>).detail?.agentId === editedAgentId) reloadAgent();
+    };
+    window.addEventListener('agent-saved', handleAgentSaved);
+    return () => window.removeEventListener('agent-saved', handleAgentSaved);
+  }, [editedAgentId, reloadAgent]);
+
   // Secret / variable names for {{secret:NAME}} / {{var:NAME}} suggestions
   const templateRefs = useTemplateRefs(agent?.workspaceId ?? workspaceId);
 
@@ -223,6 +234,8 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
       canRedo={history.canRedo}
       onUndo={history.undo}
       onRedo={history.redo}
+      // JSON editor loads the saved agent - unsaved canvas changes would be lost
+      jsonDisabled={history.isDirty || canvasSettingsDirty || agentInfoDirty}
     />
   ), [
     history.isDirty,

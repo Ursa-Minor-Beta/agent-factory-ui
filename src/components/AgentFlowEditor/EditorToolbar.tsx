@@ -1,8 +1,9 @@
 import { Group, Text, ActionIcon, Badge, Tooltip } from '@mantine/core';
-import { IconDeviceFloppy, IconLayoutSidebar, IconBrandGithub, IconPlayerPlay, IconArrowBackUp, IconArrowForwardUp, IconMessageCircle } from '@tabler/icons-react';
+import { IconDeviceFloppy, IconLayoutSidebar, IconBrandGithub, IconPlayerPlay, IconArrowBackUp, IconArrowForwardUp, IconMessageCircle, IconCode } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { routes } from '../../config/routes';
 import { WorkspaceBadge } from '../Workspace';
+import { useAgentModal } from '../AgentCreateModal';
 import { MinimalLoggingBadge } from '../common/MinimalLoggingBadge';
 import type { AgentGitHubInfo } from '../../types/agent';
 
@@ -24,6 +25,7 @@ interface EditorToolbarProps {
   canRedo?: boolean;
   onUndo?: () => void;
   onRedo?: () => void;
+  jsonDisabled?: boolean;
 }
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
@@ -54,7 +56,9 @@ export function EditorToolbar({
   canRedo,
   onUndo,
   onRedo,
+  jsonDisabled,
 }: EditorToolbarProps) {
+  const { openEditAgent } = useAgentModal();
   const isSubAgent = github?.rootId && github.rootId !== agentId;
   return (
     <Group
@@ -113,6 +117,17 @@ export function EditorToolbar({
             title="Open Chat"
           >
             <IconMessageCircle size={16} />
+          </ActionIcon>
+        )}
+        {!!agentId && (
+          <ActionIcon
+            size="xs"
+            variant="subtle"
+            title={jsonDisabled ? 'JSON editor - save changes first' : 'JSON editor'}
+            disabled={jsonDisabled}
+            onClick={() => openEditAgent(agentId)}
+          >
+            <IconCode size={16} />
           </ActionIcon>
         )}
         {onUndo && (

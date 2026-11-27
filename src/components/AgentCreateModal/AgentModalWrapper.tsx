@@ -45,8 +45,9 @@ export function AgentModalWrapper() {
   // Handle save - dispatch event for pages to refresh
   // Modal's internal logic handles closing when appropriate
   const handleSave = useCallback(() => {
-    window.dispatchEvent(new CustomEvent('agent-saved'));
-  }, []);
+    // agentId lets an open editor of the same agent reload it
+    window.dispatchEvent(new CustomEvent('agent-saved', { detail: { agentId: isNewMode ? null : agentId } }));
+  }, [isNewMode, agentId]);
 
   // Always render the modal - it will handle loading state
   // In edit mode, wait for agent to load before showing

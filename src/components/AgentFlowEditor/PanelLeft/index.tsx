@@ -36,10 +36,10 @@ const STORAGE_KEY = 'agent-editor-palette-width';
 const TAB_STORAGE_KEY = 'agent-editor-active-tab';
 
 // Icon-only tab - names live in the tooltip to keep the narrow panel on one row
-function IconTab({ value, label, icon: TabIcon, className }: { value: string; label: string; icon: Icon; className?: string }) {
+function IconTab({ value, label, icon: TabIcon, className, disabled, disabledReason }: { value: string; label: string; icon: Icon; className?: string; disabled?: boolean; disabledReason?: string }) {
   return (
-    <Tooltip label={label} openDelay={300}>
-      <Tabs.Tab value={value} aria-label={label} className={className}>
+    <Tooltip label={disabled && disabledReason ? `${label} - ${disabledReason}` : label} openDelay={300}>
+      <Tabs.Tab value={value} aria-label={label} className={className} disabled={disabled}>
         <TabIcon size={16} style={{ display: 'block' }} />
       </Tabs.Tab>
     </Tooltip>
@@ -209,8 +209,8 @@ export const PanelLeft = memo(function({ hidden, header, nodeTypes, existingNode
               {workspaceId && <IconTab value="relations" label="Relations" icon={IconHierarchy2} />}
               <IconTab value="nodes" label="Nodes" icon={IconComponents} />
               <IconTab value="templates" label="Templates" icon={IconTemplate} />
-              {agent?.id && <IconTab value="schedules" label="Schedules" icon={IconCalendarTime} />}
-              {agent?.id && <IconTab value="webhooks" label="Webhooks" icon={IconWebhook} />}
+              <IconTab value="schedules" label="Schedules" icon={IconCalendarTime} disabled={!agent?.id} disabledReason="save the agent first" />
+              <IconTab value="webhooks" label="Webhooks" icon={IconWebhook} disabled={!agent?.id} disabledReason="save the agent first" />
               <IconTab value="git" label="Git" icon={IconBrandGithub} />
               <IconTab value="settings" label="Settings" icon={IconSettings} />
             </Tabs.List>
