@@ -39,12 +39,18 @@ export const ASSISTANT_CLIENT_TOOLS: ChatClientTool[] = [
   {
     name: 'editor_get_nodes',
     description:
-      'Get the current nodes from the editor with their full data. Pass ids to get only those nodes, omit to get all. ' +
-      'Use it to read the latest state before changing a node.',
+      'Get the current nodes from the editor. Pass ids to get only those nodes, omit to get all. ' +
+      'Data is shortened: long text becomes "<text, N chars>", arrays "<array, N items>", objects show their key structure. ' +
+      'Pass fullValueFor with data keys (e.g. ["systemPrompt"]) to get those values in full before changing them.',
     parameters: {
       type: 'object',
       properties: {
         ids: { type: 'array', items: { type: 'string' }, description: 'Node ids to get, omit for all nodes' },
+        fullValueFor: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Data keys to return in full, without shortening',
+        },
       },
     },
     nodeIds: TOOL_NODE_IDS,
@@ -77,6 +83,28 @@ export const ASSISTANT_CLIENT_TOOLS: ChatClientTool[] = [
         },
       },
       required: ['id', 'type', 'data'],
+    },
+    nodeIds: TOOL_NODE_IDS,
+  },
+  {
+    name: 'editor_update_node',
+    description:
+      'Change only some fields of an existing node. data is merged into the current node data (send only changed keys, ' +
+      'null removes a key). Omitted runAfter/disabled/position are kept.',
+    parameters: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        data: { type: 'object', description: 'Data keys to change' },
+        runAfter: { type: 'array', items: { type: 'string' }, description: 'Replaces the current runAfter list' },
+        disabled: { type: 'boolean' },
+        position: {
+          type: 'object',
+          properties: { x: { type: 'number' }, y: { type: 'number' } },
+          required: ['x', 'y'],
+        },
+      },
+      required: ['id'],
     },
     nodeIds: TOOL_NODE_IDS,
   },
@@ -168,12 +196,32 @@ export function nodesForAssistant(nodes: AgentNode[]): AgentNode[] {
   return nodes.map(({ position: _position, ...node }) => node);
 }
 
+const SHORT_TEXT_MAX = 300;
+
+// Compact preview of a data value for editor_get_nodes - long text/arrays as sizes, objects as key structure
+function shortenValue(value: unknown): unknown {
+  if (typeof value === 'string') return value.length > SHORT_TEXT_MAX ? `<text, ${value.length} chars>` : value;
+  if (Array.isArray(value)) return `<array, ${value.length} items>`;
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, v]) => [key, shortenValue(v)]));
+  }
+  return value;
+}
+
 export async function executeAssistantTool(editor: AssistantEditor, name: string, args: Record<string, unknown>): Promise<ToolExecution> {
   const id = typeof args.id === 'string' ? args.id.trim() : '';
 
   switch (name) {
     case 'editor_get_nodes': {
-      const nodes = nodesForAssistant(editor.getNodes());
+      const fullValueFor = new Set(
+        Array.isArray(args.fullValueFor) ? args.fullValueFor.filter((v): v is string => typeof v === 'string') : []
+      );
+      const nodes = nodesForAssistant(editor.getNodes()).map((node) => ({
+        ...node,
+        data: Object.fromEntries(
+          Object.entries(node.data ?? {}).map(([key, value]) => [key, fullValueFor.has(key) ? value : shortenValue(value)])
+        ) as AgentNode['data'],
+      }));
       const ids = Array.isArray(args.ids) ? args.ids.filter((v): v is string => typeof v === 'string') : [];
       if (!ids.length) return { summary: 'Read all nodes', result: { ok: true, nodes } };
       const found = nodes.filter((n) => ids.includes(n.id));
@@ -215,6 +263,48 @@ export async function executeAssistantTool(editor: AssistantEditor, name: string
         ...(pos ? { position: { x: pos.x as number, y: pos.y as number } } : {}),
         ...(runAfterIds.length ? { runAfter: runAfterIds } : {}),
         ...(disabled === true ? { disabled: true } : {}),
+      });
+      return { summary, result: validateGraph(editor.getNodes(), editor.nodeTypes) };
+    }
+
+    case 'editor_update_node': {
+      const summary = `Update node ${id || '?'}`;
+      const { data, runAfter, disabled, position } = args;
+      if (!id) return fail(summary, 'id is required');
+      const existing = editor.getNodes().find((n) => n.id === id);
+      if (!existing) return fail(summary, `node "${id}" does not exist`);
+      if (data !== undefined && (!data || typeof data !== 'object' || Array.isArray(data))) {
+        return fail(summary, 'data must be an object');
+      }
+      const patch = (data ?? {}) as Record<string, unknown>;
+      const nodeType = editor.nodeTypes.find((t) => t.type === existing.type);
+      if (nodeType?.options?.length) {
+        const allowed = new Set(['schema', ...nodeType.options.map((o) => o.name)]);
+        const unknown = Object.keys(patch).filter((key) => !allowed.has(key));
+        if (unknown.length) {
+          return fail(summary, `unknown data fields ${unknown.join(', ')} for "${existing.type}", allowed: ${[...allowed].join(', ')}`);
+        }
+      }
+      const pos = position as { x?: unknown; y?: unknown } | undefined;
+      if (pos !== undefined && !(pos && Number.isFinite(pos.x) && Number.isFinite(pos.y))) {
+        return fail(summary, 'position must be { x: number, y: number }');
+      }
+      const merged: Record<string, unknown> = { ...existing.data };
+      for (const [key, value] of Object.entries(patch)) {
+        if (value === null) delete merged[key];
+        else merged[key] = value;
+      }
+      const runAfterIds = Array.isArray(runAfter)
+        ? runAfter.filter((v): v is string => typeof v === 'string')
+        : existing.runAfter ?? [];
+      const isDisabled = typeof disabled === 'boolean' ? disabled : !!existing.disabled;
+      const { runAfter: _runAfter, disabled: _disabled, position: _position, ...rest } = existing;
+      editor.upsertNode({
+        ...rest,
+        data: merged as AgentNode['data'],
+        ...(pos ? { position: { x: pos.x as number, y: pos.y as number } } : {}),
+        ...(runAfterIds.length ? { runAfter: runAfterIds } : {}),
+        ...(isDisabled ? { disabled: true } : {}),
       });
       return { summary, result: validateGraph(editor.getNodes(), editor.nodeTypes) };
     }
