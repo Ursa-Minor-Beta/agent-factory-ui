@@ -101,6 +101,8 @@ export interface SessionsQueryParams {
 export interface ChatInput {
   input: Record<string, unknown>;
   sessionId?: string;
+  // Title of a new session
+  sessionName?: string;
   incognito?: boolean;
   // Stream drop cancels the run when client tools are attached
   clientTools?: ChatClientTool[];

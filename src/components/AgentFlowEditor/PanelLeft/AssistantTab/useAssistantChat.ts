@@ -69,39 +69,43 @@ export function useAssistantChat(assistantAgentId: string | undefined, agentKey:
   const sessionKeyRef = useRef(sessionKey);
   const agentKeyRef = useRef(agentKey);
   const assistantAgentIdRef = useRef(assistantAgentId);
+  // Bumped on every load - a late response of an older load is dropped
+  const loadSeqRef = useRef(0);
 
-  // Switching edited agent or builder: stop the run (its tool calls would hit the other agent) and load the matching session.
-  // First save of a new agent changes the key 'new' -> id: keep the conversation and running stream.
-  useEffect(() => {
-    const prevAgentKey = agentKeyRef.current;
-    const sameAssistant = assistantAgentIdRef.current === assistantAgentId;
-    agentKeyRef.current = agentKey;
-    sessionKeyRef.current = sessionKey;
-    assistantAgentIdRef.current = assistantAgentId;
-    if (sameAssistant && prevAgentKey === 'new' && agentKey !== 'new') {
-      // Now the agent has an id - persist the in-memory session under it
-      if (sessionIdRef.current) writeSession(sessionKey, sessionIdRef.current);
-      return;
-    }
+  // Name of the saved edited agent, undefined while unsaved
+  const savedAgentName = useCallback(() => {
+    if (agentKeyRef.current === 'new') return undefined;
+    return editorRef.current.getAgentInfo().name?.trim() || undefined;
+  }, []);
 
-    stopStream();
-    clearError();
-    if (!assistantAgentId) {
-      setSessionId(null);
-      setMessages([]);
-      return;
-    }
-    const stored = readSession(sessionKey);
-    setSessionId(stored);
+  // Untitled session of a saved agent gets the agent name
+  const titleSession = useCallback(
+    async (id: string) => {
+      const name = savedAgentName();
+      if (!name) return;
+      try {
+        const session = await sessionsApi.getById(id);
+        if (!session.title) await sessionsApi.update(id, { title: name });
+      } catch (err) {
+        console.error('Failed to set assistant session title:', err);
+      }
+    },
+    [savedAgentName]
+  );
+
+  // Show the given session (null = empty chat) and load its history
+  const loadSession = useCallback((id: string | null) => {
+    const seq = ++loadSeqRef.current;
+    const key = sessionKeyRef.current;
+    setSessionId(id);
     setMessages([]);
-    if (!stored) return;
+    setLoadingHistory(!!id);
+    if (!id) return;
 
-    let cancelled = false;
-    setLoadingHistory(true);
     sessionsApi
-      .getMessages(stored, HISTORY_LIMIT, 0)
+      .getMessages(id, HISTORY_LIMIT, 0)
       .then((data) => {
-        if (cancelled) return;
+        if (seq !== loadSeqRef.current) return;
         const history = data
           .map(mapApiMessageToChatMessage)
           .reverse()
@@ -114,20 +118,44 @@ export function useAssistantChat(assistantAgentId: string | undefined, agentKey:
             rawInput: undefined,
           }));
         setMessages(history);
+        titleSession(id);
       })
       .catch((err) => {
-        if (cancelled) return;
+        if (seq !== loadSeqRef.current) return;
         // Session gone (deleted / expired) - start fresh
         console.error('Failed to load assistant history:', err);
-        writeSession(sessionKey, null);
+        writeSession(key, null);
         setSessionId(null);
       })
-      .finally(() => !cancelled && setLoadingHistory(false));
+      .finally(() => seq === loadSeqRef.current && setLoadingHistory(false));
+  }, [titleSession]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [agentKey, assistantAgentId, sessionKey, stopStream, clearError]);
+  // Switching edited agent or builder: stop the run (its tool calls would hit the other agent) and load the matching session.
+  // First save of a new agent changes the key 'new' -> id: keep the conversation and running stream.
+  useEffect(() => {
+    const prevAgentKey = agentKeyRef.current;
+    const sameAssistant = assistantAgentIdRef.current === assistantAgentId;
+    agentKeyRef.current = agentKey;
+    sessionKeyRef.current = sessionKey;
+    assistantAgentIdRef.current = assistantAgentId;
+    if (sameAssistant && prevAgentKey === 'new' && agentKey !== 'new') {
+      // Now the agent has an id - persist the in-memory session under it
+      if (sessionIdRef.current) {
+        writeSession(sessionKey, sessionIdRef.current);
+        // Created while unsaved - untitled
+        titleSession(sessionIdRef.current);
+      }
+      return;
+    }
+
+    stopStream();
+    clearError();
+    if (!assistantAgentId) {
+      loadSession(null);
+      return;
+    }
+    loadSession(readSession(sessionKey));
+  }, [agentKey, assistantAgentId, sessionKey, stopStream, clearError, loadSession, titleSession]);
 
   const addMessage = useCallback((message: AssistantMessage) => {
     setMessages((prev) => [...prev, message]);
@@ -158,6 +186,7 @@ export function useAssistantChat(assistantAgentId: string | undefined, agentKey:
             validationErrors: validateGraph(editor.getNodes(), editor.nodeTypes).errors,
           },
           sessionId: sessionId || undefined,
+          sessionName: sessionId ? undefined : savedAgentName(),
           clientTools: ASSISTANT_CLIENT_TOOLS,
         },
         {
@@ -215,16 +244,26 @@ export function useAssistantChat(assistantAgentId: string | undefined, agentKey:
         runId: result.runId,
       });
     },
-    [assistantAgentId, sending, sessionId, addMessage, start]
+    [assistantAgentId, sending, sessionId, addMessage, start, savedAgentName]
   );
 
   const newChat = useCallback(() => {
     if (sending) cancel();
     writeSession(sessionKeyRef.current, null);
-    setSessionId(null);
-    setMessages([]);
+    loadSession(null);
     clearError();
-  }, [sending, cancel, clearError]);
+  }, [sending, cancel, clearError, loadSession]);
+
+  // Continue an earlier session of the builder agent
+  const openSession = useCallback(
+    (id: string) => {
+      if (sending) cancel();
+      writeSession(sessionKeyRef.current, id);
+      loadSession(id);
+      clearError();
+    },
+    [sending, cancel, clearError, loadSession]
+  );
 
   return {
     messages,
@@ -236,5 +275,7 @@ export function useAssistantChat(assistantAgentId: string | undefined, agentKey:
     send,
     cancel,
     newChat,
+    sessionId,
+    openSession,
   };
 }
