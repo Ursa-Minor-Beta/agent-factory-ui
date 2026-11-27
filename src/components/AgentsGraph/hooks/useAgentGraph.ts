@@ -4,7 +4,7 @@ import type { Agent, AgentGraph } from '../../../types';
 
 /**
  * Relation graph of a workspace or ALL_AGENTS (one request, always fresh), plus - with `withAgents` - the
- * workspace's agents for full cards, served from the agents API cache when possible (any agent mutation drops it).
+ * workspace's agents for the actions menu, served from the agents API cache when possible (any agent mutation drops it).
  * Refetched when workspaceId/refreshKey/currentAgentId change.
  */
 export function useAgentGraph(workspaceId: string, { refreshKey, currentAgentId, withAgents }: {

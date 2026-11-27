@@ -34,15 +34,3 @@
 [data-mantine-color-scheme='light'] .agents-graph .agents-graph-run-running .mantine-Text-root {
   color: var(--mantine-color-yellow-8);
 }
-
-/* Agent card from another workspace - dashed and dimmed, full opacity on hover */
-.agents-graph .agents-graph-external .mantine-Card-root {
-  border-style: dashed;
-  opacity: 0.6;
-  transition: opacity 150ms ease;
-}
-
-.agents-graph .agents-graph-external:hover .mantine-Card-root,
-.agents-graph .agents-graph-external:focus-within .mantine-Card-root {
-  opacity: 1;
-}

@@ -4,22 +4,22 @@ import { applyNodeChanges, type Edge, type Node, type NodeChange, type XYPositio
 import type { Agent, AgentGraphNode } from '../../types';
 import { ALL_AGENTS } from '../../api/agents';
 import { AgentsGraphView } from './AgentsGraphView';
-import { AgentContextMenu, type AgentContextMenuState } from './AgentContextMenu';
+import { AgentContextMenu, type AgentContextMenuState, type CardActions } from './AgentContextMenu';
 import { graphRelations, relationEdges } from './graph/relations';
 import { layout } from './graph/layout';
 import { applySavedLayout, fitFrames, frameAnchor, frameOfAgents, nodesBounds } from './graph/savedLayout';
 import { workspaceLayout } from './graph/groups';
 import { useAgentGraph } from './hooks/useAgentGraph';
 import { usePersistedPositions, type Positions } from './hooks/usePersistedPositions';
-import { AgentCardNode, CARD_NODE_SIZES, type AgentCardNodeData, type CardActions } from './nodes/AgentCardNode';
 import { AgentNameNode, NAME_NODE_SIZES, nameNodeData, type AgentNameNodeData } from './nodes/AgentNameNode';
 import { WorkspaceFrameNode, type WorkspaceFrameNodeData } from './nodes/WorkspaceFrameNode';
 import type { Relation } from './types';
 
-const nodeTypes = { agent: AgentCardNode, name: AgentNameNode, frame: WorkspaceFrameNode };
+const nodeTypes = { name: AgentNameNode, frame: WorkspaceFrameNode };
+const sizes = NAME_NODE_SIZES;
 
-// Above this many agents full cards get too big to read the graph - draw name-only nodes
-const COMPACT_THRESHOLD = 40;
+// Above this many agents edge labels clutter the graph
+const EDGE_LABELS_THRESHOLD = 40;
 const DIMMED_OPACITY = 0.15;
 const BOTTOM_GAP = 16; // px kept free below the graph (page padding)
 const APP_SHELL_PADDING = 16; // AppShell padding="md"
@@ -58,8 +58,8 @@ function neighbourhood(focused: Set<string>, relations: Relation[]) {
   return ids;
 }
 
-// Agents list graph mode: cards with actions (name-only nodes for big graphs) and name nodes for
-// external/missing agents. Click an agent to focus its callers/callees, right-click for its actions menu
+// Agents list graph mode: name-only nodes. Click an agent to focus its callers/callees, right-click for its
+// actions menu (chat, editor, card actions)
 export function AgentsRelationsGraph({ workspaceId, refreshKey, topInset, ...actions }: AgentsRelationsGraphProps) {
   const { graph, agents, loading, error } = useAgentGraph(workspaceId ?? ALL_AGENTS, { refreshKey, withAgents: true });
   // A clicked agent or workspace frame (by node id)
@@ -70,46 +70,29 @@ export function AgentsRelationsGraph({ workspaceId, refreshKey, topInset, ...act
   const fill = useFillViewportHeight(grouped ? 0 : BOTTOM_GAP);
   const moved = usePersistedPositions(`${LAYOUT_STORAGE_PREFIX}${workspaceId ?? ALL_AGENTS}`);
 
-  const { agentFor, workspaceOf, frameOf, layoutNodes, relations, compact, sizes } = useMemo(() => {
+  const { agentFor, workspaceOf, frameOf, layoutNodes, relations, dense } = useMemo(() => {
     const graphNodes = graph?.nodes ?? [];
     const relations = graphRelations(graph?.edges ?? []);
-    const compact = graphNodes.length > COMPACT_THRESHOLD;
-    const sizes = compact ? NAME_NODE_SIZES : CARD_NODE_SIZES;
+    const dense = graphNodes.length > EDGE_LABELS_THRESHOLD;
 
     const { positions, frames } = grouped
       ? workspaceLayout(graphNodes, relations, sizes)
       : { positions: layout(graphNodes, relations, sizes), frames: [] };
 
     const agentById = new Map(agents.map((a) => [a.id, a]));
-    const agentNode = (node: AgentGraphNode): Node<AgentCardNodeData | AgentNameNodeData> => {
-      const position = positions.get(node.id) ?? { x: 0, y: 0 };
-      if (node.missing || compact) {
-        const data = nameNodeData(node);
-        return {
-          id: node.id,
-          type: 'name',
-          position,
-          // Frames already say which workspace an agent is in
-          data: {
-            ...data,
-            external: grouped ? false : data.external,
-            width: sizes.nodeWidth,
-            hint: 'Click to focus, right-click for actions',
-          },
-        };
-      }
-      // External agents aren't in the workspace list - card from the graph data (card actions only need the id)
-      const agent = agentById.get(node.id) ?? ({
-        id: node.id,
-        name: node.name,
-        workspaceId: node.workspaceId ?? undefined,
-        workspaceName: node.workspaceName ?? undefined,
-      } as Agent);
+    const agentNode = (node: AgentGraphNode): Node<AgentNameNodeData> => {
+      const data = nameNodeData(node);
       return {
         id: node.id,
-        type: 'agent',
-        position,
-        data: { agent, actions: { ...actions, currentWorkspaceId: workspaceId }, external: node.external },
+        type: 'name',
+        position: positions.get(node.id) ?? { x: 0, y: 0 },
+        // Frames already say which workspace an agent is in
+        data: {
+          ...data,
+          external: grouped ? false : data.external,
+          width: sizes.nodeWidth,
+          hint: 'Click to focus, right-click for actions',
+        },
       };
     };
 
@@ -146,8 +129,7 @@ export function AgentsRelationsGraph({ workspaceId, refreshKey, topInset, ...act
       frameOf: frameOfAgents(layoutNodes),
       layoutNodes,
       relations,
-      compact,
-      sizes,
+      dense,
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- actions are recreated each render of the list
   }, [graph, agents, grouped]);
@@ -155,7 +137,7 @@ export function AgentsRelationsGraph({ workspaceId, refreshKey, topInset, ...act
   // User-arranged layout on top of the auto layout
   const baseNodes = useMemo(
     () => applySavedLayout(layoutNodes, moved.positions, workspaceOf, sizes),
-    [layoutNodes, moved.positions, workspaceOf, sizes]
+    [layoutNodes, moved.positions, workspaceOf]
   );
 
   // Fit to the saved layout on first load / reset / another scope only - not while dragging, and not when
@@ -164,7 +146,7 @@ export function AgentsRelationsGraph({ workspaceId, refreshKey, topInset, ...act
   const bounds = useMemo(
     () => nodesBounds(applySavedLayout(layoutNodes, moved.initial, workspaceOf, sizes), sizes),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- layoutNodes/workspaceOf read at those moments only
-    [hasNodes, moved.initial, sizes]
+    [hasNodes, moved.initial]
   );
 
   // Focus: dim everything outside the clicked agent's callers/callees
@@ -192,14 +174,14 @@ export function AgentsRelationsGraph({ workspaceId, refreshKey, topInset, ...act
   // Edges don't depend on node positions - unchanged while dragging
   const edges = useMemo(() => {
     // Edge labels clutter a dense graph
-    const baseEdges = relationEdges(relations, !compact);
+    const baseEdges = relationEdges(relations, !dense);
     if (!focus) return baseEdges;
     return baseEdges.map((edge): Edge =>
       focus.focused.has(edge.source) || focus.focused.has(edge.target)
         ? { ...edge, animated: true }
         : { ...edge, style: { ...edge.style, opacity: DIMMED_OPACITY } }
     );
-  }, [relations, compact, focus]);
+  }, [relations, dense, focus]);
 
   // React Flow drags on local node state; positions are saved only when the drag ends
   const [nodes, setNodes] = useState<Node[]>(focusedNodes);
@@ -214,7 +196,7 @@ export function AgentsRelationsGraph({ workspaceId, refreshKey, topInset, ...act
       // Refit frames with the real node sizes, as while dragging
       return fitFrames(next, sizes);
     });
-  }, [focusedNodes, sizes]);
+  }, [focusedNodes]);
   const draggedIds = useRef(new Set<string>());
   const [dragEnded, setDragEnded] = useState(0);
 
@@ -284,7 +266,7 @@ export function AgentsRelationsGraph({ workspaceId, refreshKey, topInset, ...act
       return fitFrames(withCarried, sizes);
     });
     if (dragEnded) setDragEnded((n) => n + 1);
-  }, [sizes]);
+  }, []);
 
   return (
     <Box

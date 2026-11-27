@@ -1,9 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Node } from '@xyflow/react';
-import type { NodeStatus } from '../../types';
+import type { Agent, NodeStatus } from '../../types';
 import { routes } from '../../config/routes';
 import { AgentsGraphView } from './AgentsGraphView';
+import { AgentContextMenu, type AgentContextMenuState } from './AgentContextMenu';
+import { useAgentActions } from '../AgentsList/useAgentActions';
 import { graphRelations, relationEdges } from './graph/relations';
 import { graphBounds, layout } from './graph/layout';
 import { useAgentGraph } from './hooks/useAgentGraph';
@@ -26,7 +28,21 @@ interface AgentsNavigatorGraphProps {
 // Editor side panel: name-only nodes filling the parent, click switches to the agent's editor
 export function AgentsNavigatorGraph({ workspaceId, refreshKey, currentAgentId, runStatuses, newAgent }: AgentsNavigatorGraphProps) {
   const navigate = useNavigate();
-  const { graph, loading, error } = useAgentGraph(workspaceId, { refreshKey, currentAgentId });
+  // Bumped by right-click menu actions (clone, delete, workspace change) to refetch
+  const [version, setVersion] = useState(0);
+  const { graph, loading, error } = useAgentGraph(workspaceId, {
+    refreshKey: `${String(refreshKey)}:${version}`,
+    currentAgentId,
+  });
+  const [contextMenu, setContextMenu] = useState<AgentContextMenuState | null>(null);
+  const actions = useAgentActions({
+    workspaceId,
+    onChanged: () => setVersion((v) => v + 1),
+    // The open agent is gone - leave its editor
+    onDeleted: (agent) => {
+      if (agent.id === currentAgentId) navigate(routes.agents());
+    },
+  });
 
   // Layout - recomputed only when the graph itself changes, never on run status updates
   const { layoutNodes, edges, bounds } = useMemo(() => {
@@ -68,22 +84,43 @@ export function AgentsNavigatorGraph({ workspaceId, refreshKey, currentAgentId, 
   }, [layoutNodes, runStatuses]);
 
   return (
-    <AgentsGraphView
-      nodes={nodes}
-      edges={edges}
-      bounds={bounds}
-      nodeTypes={nodeTypes}
-      loading={loading}
-      error={error}
-      style={{ height: '100%' }}
-      nodesDraggable={false}
-      viewportStorageKey={`${VIEWPORT_STORAGE_PREFIX}${workspaceId}`}
-      onNodeClick={(event, node) => {
-        if (node.id === NEW_AGENT_NODE_ID || (node.data as AgentNameNodeData).missing) return;
-        // Cmd/Ctrl+click opens in a new tab, like a link
-        if (event.metaKey || event.ctrlKey) window.open(routes.agentEditor(node.id), '_blank');
-        else if (node.id !== currentAgentId) navigate(routes.agentEditor(node.id));
-      }}
-    />
+    <>
+      <AgentsGraphView
+        nodes={nodes}
+        edges={edges}
+        bounds={bounds}
+        nodeTypes={nodeTypes}
+        loading={loading}
+        error={error ?? (actions.error || null)}
+        style={{ height: '100%' }}
+        nodesDraggable={false}
+        viewportStorageKey={`${VIEWPORT_STORAGE_PREFIX}${workspaceId}`}
+        onNodeClick={(event, node) => {
+          if (node.id === NEW_AGENT_NODE_ID || (node.data as AgentNameNodeData).missing) return;
+          // Cmd/Ctrl+click opens in a new tab, like a link
+          if (event.metaKey || event.ctrlKey) window.open(routes.agentEditor(node.id), '_blank');
+          else if (node.id !== currentAgentId) navigate(routes.agentEditor(node.id));
+        }}
+        onNodeContextMenu={(event, node) => {
+          const graphNode = graph?.nodes.find((n) => n.id === node.id);
+          if (!graphNode || graphNode.missing) return;
+          event.preventDefault();
+          // Graph data is enough - the actions only need the id (clone/JSON editor fetch the full agent)
+          const agent = {
+            id: graphNode.id,
+            name: graphNode.name,
+            workspaceId: graphNode.workspaceId ?? undefined,
+            workspaceName: graphNode.workspaceName ?? undefined,
+          } as Agent;
+          setContextMenu({ agent, x: event.clientX, y: event.clientY });
+        }}
+      />
+      <AgentContextMenu
+        menu={contextMenu}
+        actions={{ ...actions.handlers, currentWorkspaceId: workspaceId }}
+        onClose={() => setContextMenu(null)}
+      />
+      {actions.modals}
+    </>
   );
 }

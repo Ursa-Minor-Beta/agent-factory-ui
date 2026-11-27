@@ -5,6 +5,12 @@
   color: var(--item-color);
 }
 
+/* No line below the last item. Mantine shows the line via an inherited variable set on non-last items,
+   so a nested timeline (child calls) inside a non-last parent item would otherwise draw it on its last item too */
+.item:last-of-type {
+  --timeline-line-display: none;
+}
+
 /* Tighter than Mantine's default xl gap between items */
 .item.item:not(:first-of-type) {
   margin-top: var(--mantine-spacing-md);

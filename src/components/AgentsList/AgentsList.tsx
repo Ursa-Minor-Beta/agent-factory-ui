@@ -11,15 +11,12 @@ import {
   IconList,
 } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
-import { agentsApi } from '../../api';
 import type { Agent } from '../../types';
 import type { DataTableHandle } from '../common/DataTable';
 import { AgentsTable } from './AgentsTable';
 import { AgentsRelationsGraph } from '../AgentsGraph';
-import { AgentDeleteModal } from './AgentDeleteModal';
-import { AgentWorkspaceModal } from './AgentWorkspaceModal';
+import { useAgentActions } from './useAgentActions';
 import { ModalAgentImport } from './ModalAgentImport/ModalAgentImport';
-import { downloadJson } from '../../utils/download';
 import { ModalGitHubImport } from './ModalGitHubImport';
 import { useAgentModal } from '../AgentCreateModal';
 import { routes } from '../../config/routes';
@@ -42,12 +39,8 @@ export function AgentsList({
   onCreate,
   onDelete,
 }: AgentsListProps) {
-  const [error, setError] = useState('');
-
   // Modals
-  const { openCreateAgent, openEditAgent } = useAgentModal();
-  const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
-  const [agentForWorkspace, setAgentForWorkspace] = useState<Agent | null>(null);
+  const { openCreateAgent } = useAgentModal();
   const [importModalOpened, setImportModalOpened] = useState(false);
   const [githubImportModalOpened, setGithubImportModalOpened] = useState(false);
 
@@ -75,44 +68,12 @@ export function AgentsList({
     return () => window.removeEventListener('agent-saved', handleAgentSaved);
   }, [reloadAgents, onCreate]);
 
-  const handleOpenEditModal = (agent: Agent) => {
-    openEditAgent(agent.id);
-  };
-
-  const handleClone = async (agent: Agent) => {
-    try {
-      // Fetch full agent data to get nodes // TODO move clone to thhe backend
-      const fullAgent = await agentsApi.getById(agent.id);
-      await agentsApi.create({
-        name: `${fullAgent.name} (clone)`,
-        description: fullAgent.description,
-        nodes: fullAgent.nodes,
-        workspaceId: fullAgent.workspaceId || workspaceId,
-        editorData: fullAgent.editorData
-      });
-      reloadAgents();
-      onCreate?.();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to clone agent');
-    }
-  };
-
-  const handleExport = async (agent: Agent) => {
-    try {
-      const exportData = await agentsApi.export(agent.id);
-      downloadJson(exportData, `${agent.name}.agent.json`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to export agent');
-    }
-  };
-
-  const handlers = {
-    onEdit: handleOpenEditModal,
-    onDelete: setAgentToDelete,
-    onClone: handleClone,
-    onWorkspace: setAgentForWorkspace,
-    onExport: handleExport,
-  };
+  const { handlers, modals, error, setError } = useAgentActions({
+    workspaceId,
+    onChanged: reloadAgents,
+    onCreated: onCreate,
+    onDeleted: () => onDelete?.(),
+  });
 
   const viewSwitcher = (
     <SegmentedControl
@@ -201,17 +162,7 @@ export function AgentsList({
         />
       )}
 
-      <AgentDeleteModal
-        agent={agentToDelete}
-        onClose={() => setAgentToDelete(null)}
-        onDeleted={() => { reloadAgents(); onDelete?.(); }}
-      />
-
-      <AgentWorkspaceModal
-        agent={agentForWorkspace}
-        onClose={() => setAgentForWorkspace(null)}
-        onSaved={reloadAgents}
-      />
+      {modals}
 
       <ModalAgentImport
         opened={importModalOpened}
