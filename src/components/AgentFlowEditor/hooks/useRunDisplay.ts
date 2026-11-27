@@ -5,13 +5,16 @@ import { isNodeDisabled } from '../utils/converters';
 
 type RunStatuses = Record<string, NodeStatus> | null;
 
+// Size assumed for nodes not rendered yet (onlyRenderVisibleElements) - without it the minimap skips them
+const INITIAL_NODE_SIZE = { initialWidth: 160, initialHeight: 60 };
+
 const nodeClassName = (node: Node, runStatuses: RunStatuses) =>
   [
     runStatuses && `run-${runStatuses[node.id] ?? 'pending'}`,
     isNodeDisabled(node.data) && 'node-disabled',
   ].filter(Boolean).join(' ') || undefined;
 
-// Apply run status / disabled classes for rendering only - stored nodes stay untouched.
+// Apply run status / disabled classes and an initial size for rendering only - stored nodes stay untouched.
 // Copies are reused while node and class are unchanged, so a status update re-renders only that node
 export function useDisplayNodes(nodes: Node[], runStatuses: RunStatuses) {
   const cacheRef = useRef(new Map<string, { source: Node; display: Node }>());
@@ -20,11 +23,12 @@ export function useDisplayNodes(nodes: Node[], runStatuses: RunStatuses) {
     const next = new Map<string, { source: Node; display: Node }>();
     const result = nodes.map((node) => {
       const className = nodeClassName(node, runStatuses);
-      if (!className) return node;
+      const needsSize = node.initialWidth === undefined;
+      if (!className && !needsSize) return node;
       const cached = cache.get(node.id);
       const display = cached && cached.source === node && cached.display.className === className
         ? cached.display
-        : { ...node, className };
+        : { ...node, className, ...(needsSize && INITIAL_NODE_SIZE) };
       next.set(node.id, { source: node, display });
       return display;
     });

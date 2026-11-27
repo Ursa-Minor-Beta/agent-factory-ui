@@ -12,7 +12,7 @@ import type { AgentCardProps } from './types';
 type AgentActionsMenuProps = Pick<AgentCardProps, 'agent' | 'onEdit' | 'onDelete' | 'onClone' | 'onWorkspace' | 'onExport'>;
 
 /** "More" menu shared by the agent card and the agents table */
-export function AgentActionsMenu({ agent, onEdit, onDelete, onClone, onWorkspace, onExport }: AgentActionsMenuProps) {
+export function AgentActionsMenu(props: AgentActionsMenuProps) {
   return (
     <Menu position="bottom-end" withinPortal>
       <Menu.Target>
@@ -21,23 +21,32 @@ export function AgentActionsMenu({ agent, onEdit, onDelete, onClone, onWorkspace
         </ActionIcon>
       </Menu.Target>
       <Menu.Dropdown>
-        <Menu.Item leftSection={<IconCode size={16} />} onClick={() => onEdit(agent)}>
-          JSON Editor
-        </Menu.Item>
-        <Menu.Item leftSection={<IconCopy size={16} />} onClick={() => onClone(agent)}>
-          Clone
-        </Menu.Item>
-        <Menu.Item leftSection={<IconUpload size={16} />} onClick={() => onExport(agent)}>
-          Export
-        </Menu.Item>
-        <Menu.Item leftSection={<IconFolder size={16} />} onClick={() => onWorkspace(agent)}>
-          Manage workspace
-        </Menu.Item>
-        <Menu.Divider />
-        <Menu.Item leftSection={<IconTrash size={16} />} color="red" onClick={() => onDelete(agent)}>
-          Delete
-        </Menu.Item>
+        <AgentActionsMenuItems {...props} />
       </Menu.Dropdown>
     </Menu>
+  );
+}
+
+/** The menu's items, also used by the agents graph context menu */
+export function AgentActionsMenuItems({ agent, onEdit, onDelete, onClone, onWorkspace, onExport }: AgentActionsMenuProps) {
+  return (
+    <>
+      <Menu.Item leftSection={<IconCode size={16} />} onClick={() => onEdit(agent)}>
+        JSON Editor
+      </Menu.Item>
+      <Menu.Item leftSection={<IconCopy size={16} />} onClick={() => onClone(agent)}>
+        Clone
+      </Menu.Item>
+      <Menu.Item leftSection={<IconUpload size={16} />} onClick={() => onExport(agent)}>
+        Export
+      </Menu.Item>
+      <Menu.Item leftSection={<IconFolder size={16} />} onClick={() => onWorkspace(agent)}>
+        Manage workspace
+      </Menu.Item>
+      <Menu.Divider />
+      <Menu.Item leftSection={<IconTrash size={16} />} color="red" onClick={() => onDelete(agent)}>
+        Delete
+      </Menu.Item>
+    </>
   );
 }

@@ -12,10 +12,12 @@ import { AgentNameNode, NAME_NODE_SIZES, nameNodeData, type AgentNameNodeData } 
 const nodeTypes = { agent: AgentNameNode };
 
 const NEW_AGENT_NODE_ID = '__new-agent__';
+// Pan/zoom per workspace - kept when switching agents or reloading
+const VIEWPORT_STORAGE_PREFIX = 'agents-navigator-viewport:';
 
 interface AgentsNavigatorGraphProps {
   workspaceId: string;
-  refreshKey?: unknown; // Graph refetches when this changes (e.g. after saving), otherwise uses the cache
+  refreshKey?: unknown; // Graph refetches when this changes (e.g. after saving)
   currentAgentId?: string; // Highlighted agent
   runStatuses?: Record<string, NodeStatus>; // Editor run status per agent - running agents glow
   newAgent?: boolean; // Show an empty highlighted placeholder for an unsaved agent (editor on /new)
@@ -75,6 +77,7 @@ export function AgentsNavigatorGraph({ workspaceId, refreshKey, currentAgentId, 
       error={error}
       style={{ height: '100%' }}
       nodesDraggable={false}
+      viewportStorageKey={`${VIEWPORT_STORAGE_PREFIX}${workspaceId}`}
       onNodeClick={(event, node) => {
         if (node.id === NEW_AGENT_NODE_ID || (node.data as AgentNameNodeData).missing) return;
         // Cmd/Ctrl+click opens in a new tab, like a link

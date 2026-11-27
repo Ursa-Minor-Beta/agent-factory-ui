@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Center, Paper, Text, Tooltip } from '@mantine/core';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import type { AgentGraphNode, NodeStatus } from '../../../types';
@@ -39,7 +40,7 @@ function tooltipLabel({ current, missing, external, workspaceName, hint }: Agent
 }
 
 // Name-only node (editor side panel, external agents); running agents get a glow via AgentsGraph.css
-export function AgentNameNode({ data }: NodeProps<Node<AgentNameNodeData>>) {
+export const AgentNameNode = memo(function AgentNameNode({ data }: NodeProps<Node<AgentNameNodeData>>) {
   const { name, current, isNew, runStatus, external, missing, workspaceId, workspaceName, width = NAME_NODE_SIZES.nodeWidth } = data;
   return (
     <Paper
@@ -71,4 +72,4 @@ export function AgentNameNode({ data }: NodeProps<Node<AgentNameNodeData>>) {
       <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
     </Paper>
   );
-}
+});

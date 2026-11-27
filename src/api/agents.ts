@@ -40,16 +40,14 @@ function buildQueryString(params: AgentQueryParams): string {
 
 const PAGE_SIZE = 100; // backend max for list
 
-// Per-scope caches for the relations graph (a workspace id, or ALL_AGENTS). In-memory: survive in-app
+// Per-scope cache for all agents (a workspace id, or ALL_AGENTS). In-memory: survives in-app
 // navigation, cleared on page reload and by every agent mutation below.
 /** Cache/graph scope for all of the user's agents across workspaces */
 export const ALL_AGENTS = '*';
 
-const graphCache = new Map<string, AgentGraph>();
 const allAgentsCache = new Map<string, Agent[]>();
 
 export function clearAgentsCache() {
-  graphCache.clear();
   allAgentsCache.clear();
 }
 registerSessionCache(clearAgentsCache);
@@ -106,8 +104,8 @@ export const agentsApi = {
   getById: (id: string) =>
     api.get<Agent>(`/api/agents/${id}`),
 
-  // Relation graph of a workspace's agents (or ALL_AGENTS), cached until the next agent mutation
-  graph: cached(graphCache, fetchGraph),
+  // Relation graph of a workspace's agents (or ALL_AGENTS)
+  graph: fetchGraph,
 
   // All agents of a workspace or ALL_AGENTS (list fields, no nodes), cached until the next agent mutation
   listAll: cached(allAgentsCache, fetchAll),

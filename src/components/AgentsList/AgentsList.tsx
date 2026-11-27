@@ -174,14 +174,16 @@ export function AgentsList({
       {viewMode === 'graph' ? (
         <>
           {/* Floats over the graph so the graph gets the full height */}
-          <Group gap="sm" wrap="wrap" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}>
+          <Group gap="sm" wrap="wrap" style={{ position: 'absolute', top: 'var(--mantine-spacing-md)', left: 0, right: 0, zIndex: 10 }}>
             {viewSwitcher}
             <Box style={{ flex: 1 }} />
             {createButtons}
           </Group>
           <AgentsRelationsGraph
+            // Remount per scope: fresh graph, saved layout and viewport fit
+            key={workspaceId ?? '*'}
             workspaceId={workspaceId}
-            topInset={48}
+            topInset={64} // toolbar: 16px top padding + its height
             refreshKey={graphVersion}
             {...handlers}
           />

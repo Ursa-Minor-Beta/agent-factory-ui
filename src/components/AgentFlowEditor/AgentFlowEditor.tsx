@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ReactFlow, MiniMap, type ReactFlowInstance } from '@xyflow/react';
+import { ReactFlow, MiniMap, Background, BackgroundVariant, type ReactFlowInstance } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import './AgentFlowEditor.css';
 import { Center, Loader, LoadingOverlay } from '@mantine/core';
@@ -311,10 +311,19 @@ export function AgentFlowEditor({ agentId, workspaceId }: AgentFlowEditorProps) 
           onlyRenderVisibleElements={true}
           style={{ background: 'transparent' }}
         >
+          {/* Sparser than the relations graphs' default 20px dots, so the two views look different.
+              Own id: the side panel graph's pattern would otherwise share the SVG pattern id */}
+          <Background id="agent-editor" variant={BackgroundVariant.Dots} gap={80} size={1.5} color="var(--mantine-color-default-border)" />
           { !selectedNode &&
               <MiniMap
+                // Drag / scroll on the minimap to pan / zoom the canvas
+                pannable
+                zoomable
                 nodeColor="var(--mantine-color-default-border)"
-                maskColor="var(--mantine-color-body)"
+                // See-through mask: nodes outside the visible area stay visible, the visible area is outlined
+                maskColor="color-mix(in srgb, var(--mantine-color-body) 50%, transparent)"
+                maskStrokeColor="color-mix(in srgb, var(--mantine-color-cyan-6) 40%, transparent)"
+                maskStrokeWidth={1}
                 style={{
                   background: 'var(--mantine-color-body)',
                   border: '1px solid var(--mantine-color-default-border)',

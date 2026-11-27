@@ -2,8 +2,8 @@ import type { AgentGraphNode } from '../../../types';
 import type { GraphBounds, GraphSizes, Relation } from '../types';
 import { layout } from './layout';
 
-const FRAME_PADDING = 24; // px between the frame border and its agents
-const FRAME_HEADER = 32; // px for the workspace label above the agents
+export const FRAME_PADDING = 24; // px between the frame border and its agents
+export const FRAME_HEADER = 44; // px for the workspace label above the agents
 const FRAME_GAP = 60; // px between frames
 
 export interface WorkspaceFrame {
