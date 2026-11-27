@@ -85,6 +85,20 @@ export function extractReferencedNodeIds(data: Record<string, unknown>): Set<str
   return refs;
 }
 
+const TEMPLATE_NODE_PATH_REGEX_GLOBAL = /\{\{node:\s*([^}]+?)\s*\}\}/g;
+
+// Extract full {{node: ...}} reference paths from node data: nodeId.output.field
+export function extractNodeReferencePaths(data: Record<string, unknown>): Set<string> {
+  const refs = new Set<string>();
+  const dataStr = JSON.stringify(data);
+  let match: RegExpExecArray | null;
+  TEMPLATE_NODE_PATH_REGEX_GLOBAL.lastIndex = 0;
+  while ((match = TEMPLATE_NODE_PATH_REGEX_GLOBAL.exec(dataStr)) !== null) {
+    refs.add(match[1].trim());
+  }
+  return refs;
+}
+
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // Renames a node in {{node: id...}} templates and branch targets, anywhere in node data

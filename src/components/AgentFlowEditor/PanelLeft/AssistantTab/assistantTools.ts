@@ -4,6 +4,7 @@ import type { ChatClientTool } from '../../../../api/sessions';
 import type { AgentNode } from '../../../../types/agent';
 import type { AgentStreamResult } from '../../../AgentStream/useAgentStream';
 import { validateGraph, type GraphValidation } from '../../utils/validateGraph';
+import { extractBranchTargets, extractNodeReferencePaths } from '../../utils/converters';
 
 // LLM node(s) of the builder agent that get the editor tools
 const TOOL_NODE_IDS = ['llm-builder'];
@@ -79,6 +80,7 @@ export const ASSISTANT_CLIENT_TOOLS: ChatClientTool[] = [
           required: ['x', 'y'],
           description:
             'Canvas position. Follow the graph layoutDirection (LR: next step to the right, TB: next step below). ' +
+            'Place a node after all nodes in its refs/runAfter and near them, so edges stay short and do not cross. ' +
             'Omit to keep the current one (or auto-place a new node)',
         },
       },
@@ -178,15 +180,33 @@ const fail = (summary: string, error: string): ToolExecution => ({ summary, resu
 
 // Compact graph sent with each message - full node data is fetched via editor_get_nodes
 export function graphOutlineForAssistant(nodes: AgentNode[], nodeTypes: NodeType[], layoutDirection: 'LR' | 'TB') {
+  const ids = new Set(nodes.map((n) => n.id));
   return {
     layoutDirection,
-    nodes: nodes.map(({ id, type, position, runAfter, disabled }) => ({
-      id,
-      type,
-      ...(position ? { position: { x: Math.round(position.x), y: Math.round(position.y) } } : {}),
-      ...(runAfter?.length ? { runAfter } : {}),
-      ...(disabled ? { disabled } : {}),
-    })),
+    nodes: nodes.map(({ id, type, position, runAfter, disabled, data }) => {
+      // Data edges as drawn on the canvas: {{node:...}} reference paths and branch targets keyed by branch name
+      const refs = [...extractNodeReferencePaths(data)].filter((ref) => {
+        const refId = ref.split('.')[0];
+        return refId !== id && ids.has(refId);
+      });
+      const branches = Array.isArray(data.branches) ? (data.branches as { name?: string }[]) : [];
+      const branchTargets: Record<string, string[]> = {};
+      extractBranchTargets(type, data).forEach(({ sourceHandle, target }) => {
+        if (!ids.has(target)) return;
+        const index = Number(sourceHandle.replace('branch-', ''));
+        const name = branches[index]?.name || sourceHandle;
+        (branchTargets[name] ??= []).push(target);
+      });
+      return {
+        id,
+        type,
+        ...(position ? { position: { x: Math.round(position.x), y: Math.round(position.y) } } : {}),
+        ...(refs.length ? { refs } : {}),
+        ...(Object.keys(branchTargets).length ? { branchTargets } : {}),
+        ...(runAfter?.length ? { runAfter } : {}),
+        ...(disabled ? { disabled } : {}),
+      };
+    }),
     validation: validateGraph(nodes, nodeTypes),
   };
 }
