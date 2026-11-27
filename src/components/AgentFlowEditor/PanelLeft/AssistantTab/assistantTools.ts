@@ -2,6 +2,8 @@ import type { NodeType } from '../../../../api';
 import { workspacesApi } from '../../../../api/workspaces';
 import type { ChatClientTool } from '../../../../api/sessions';
 import type { AgentNode } from '../../../../types/agent';
+import { runsApi } from '../../../../api/runs';
+import { formatDuration, type RunStatus } from '../../../../types/run';
 import type { AgentStreamResult } from '../../../AgentStream/useAgentStream';
 import { validateGraph, type GraphValidation } from '../../utils/validateGraph';
 import { extractBranchTargets, extractNodeReferencePaths } from '../../utils/converters';
@@ -154,6 +156,23 @@ export const ASSISTANT_CLIENT_TOOLS: ChatClientTool[] = [
     },
     nodeIds: TOOL_NODE_IDS,
   },
+  {
+    name: 'editor_get_run_node_state',
+    description:
+      'Get node states of a run (runId from editor_run_agent). Omit nodeIds to get status/error/duration of all nodes. ' +
+      'Pass nodeIds to also get their input, output and state, shortened like editor_get_nodes unless full is true. ' +
+      'Use it to find which node failed and why.',
+    parameters: {
+      type: 'object',
+      properties: {
+        runId: { type: 'string' },
+        nodeIds: { type: 'array', items: { type: 'string' }, description: 'Node ids to get input/output/state for' },
+        full: { type: 'boolean', description: 'Return input/output/state without shortening' },
+      },
+      required: ['runId'],
+    },
+    nodeIds: TOOL_NODE_IDS,
+  },
 ];
 
 type ToolResult =
@@ -167,6 +186,7 @@ type ToolResult =
       warnings?: string[];
       agent?: AgentInfo & { workspaceName?: string };
       nodes?: AgentNode[];
+      run?: { status: RunStatus; error?: string | null; nodeStates: Record<string, unknown> };
     };
 
 export interface ToolExecution {
@@ -402,6 +422,52 @@ export async function executeAssistantTool(editor: AssistantEditor, name: string
             : response,
         },
       };
+    }
+
+    case 'editor_get_run_node_state': {
+      const runId = typeof args.runId === 'string' ? args.runId.trim() : '';
+      const summary = `Read run ${runId || '?'} node states`;
+      if (!runId) return fail(summary, 'runId is required');
+      const nodeIds = Array.isArray(args.nodeIds) ? args.nodeIds.filter((v): v is string => typeof v === 'string') : [];
+      const full = args.full === true;
+
+      let run;
+      try {
+        run = await runsApi.getById(runId);
+      } catch (e) {
+        return fail(summary, e instanceof Error ? e.message : 'failed to load run');
+      }
+
+      const nodeStates: Record<string, unknown> = {};
+      for (const [nodeId, state] of Object.entries(run.nodeStates ?? {})) {
+        if (nodeIds.length && !nodeIds.includes(nodeId)) continue;
+        const details = nodeIds.length
+          ? Object.fromEntries(
+              (['input', 'output', 'state'] as const)
+                .filter((key) => state[key] !== undefined)
+                .map((key) => [key, full ? state[key] : shortenValue(state[key])])
+            )
+          : {};
+        nodeStates[nodeId] = {
+          status: state.status,
+          ...(state.error ? { error: state.error } : {}),
+          ...(state.startedAt ? { duration: formatDuration(state.startedAt, state.completedAt) } : {}),
+          ...details,
+        };
+      }
+
+      const missing = nodeIds.filter((nodeId) => !(nodeId in nodeStates));
+      let result: ToolResult = {
+        ok: true,
+        run: { status: run.status, ...(run.error ? { error: run.error } : {}), nodeStates },
+        ...(missing.length ? { errors: missing.map((m) => `node "${m}" has no state in this run`) } : {}),
+      };
+      // Keep the LLM context small - full values may be huge
+      const size = JSON.stringify(result).length;
+      if (size > MAX_RUN_RESPONSE_CHARS) {
+        result = fail(summary, `result too large (${size} chars) - request fewer nodeIds or omit full`).result;
+      }
+      return { summary, result };
     }
 
     default:
