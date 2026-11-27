@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Box, Paper, ActionIcon, Tooltip, Group, CopyButton, Text } from '@mantine/core';
 import { IconCopy, IconCheck, IconListDetails, IconRepeat, IconAlertCircle, IconPlayerStop } from '@tabler/icons-react';
 import type { ChatMessage } from '../types';
@@ -24,7 +25,8 @@ interface MessageBubbleProps {
   onRepeat?: (input: Record<string, unknown>) => void;
 }
 
-export function MessageBubble({ message, isFirst, onViewRun, onRepeat }: MessageBubbleProps) {
+// Memoized - the list re-renders on every stream update, bubbles only when their own props change
+export const MessageBubble = memo(function MessageBubble({ message, isFirst, onViewRun, onRepeat }: MessageBubbleProps) {
   return (
     <Box
       px="md"
@@ -140,4 +142,4 @@ export function MessageBubble({ message, isFirst, onViewRun, onRepeat }: Message
       </Paper>
     </Box>
   );
-}
+});

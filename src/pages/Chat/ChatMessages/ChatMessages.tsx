@@ -1,10 +1,47 @@
-import { useRef, useEffect, type ElementRef } from 'react';
+import { useRef, useEffect, useCallback, useMemo, type ElementRef } from 'react';
 import { Box, Text, Stack, Loader, Center } from '@mantine/core';
-import { Virtuoso } from 'react-virtuoso';
+import { Virtuoso, type Components } from 'react-virtuoso';
 import { IconGhost } from '@tabler/icons-react';
-import type { ChatMessagesProps } from '../types';
+import type { ChatMessage, ChatMessagesProps } from '../types';
 import { MessageBubble } from './MessageBubble';
-import { RunStatus } from '../../../components/AgentStream';
+import { RunStatus, type RunStep } from '../../../components/AgentStream';
+
+// Changing values reach Header / Footer via Virtuoso context - the components themselves stay stable,
+// so the footer (run status spinner) is not remounted on every stream update
+interface ListContext {
+  loadingMore: boolean;
+  sending: boolean;
+  statusText?: string;
+  steps?: RunStep[];
+  currentRunId?: string;
+  inputHeight: number;
+}
+
+const listComponents: Components<ChatMessage, ListContext> = {
+  Header: ({ context }) =>
+    context?.loadingMore ? (
+      <Center py="md">
+        <Loader size="sm" />
+      </Center>
+    ) : null,
+  Footer: ({ context }) => (
+    <>
+      {context?.sending && (
+        <RunStatus
+          statusText={context.statusText}
+          runId={context.currentRunId}
+          steps={context.steps}
+          ms={22}
+          mx="sm"
+          mb="xs"
+        />
+      )}
+      <Box style={{ height: (context?.inputHeight ?? 100) + 32 }} />
+    </>
+  ),
+};
+
+const computeItemKey = (_index: number, message: ChatMessage) => message.id;
 
 export function ChatMessages({
   currentRunId,
@@ -25,6 +62,26 @@ export function ChatMessages({
 }: ChatMessagesProps) {
   const virtuosoRef = useRef<ElementRef<typeof Virtuoso>>(null);
   const isAtBottomRef = useRef(true);
+
+  // Latest callbacks in a ref - parents may pass new functions each render, rows must not re-render because of it
+  const callbacksRef = useRef({ onViewRun, onRepeat });
+  useEffect(() => {
+    callbacksRef.current = { onViewRun, onRepeat };
+  }, [onViewRun, onRepeat]);
+  const handleViewRun = useCallback((runId: string) => callbacksRef.current.onViewRun(runId), []);
+  const handleRepeat = useCallback((input: Record<string, unknown>) => callbacksRef.current.onRepeat(input), []);
+
+  const itemContent = useCallback(
+    (index: number, message: ChatMessage) => (
+      <MessageBubble message={message} isFirst={index === 0} onViewRun={handleViewRun} onRepeat={handleRepeat} />
+    ),
+    [handleViewRun, handleRepeat]
+  );
+
+  const context = useMemo<ListContext>(
+    () => ({ loadingMore, sending, statusText, steps, currentRunId, inputHeight }),
+    [loadingMore, sending, statusText, steps, currentRunId, inputHeight]
+  );
 
   // Auto-scroll to bottom when new messages arrive (if already at bottom)
   useEffect(() => {
@@ -79,10 +136,11 @@ export function ChatMessages({
 
   return (
     <Box style={{ height: '100%', position: 'relative' }}>
-
       <Virtuoso
         ref={virtuosoRef}
         data={messages}
+        context={context}
+        computeItemKey={computeItemKey}
         style={{ height: '100%' }}
         initialTopMostItemIndex={messages.length - 1}
         followOutput={false}
@@ -94,39 +152,8 @@ export function ChatMessages({
             onLoadMore();
           }
         }}
-        itemContent={(index, message) => {
-          return (
-            <MessageBubble
-              message={message}
-              isFirst={index === 0}
-              onViewRun={onViewRun}
-              onRepeat={onRepeat}
-            />
-          );
-        }}
-        components={{
-          Header: () =>
-            loadingMore ? (
-              <Center py="md">
-                <Loader size="sm" />
-              </Center>
-            ) : null,
-          Footer: () => (
-              <>
-                {sending && 
-                    <RunStatus 
-                      statusText={statusText} 
-                      runId={currentRunId} 
-                      steps={steps} 
-                      ms={22} 
-                      mx="sm" 
-                      mb="xs" 
-                      />
-                }
-                <Box style={{ height: inputHeight + 32 }} />
-              </>
-            ),
-        }}
+        itemContent={itemContent}
+        components={listComponents}
       />
     </Box>
   );
